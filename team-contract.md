@@ -16,6 +16,9 @@ My goal is to gain experience building a complete project from start to finish, 
 
 My goal for this fullstack project is to gain more experience working on the entire stack while improving my engineering practices. I want to focus on designing modular concepts that make the application easier to extend and maintain and on building an accessible frontend interface. Also, I hope to improve my communication skills and gain more experience in working on a team and how to work collaboratively on a coding project.
 
+### Jenna:
+My goal for this project is to build an application that feels both rewarding and fulfilling, something that I will be proud to share with others. Since we’re working as a team this time, I want to tackle a larger-scale project where I can really put my technical and creative skills to use. Further, I hope to improve my software engineering practices by writing clean, modular, and maintable code that's easy for others to understand and build upon.
+
 ## How quality of work will be maintained (reviewing each others' code? team review meetings? pair programming?);
 
 Reviewing each other's code before pushing to main. Team meetings to decide on next steps, changing the project concept/ideas, or reassigning task differently.
