@@ -19,6 +19,9 @@ This issue is also prevalent at other institutions; a common theme is that the w
 -   https://www.reddit.com/r/USC/comments/1fip4w5/waiting_time_at_dining_hall/
 -   https://nyunews.com/opinion/2023/03/10/awful-wait-times-nyu-eats/
 -   https://www.browndailyherald.com/article/2021/09/long-lines-brown-dining
+-   https://pittnews.com/article/197117/news/on-campus-dining-wait-times-frustrate-students-as-pitts-population-expands/
+-   https://lafayettestudentnews.com/135811/news/fixing-long-food-lines-proves-difficult/
+-   https://www.dailyprincetonian.com/article/2025/10/princeton-news-stlife-reduce-hours-frist-late-meal-overcrowding-in-dining-halls-student-reactions
 
 In fact, one employee specifically pointed out that the largest factor causing delays at UCSD dining halls is in-person orders.
 
