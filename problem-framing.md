@@ -15,12 +15,12 @@ Many dining solutions for students allow them to order specific custom meal opti
 Our chef, who is on a lunch contract with us, prepares around 50 meals each day, including one daily special and six staple menu items. One major challenge is that students who cannot attend lunch in person currently have to place their orders through Google Sheets, which only allows for food pickup at the end of lunch. Meanwhile, students who are in a hurry often have to ask friends to notify the chef to start preparing their orders early. The chef has specifically requested a system like ours to streamline this process. Additionally, other students use gear grilling, a similar service, but it only allows for preparation at the end since it is not a live system. Finally, some students have reported waiting in long lines at locations like Simmons and Baker just to get standard meals.
 
 
-This issue is also prevalent at other innstitutions, but a common theme is that often the wait and specifically the ordering contributes to the dining halls be more inefficient than eating out while being mroe expesinve than cooking for one;s self. 
+This issue is also prevalent at other institutions; a common theme is that the waiting and, specifically, the ordering process makes dining halls less efficient than eating out, while often being more expensive than cooking for oneself. 
 - https://www.reddit.com/r/USC/comments/1fip4w5/waiting_time_at_dining_hall/
 - https://nyunews.com/opinion/2023/03/10/awful-wait-times-nyu-eats/
 - https://www.browndailyherald.com/article/2021/09/long-lines-brown-dining
 
-In fact one employee calls out specifically that the olargest force caysiubg delays is in fact the in person orders at UCSD. 
+In fact, one employee specifically pointed out that the largest factor causing delays at UCSD dining halls is in-person orders.
 - https://www.reddit.com/r/UCSD/comments/1o3o6fm/comment/niwkffj/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
 
 
