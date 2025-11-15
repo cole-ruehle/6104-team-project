@@ -2,137 +2,84 @@
 
 ## Domain
 
-A digital meal ordering system that enables students to submit menu or custom food requests directly to chefs, who can view and manage incoming orders in real time.[^1]
-
-[^1]: I think this app is like Uber Eats but without delivery people and reduce the dining hall physical clog. Also solves issue where the user only has like 10 mins but want a custom omlette in like 12 pm on weekday in Vassar, where the wait is like 30 mins.
+Our domain is social media specifically in the networking sense. It will cross into other corporate or professional tools like application listing platforms and portfolio sharing resources as it tries to serve the user and employer side of those services.
 
 ## Problem
 
-Many dining solutions for students allow them to order specific custom meal options. Ordering items such as omelets, stir-fries, or burgers often requires standing in long lines, where the chef must remember each person's request and cook them while students wait. This results in long wait times for food. A potential solution is to allow requests to be submitted in advance, so that meals can be prepared ahead of time and ready when people arrive.
+Social media apps for networking don’t help with the problem of finding who I know. You have to remember or search through your list in hopes of finding the person you want. When it comes to hiring out, trying to learn, you are looking for someone with specific knowledge, skills, and experience. Our app will turn your social network into a tool for connection, hiring, and knowledge.
 
 ## Evidence
 
-Our chef, who is on a lunch contract with us, prepares around 50 meals each day, including one daily special and six staple menu items. One major challenge is that students who cannot attend lunch in person currently have to place their orders through Google Sheets, which only allows for food pickup at the end of lunch. Meanwhile, students who are in a hurry often have to ask friends to notify the chef to start preparing their orders early. The chef has specifically requested a system like ours to streamline this process. Additionally, other students use gear grilling, a similar service, but it only allows for preparation at the end since it is not a live system. Finally, some students have reported waiting in long lines at locations like Simmons and Baker just to get standard meals.
+1. **Personal Testimonial:** I’ve hired multiple engineers at my company, and the biggest challenge is quickly finding strong candidates. The best hires almost always come through introductions from my network because trusted connections act as a filter and respond faster. My boss frequently mentions that he knows he is connected to many great engineers but has no efficient way to find them.
+2. [**The Shortest Path to Better Hires: Best Practices for Employee Referral Programs:**](https://www.oracle.com/us/shortest-path-to-better-hires-1898145.pdf) States that better employees can be found through referred candidates (i.e. those in your network). “The people closest to your best employees are also likely to be good employees.”
+3. [**Why Posting Jobs Is Not Enough to Get Good Candidates:**](https://thinkingahead.com/resources/hiring-advice/why-posting-jobs-is-not-enough-to-get-good-candidates/) Posting job opportunities online can often be inefficient. As the article states, an average job posting gets a few hundred applications, which can be overwhelming for the recruiters. Job postings also do not attract all talents, and the article recommends that the recruiter actively reach out to potential employees rather than post passively.
+4. [**The Hidden Cost of Hiring: Why Relying on Job Applications for Specialized Roles is Costing You More Than You Think:**](https://www.opsvs.com/2025/03/06/the-hidden-cost-of-hiring-why-relying-on-job-applications-for-specialized-roles-is-costing-you-more-than-you-think) Mentions that searching for candidates the traditional way through online posting lead to higher turnover rates and less productivity. Instead, being able to find an employee within one's network is more cost effective and efficient.
 
-This issue is also prevalent at other institutions; a common theme is that the waiting and, specifically, the ordering process makes dining halls less efficient than eating out, while often being more expensive than cooking for oneself.
-
--   https://www.reddit.com/r/USC/comments/1fip4w5/waiting_time_at_dining_hall/
--   https://nyunews.com/opinion/2023/03/10/awful-wait-times-nyu-eats/
--   https://www.browndailyherald.com/article/2021/09/long-lines-brown-dining
--   https://pittnews.com/article/197117/news/on-campus-dining-wait-times-frustrate-students-as-pitts-population-expands/
--   https://lafayettestudentnews.com/135811/news/fixing-long-food-lines-proves-difficult/
--   https://www.dailyprincetonian.com/article/2025/10/princeton-news-stlife-reduce-hours-frist-late-meal-overcrowding-in-dining-halls-student-reactions
-
-In fact, one employee specifically pointed out that the largest factor causing delays at UCSD dining halls is in-person orders.
-
--   https://www.reddit.com/r/UCSD/comments/1o3o6fm/comment/niwkffj/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
 
 ## Comparables
 
-1. **[CBORD/GET App](https://get.cbord.com/mit/full/prelogin.php)** - Students can use the GET app to check their meal funds (number of meal swipes, TechCash balance, etc.). It also allows online ordering for a few restaurants and cafes around campus, such as BibimBox and Carolicious in the Stud.
-
-    _Limitation:_ Online ordering is available only for a small selection of campus dining locations and does not include dining halls.
-
-2. **[Dunkin’ Mobile App](https://www.dunkindonuts.com/en/mobile-app)** - Dunkin’s mobile app allows users to order ahead of time and pick up their food when it’s ready. This benefits students with tight schedules who want to grab food before or after class.
-
-    _Limitation:_ This app works well for Dunkin', but we do not have the same order online option for dining halls or other dining locations on campus.
-
-3. **General Online Ordering Systems (e.g., restaurants, grocery apps, and retail stores)** - Many stores and restaurants now use online ordering systems to reduce waiting times. Examples include apps like Starbucks, Chipotle, and others. These systems allow users to place orders online and pick them up when its ready, improving efficiency.
-
-    _Limitation:_ These systems are not designed for campus dining hall environments that operate on meal plans.
-
-4. **[Transact Mobile Ordering](https://www.transactcampus.com/solutions/campus-commerce/transact-mobile-ordering)** - A mobile ordering app built for college campuses that enables students to order ahead, pay with campus cards/meal plans, and pick up food at dining locations.
-
-    _Limitation_: Though designed for campus dining, this system may focus more on standard grab-and-go menu items rather than customized meal items, so it may not integrate well with some aspects of our dining halls.
-
-5. **Google Sheets** - As mentioned above, a workaround for students who do not have time to wait in line is to place their orders in advances on Google Sheets. Students manually enter their meal choices, which the chef reviews later to prepare food for pickup at the end of lunch.
-
-    _Limitation:_ This method does not allow students to schedule or receive live updates about their orders. It also increases the chance of human error (e.g. duplicating an order, etc.).
+1. **[LinkedIn](https://linkedin.com):**
+    - Similar but different due to indexing it is also a content sharing mechanism rather than focusing on doing operations on the network data.
+    - Limitations: Search feature is not flexible when it comes to search higher degree connections.
+2. **[Instagram](https://www.instagram.com/):**
+    - Also a network where you can see who follows who and who tags who allowing it to branch.
+    - Limitations: Does not provide a lot of professional information about someone and does not allow ease of search for higher degree connections.
+3. **Portfolio websites:**
+    - A way an engineer can share their work in a way that it is hopefully searchable and indicative of their ability to professional employers.
+    - Limitations: Often does not provide a wide enough network to be very helpful.
+4. **[Indeed](https://www.indeed.com/):**
+    - A method for generating leads to hire and connect. It uses a very different strategy though of blasting them out on a board and serving them to random individuals who have more agency rather than giving their information to employers who selectively reach out.
+    - Limitations: Does not support searching for higher degree connections.
 
 ## Features
 
-The kitchen needs to upload the ingredients available for the day, with stock updates reflected in real time. Ingredient availability must be visible to students, categorized by the meals they can be used for. Orders update dynamically as ingredients run out, and all ordering, timing, and pickup are tied to existing MIT dining and payment systems.
+1. **Account Creation and Management**
+   - Users can create and manage their accounts.
+   - Users control what information is visible, private, or excluded from their profile.
 
-### 1. Menu & Ingredient Management
+2. **Importing Connections from External Platforms**
+   - Users can connect external platforms such as LinkedIn, Instagram, or Handshake.
+   - Public information about their connections is imported into a unified in-app network.
 
--   Kitchen staff can upload daily menu items, their customizable ingredients, and stock quantities.
--   Food availability updates in real time as orders are placed or ingredients run out.
--   Meals and ingredients can be tagged (e.g., vegetarian, gluten-free, contains nuts) for accessibility and dietary filtering.
--   Each menu item has a prep time.
+3. **LLM-Powered Connection Schema**
+   - The system uses an LLM to automatically interpret imported connections' information.
+   - Skills, roles, interests, and relevant attributes are inferred from public data.
 
-### 2. Custom Meal Builder
+4. **Network Querying for Relevant Connections**
+   - Users can query their network for relevant connections.
+   - The LLM semantically searches across the user’s entire imported network to find these relevant people.
 
--   Students can customize meals (e.g., omelets, stir-fries, salads) by selecting available ingredients and other preferences.
--   Each customization option dynamically reflects what’s currently available in the kitchen.
--   List of pre-built recommended combos are available to speed up ordering for popular or chef-recommended configurations.
+5. **Filtering Query Results**
+   - After querying, users can apply filters such as:
+     - Platform origin (LinkedIn, Instagram, etc.)
+     - Education, company, location, or mutual connections
+     - Degree of separation
+     - Etc.
 
-### 3. Advance Order Placement
+6. **Interactive Network Exploration**
+   - Users can visually explore their entire multi-platform network or any post-query subset through an interactive graph.
+   - Connections are clustered and color-coded using LLM inference.
+   - Users can see how any person is connected to them through intermediaries.
 
--   Students can submit orders to a specific kitchen before arriving, with options to schedule for a pickup time window.
--   Each order is visible only to the designated kitchen and linked to that day’s menu.
--   Order cutoff times can be set by the kitchen to avoid late or unmanageable submissions.
-
-### 4. Order Queue Management (Kitchen Dashboard)
-
--   Kitchen staff can view incoming orders in real time, sorted by pickup deadline.
--   Staff can mark orders as “In Progress,” “Ready for Pickup,” or “Completed,” which updates student notifications instantly.
-
-### 5. Policy Timer & Pickup Enforcement
-
--   A timer enforces a pickup window after food is ready (e.g., 15–20 minutes).
--   Orders not picked up in time are marked as expired and optionally penalized to discourage misuse.
--   Real-time notifications alert users when their order is nearly ready and again when it’s ready for pickup. Also shows user the estimated prep time when their order is initially placed.
--   Helps maintain food quality and prevents storage overflow at the kitchen.
-
-### 6. User System
-
--   Users can sign in with MIT Kerberos credentials or as guests.
--   MIT users can connect to their existing meal plan or TechCash.
--   Guest users can link debit/credit cards for payment.
-
-### 7. Payment & Swipe System Integration
-
--   Students “swipe” digitally (via MIT ID) before placing an order to confirm payment eligibility.
--   Once swiped, their account is flagged as having used a meal for that dining period.
--   When they physically swipe again upon entering the dining hall, it serves as confirmation for pickup without charging a second time.
--   If order was placed as a guest, they can simply show confirmation page to enter the dining hall.
-
-### 8. Real-Time Notifications
-
--   Students receive updates when:
-    -   Their order is accepted with estimated time until ready based on the specific order and how busy the dining hall is currently.
-    -   The kitchen begins preparation.
-    -   The order is nearly ready (e.g., 3–5 minutes remaining).
-    -   The order is ready for pickup.
--   Notifications can be through push alerts, email, SMS, or user's choice.
 
 ## Ethical Analysis
 
-1. **Stakeholders (Direct Stakeholders)**
+1. **Values (Chosen Desired Values: Privacy and Consent):**
+   - An important question is consent to be on the site. What permissions and consent do we need from someone to be able to use their information in our application?
+   - We decided that importing only public profiles and that public information should be shared. We are aligning with the goal of those platforms and only sharing public employment information so it should be fair. Secondly, we will not disambiguate using personal info like phone numbers. Finally, we will have a set of push notifications saying something like “X manually added you to their network. Would you like to join the platform or dispute that you know this person, allowing someone to intervene.
 
-    - a. Although the app aims to help speed up the ordering and dining process for students, chefs and dining hall staff are also affected, since the app will change their workflow. On top of the in-person orders that they are handling, the staff may feel rushed or overwhelmed during peak ordering spikes with the online orders.
-    - b. To combat an overflowing number of orders, we can implement a feature that watches out for peak ordering times. The app can limit orders when it gets too busy for the staff.
+2. **Time (Reappropriation)**
+   - Although the app is mostly aiming to help recruiters find candidates faster, users might use the search tool in other ways. For example, they can use the app to find peers with similar interests or classmates who have taken a class they wish to learn more about.
+   - We can expand the app to not only store professional data from LinkedIn. Rather, we can also have the users input their own data if they wish. This would allow others to find them more easily in the network.
 
-2. **Stakeholders (Non-Targeted Use)**
+3. **Time (Choosing Not to Use)**
+   - If some users choose not to use the app or choose not to consent to having their data on the app (keep everything private), then we might have some holes in the network.
+   - We are going to limit ourselves to only public information. A few holes in the network is unavoidable, but the network will still be pretty complete. Our search feature would just have to be more robust and work around these missing pieces of information.
 
-    - a. Students might use the app to place repeated orders or orders they do not intend to pick up to bother staff, which wastes food and time. This is a risk of non-targeted or malicious use.
-    - b. We can add student ID verification and a cancellation/penalty policy for uncollected orders to discourage misuse.
+4. **Values (Value Tensions)**
+   - A user might want to keep some of their information private, but because they want to be visible to recruiters on the app, they feel pressured to have more of their information visible and public on their profile.
+   - We can introduce a visibility system, where some information is only visible to certain users (for instance, limiting it to only be visible to those in your direct network).
 
-3. **Pervasiveness (Widespread Use)**
-
-    - a. If the app becomes widespread, peak dining hall hours may shift or become even busier, creating worse waiting times rather than improving them. Some students who are not using the app could end up waiting longer than before.
-    - b. The app can introduce a time slot scheduling system or a designated queue for walk in customers to maintain fairness between app users and non-users.
-
-4. **Time (Adaptation)**
-
-    - a. Some students might have tight schedules that only give them small gaps of time for meals and breaks. The app can help these students adapt by making it easier to pick up meals quickly between classes. This could support healthier eating habits because they no longer skip meals due to the lack of time and long lines.
-    - b. The app can have features where it estimates pickup windows to let students know how long before their orders are ready. We can also have a feature that allows students to place/schedule orders in advance so they do not have to worry about placing it the day of. This would allow them to plan according to their class schedules more seamlessly.
-
-5. **Time (Reappropriation)**
-
-    - a. Student groups might use the app to place bulk orders and unintentionally clogging the system, delaying individual meals.
-    - b. The app can include a separate system for large group orders so that normal meal service remains unaffected.
-
-6. **Values (Chosen Desired Value: Privacy)**
-    - a. Tracking a student’s order history might unintentionally reveal a student's schedule, such as where they spend time or when they are on campus. This can affect privacy.
-    - b. The app can either not track a student’s order history or allow them to delete it.
+5. **Stakeholders (Indirect Stakeholders)**
+   - People who do not use the app might find themselves appearing in searches because they were in someone else’s network. This might create concerns about privacy.
+   - We will only be using public data, so if someone prefers to remain private, their information will not show up in our application.
