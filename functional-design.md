@@ -105,6 +105,14 @@ A user is looking to get into sports analytics. It's often best to get a startin
 
 
 # UI Sketches
+![Network Page UI Sketch](networkPage.png)
+*Figure: Main network visualization and navigation page.*
+
+![Search Results UI Sketch](resultsPage.png)
+*Figure: Search results view after running a query across the imported network.*
+
+![Search Interface UI Sketch](searchPage.png)
+*Figure: Semantic search and filter interface for exploring connections.*
 
 # Visual Design Study
 
