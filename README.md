@@ -5,3 +5,6 @@
 
 ### Problem Framing
 [Problem Framing](problem-framing.md)
+
+### Functional Design
+[Functional Design](functional-design.md)

@@ -89,6 +89,255 @@ Social media apps for networking don’t help with the problem of finding who I 
 
 ## Concept Specifications
 
+### concept: PublicProfile
+
+* **concept**: PublicProfile [User]
+* **purpose**: Provide a concise, public-facing description of a user that others can quickly scan and interpret.
+* **principle**: When a user creates a public profile with a headline, attributes, and links, anyone can later view that user’s profile and consistently see the same information; if the user updates their profile, viewers will see the updated information the next time it is accessed.
+
+* **state**:
+    * a set of `Profiles` with
+        * `user` User
+        * `headline` String
+        * `attributes` set of String
+        * `links` set of String
+
+* **actions**:
+    * `createProfile (user: User, headline: String, attributes: set of String, links: set of String): Empty`
+        * **requires**:
+            * No `Profiles` entry exists for `user`.
+            * `user` exists.
+            * `headline` is not empty.
+        * **effects**:
+            * Creates a new profile for `user` with the provided headline, attributes, and links.
+
+    * `updateProfile (user: User, headline: String?, attributes: set of String?, links: set of String?): Empty`
+        * **requires**:
+            * A `Profiles` entry exists for `user`.
+            * If `headline` is provided, it is not empty.
+        * **effects**:
+            * Updates each provided field on the profile.
+            * Leaves unprovided fields unchanged.
+            * Overwrites fields if explicitly provided as empty.
+
+    * `deleteProfile (user: User): Empty`
+        * **requires**:
+            * A `Profiles` entry exists for `user`.
+        * **effects**:
+            * Removes the profile for `user`.
+
+* **notes**:
+    * `attributes` can instead be represented as just a set of Strings if that fits better later on in the design process.
+
+---
+
+### concept: MultiSourceNetwork
+
+* **concept**: MultiSourceNetwork [Owner, Node, Source]
+* **purpose**:
+  Allow an owner to maintain and explore a single unified network of nodes and connections that may originate from multiple independent sources.
+* **principle**:
+  When an owner accumulates nodes and edges from different sources into their network, they can explore them as one combined graph. If any contributing source removes its nodes or edges, the owner’s unified network reflects these changes automatically.
+
+* **state**:
+    * a set of `Networks` with
+        * `owner` Owner
+        * `root` Node?
+    * a set of `Memberships` with
+        * `owner` Owner
+        * `node` Node
+        * `sources` JSON
+    * a set of `Edges` with
+        * `owner` Owner
+        * `from` Node
+        * `to` Node
+        * `source` Source
+        * `weight` Number?
+
+* **actions**:
+
+    * `createNetwork (owner: Owner, root: Node?): Empty`
+        * **requires**:
+            * No `Networks` entry exists for `owner`.
+        * **effects**:
+            * Creates a new `Networks` entry for the owner with optional `root`.
+
+    * `setRootNode (owner: Owner, root: Node): Empty`
+        * **requires**:
+            * A `Networks` entry exists for `owner`.
+            * A `Memberships` entry exists for `(owner, root)`.
+        * **effects**:
+            * Sets the `root` field for the owner’s network.
+
+    * `addNodeToNetwork (owner: Owner, node: Node, source: Source): Empty`
+        * **requires**: none.
+        * **effects**:
+            * Creates or updates a `Memberships` entry by adding `source` to the node’s source set.
+
+    * `removeNodeFromNetwork (owner: Owner, node: Node, source: Source?): Empty`
+        * **requires**:
+            * A `Memberships` entry exists for `(owner, node)`.
+        * **effects**:
+            * If `source` is provided: remove it from the node’s `sources` set.
+            * If `sources` becomes empty: delete the `Memberships` entry and all corresponding `Edges` for the owner.
+
+    * `addEdge (owner: Owner, from: Node, to: Node, source: Source, weight: Number?): Empty`
+        * **requires**:
+            * `from != to`.
+        * **effects**:
+            * Creates or updates an `Edges` entry for `(owner, from, to, source)` with optional `weight`.
+
+    * `removeEdge (owner: Owner, from: Node, to: Node, source: Source): Empty`
+        * **requires**:
+            * An `Edges` entry exists for `(owner, from, to, source)`.
+        * **effects**:
+            * Removes the specified edge.
+
+* **notes**:
+    * The concept is multi-source because each node or edge may be contributed by one or more independent sources (e.g., multiple platforms).
+    * This supports combining, removing, and updating source-specific network data without affecting other sources.
+    * `Networks` represents the owner’s unified network workspace and stores per-owner configuration such as the chosen `root` node.
+    * `Memberships` records which nodes appear in the owner’s unified network and tracks which sources contributed each node.
+
+
+---
+
+### concept: SemanticSearch
+
+* **concept**: SemanticSearch [Owner, Item]
+* **purpose**:
+  Allow an owner to perform semantic, intent-based searches over their items and receive a ranked list of items most related to the query.
+* **principle**:
+  When an owner indexes items with descriptive text, and later issues a natural-language query, the concept produces a ranked set of items whose descriptions are most relevant. If the query is refined, the ranking adapts accordingly.
+
+* **state**:
+    * a set of `IndexedItems` with
+        * `item` Item
+        * `owner` Owner
+        * `text` String
+        * `vector` JSON?
+
+    * a set of `SearchQueries` with
+        * `queryID` String
+        * `owner` Owner
+        * `queryText` String
+        * `filters` JSON?
+        * `resultItems` Item[]
+
+* **actions**:
+
+    * `indexItem (owner: Owner, item: Item, text: String, vector: JSON?): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Creates or updates an `IndexedItems` entry for `(owner, item)` with the provided text and optional vector.
+
+    * `removeIndexedItem (owner: Owner, item: Item): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Deletes any `IndexedItems` entry for `(owner, item)`.
+
+    * `queryItems (owner: Owner, queryText: String, filters: JSON?): (queryID: String)`
+        * **requires**:
+            * `queryText` is not empty.
+        * **effects**:
+            * Creates a new `SearchQueries` entry with
+              `queryText`, `filters`, and a ranked sequence `resultItems`.
+            * Returns the new `queryID`.
+
+    * `refineQuery (queryID: String, filters: JSON): Empty`
+        * **requires**:
+            * A `SearchQueries` entry with `queryID` exists.
+        * **effects**:
+            * Updates the filters for the query.
+            * Recomputes and replaces `resultItems` based on new filters.
+
+* **invariants**:
+    * All `resultItems` in any query belong to the same owner's indexed items.
+
+* **notes**:
+    * `vector` is part of the state to consider support for vector-based semantic similarity.
+    * The concept does not assume anything about how semantic similarity is computed.
+
+
+---
+
+### concept: GraphExplorer
+
+* **concept**: GraphExplorer [Viewer, Node]
+* **purpose**: Let a viewer open and adjust an explorable graph view of nodes, including visible nodes, grouping, layout, filters, and optional highlighted paths.
+* **principle**: When a viewer opens a graph view over a set of nodes, they see those nodes laid out, can adjust filters and groupings, and optionally highlight a path.
+
+* **state**:
+    * a set of `GraphViews` with
+        * `viewID` String
+        * `viewer` Viewer
+        * `visibleNodes` set of Node
+        * `anchorNode` Node?
+        * `filters` JSON?
+
+    * a set of `Layouts` with
+        * `viewID` String
+        * `node` Node
+        * `x` Number
+        * `y` Number
+        * `groupID` String?
+
+    * a set of `HighlightedPaths` with
+        * `viewID` String
+        * `nodes` seq of Node
+
+* **actions**:
+
+    * `createGraphView (viewer: Viewer, visibleNodes: set of Node, anchorNode: Node?, filters: JSON?): (viewID: String)`
+        * **requires**:
+            * None
+        * **effects**:
+            * Creates a graph view and initial layouts.
+
+    * `updateVisibleNodes (viewID: String, visibleNodes: set of Node): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Updates visible nodes and corresponding layouts.
+
+    * `updateLayouts (viewID: String, layouts: seq of { node: Node, x: Number, y: Number, groupID: String? }): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Updates layout for each node.
+
+    * `setFilters (viewID: String, filters: JSON): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Updates filters.
+
+    * `setAnchorNode (viewID: String, anchorNode: Node): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Sets anchor node.
+
+    * `setHighlightedPath (viewID: String, nodes: seq of Node): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Creates or updates highlighted path.
+
+    * `clearHighlightedPath (viewID: String): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Removes highlighted path.
+
+   **notes**
+   * `anchorNode` is the node that the viewer wants the visualization to center around, which may be used for focus, zooming, or computing contextual relationships.
+   * `Layouts` store the visual placement of nodes for a specific graph view. Each layout entry records the x/y position and optional group assignment for a node, allowing the concept to preserve or update how the viewer’s graph is arranged.
+
+---
+
 ## Syncs
 
 # User Journey
@@ -125,7 +374,3 @@ A user is looking to get into sports analytics. It's often best to get a startin
 ## Team Responsibilities
 
 ## Risks & Mitigation
-
-
-
-
