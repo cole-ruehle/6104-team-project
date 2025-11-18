@@ -340,6 +340,67 @@ Social media apps for networking don’t help with the problem of finding who I 
 
 ## Syncs
 
+**sync** createNetworkForNewProfile
+
+**when**
+-   PublicProfile.createProfile(user)
+-   MultiSourceNetwork.createNetwork(owner: user?) : (network?)
+
+**where**
+-   if owner has no network
+
+**then**
+-   MultiSourceNetwork.createNetwork(owner: user, root: user)
+-   MultiSourceNetwork.addNodeToNetwork(owner: user, node: user, source: "profile")
+
+---
+
+**sync** addProfileLinksToNetwork
+
+**when** 
+- PublicProfile.updateProfile (user, links)
+
+**then**
+- for each link in links:
+   - MultiSourceNetwork.addNodeToNetwork (owner: user, node: link, source: "profile_links")
+   - MultiSourceNetwork.addEdge (owner: user, from: user, to: link, source: "profile_links")
+
+---
+
+**sync** reindexProfileForSemanticSearch
+
+**when**
+- PublicProfile.updateProfile (user, headline?, attributes?, links?)
+
+**then**
+- SemanticSearch.indexItem (owner: user, item: user, text: concatenated profile)
+
+---
+
+**sync** searchCreatesGraphView
+
+**when**
+- SemanticSearch.queryItems (owner, queryText, filters) : (queryID)
+
+**then**
+- GraphExplorer.createGraphView (viewer: owner, visibleNodes: resultItems)
+
+---
+
+**sync** refinedSearchUpdatesGraphView
+
+**when**
+- SemanticSearch.refineQuery (queryID, filters)
+
+**where**
+- in SemanticSearch: get updated resultItems for queryID
+- in SearchMapping: find GraphView associated with queryID
+
+**then**
+- GraphExplorer.updateVisibleNodes (viewID, resultItems)
+
+---
+
 # User Journey
 
 ### Hiring
