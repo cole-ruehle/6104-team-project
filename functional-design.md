@@ -563,11 +563,3 @@ The development plan is structured to align directly with the milestone phases a
 For detailed tasks, responsibility handoffs, and risk contingencies, refer to the linked spreadsheet and document.
 
 ---
-
-
-## Feature Delivery Timeline
-
-[Product Backlog](https://docs.google.com/spreadsheets/d/116ISQtCtWRyhLde5VjYBxozTRcjoM0o3Lnhr-KnRByA/edit?usp=sharing)
-
-## Team Responsibilities & Risks & Mitigation Document
-[Responsibility,Risks,Backup](https://docs.google.com/document/d/1R_6nuRlOsQ65xkurcoxQNJ44AZzgTLI4bB5NlMPMtaQ/edit?usp=sharing)
