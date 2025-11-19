@@ -426,6 +426,13 @@ A user is looking to get into sports analytics. It's often best to get a startin
 
 # Visual Design Study
 
+![Visual Design Study 1](/images/VDS1.png)
+*Figure: Visual Design Study #1*
+
+![Visual Design Study 2](/images/VDS2.png)
+*Figure: Visual Design Study #2*
+
+
 # Design Summary
 
 The four core concepts—PublicProfile, MultiSourceNetwork, SemanticSearch, and GraphExplorer—work together and turns disparate social connections into a unified, queryable, explorable knowledge graph. PublicProfile establishes the user’s identity and structured information. MultiSourceNetwork merges imported connections from multiple platforms into a single source-aware graph, protecting privacy, preserving origin of the imported connections, and enabling flexible updates. SemanticSearch indexes profile and network data so that algorithm queries can surface relevant people across all imported platforms. GraphExplorer then visualizes the search results or the full network, allowing rich exploration, filtering, and understanding of how each connection relates to the user. The provided syncs coordinate these concepts so that profile updates reindex automatically, search results automatically create graph views, refinements dynamically update the visualization, and altogether keeps every update made by different users visible another. This ecosystem enables users to discover who in their network is relevant for hiring, learning, or introductions without manually browsing lists or remembering names.
@@ -439,6 +446,123 @@ The design directly incorporates privacy, consent, visibility control, and data 
 2. The system assumes that semantic inference from public profiles is accurate enough for sensitive tasks like hiring, but if the user choose to use LLM for ranking other users or our developed ranking algorithm is biased, it would require mitigation strategies.
 
 # Development Plan
+
+## Development Plan
+
+Based on the feature backlog and team discussion, our development plan is organized into milestone phases that align directly with the core concepts outlined above: `PublicProfile`, `MultiSourceNetwork`, `SemanticSearch`, and `GraphExplorer`. Each phase emphasizes building the backend API for a core function, with the frontend constructed to exercise and demonstrate these features. Below, we break down the plan with responsibilities and technical focus for each step.
+
+---
+
+### Alpha Milestone 1: Core Backend Foundations
+
+**Goals:**
+- Implement backend APIs for account creation, network storage, and access.
+- Build basic frontend to interact with backend and render user data.
+- Lay groundwork for further features by modeling after the `PublicProfile` and `MultiSourceNetwork` concepts.
+
+**Key Features:**
+1. **User Account & PublicProfile**
+   - API endpoints for creating/updating/deleting user accounts and their public profiles (headline, attributes, links).
+   - Data storage that mirrors the concept’s state (per-user profile records).
+
+2. **Unified Network Storage (MultiSourceNetwork)**
+   - Backend database schemas and endpoints to store/import a user's multi-source network graph:
+     - Nodes (people/items) and Edges (connections) as per the concept.
+     - Attribution of each node/edge's source platform.
+   - Ability to add/remove nodes/edges and handle multiple sources dynamically.
+
+**Team Assignments:**
+- **Backend (MultiSourceNetwork, storage):** Cole Ruehle
+- **Frontend (UI for account/network):** Cole Ruehle
+
+---
+
+### Alpha Milestone 2: Semantic Search
+
+**Goals:**
+- Enable semantic (LLM or vector-based) search over user networks and profiles.
+- Surface relevant connections and profiles based on natural language queries, as described in the `SemanticSearch` concept.
+
+**Key Features:**
+1. **Semantic Indexing**
+   - API endpoints to index user profiles and network items (store text and/or vectors).
+   - Connect profile and network updates to re-indexing automatically (see syncs).
+
+2. **Search Functionality**
+   - Endpoint to execute a semantic search for a user, returning a ranked list as defined by `SemanticSearch.queryItems`.
+   - API to refine/filter search results per the concept model.
+   - Link searches to updating/creating a graph view in accordance with the syncs.
+
+**Team Assignments:**
+- **Search Algorithm, Indexing:** Jenna (focus: backend search system)
+- **Backend (API, integration):** Jenna, Cole Ruehle
+
+---
+
+### Alpha Milestone 3: Network Importing & Integration
+
+**Goals:**
+- Allow users to connect/import from platforms like LinkedIn, Instagram, or Handshake.
+- Bind imported data to the core network graph, enabling cross-platform network merging per `MultiSourceNetwork`.
+
+**Key Features:**
+- OAuth or API-based integration for public data retrieval.
+- Automated addition of imported connections with appropriate sources and edges.
+- Address privacy and consent rules as per the concept and ethics analysis.
+
+**Team Assignments:**
+- **Importing from 3rd Parties:** Cole Ruehle
+
+---
+
+### Beta Milestone: Visual Exploration & Feedback
+
+**Goals:**
+- Deliver the frontend visualization for searching and exploring the unified network (`GraphExplorer`).
+- Implement backend routines for clustering/layout (can generate layout server-side, send to frontend for rendering).
+- Gather, respond to, and prioritize user feedback.
+
+**Key Features:**
+1. **Graph Visualization**
+   - Frontend for interactive graph navigation, exploration, grouping, and filtering.
+   - Backend services for auto-layout, clustering, and returning grouped/positioned nodes (as in `GraphExplorer.Layouts`).
+
+2. **Refinement and Polish**
+   - Finalize syncs so that all user-initiated actions (e.g., profile updates, new searches) trigger appropriate backend/front-end updates, keeping state consistent across concepts.
+
+**Team Assignments:**
+- **Visual Clustering/Layout (backend):** Jenna
+- **Frontend polish, usability:** Cole Ruehle
+
+---
+
+### Summary Table
+
+| Phase                | Backend Lead    | Frontend Lead | Focused Concept(s)                 |
+|----------------------|----------------|---------------|-------------------------------------|
+| Alpha 1 (Network)    | Ivy            | Jing          | PublicProfile, MultiSourceNetwork   |
+| Alpha 2 (Search)     | Jenna          | Jing          | SemanticSearch                      |
+| Alpha 3 (Importing)  | Cole Ruehle    | Jing          | MultiSourceNetwork (import flows)   |
+| Beta (Graph display)    | TBD          | TBD          | GraphExplorer, Final Integration    |
+| Beta (Viz/Polish)    | TBD          | TBD          | GraphExplorer, Final Integration    |
+
+---
+
+**Key Integration Points with Concepts:**
+- Each API and backend implementation ties directly to the corresponding concept’s actions/state (e.g., profile CRUD reflects `PublicProfile` actions, all network mutations support dynamic sources per `MultiSourceNetwork`).
+- Semantic search and indexing are coupled tightly with network/profile updates: profile changes re-index, importing triggers new indexing, search results automatically link to visualization (as described in syncs).
+- Visual clustering and graph exploration APIs/services parallel the `GraphExplorer` concept, providing a data model and UI that supports filtering, highlighting paths, and dynamic layouts.
+
+---
+
+**Risks/Mitigation:**
+- **Complex integration (multi-source data, privacy):** Follow the conceptual model’s rules strictly for source provenance, deletion, and privacy enforcement.
+- **LLM or vector search accuracy/bias:** Provide user feedback interface and options for correcting or reporting results, and version new ranking/embedding methods safely.
+
+For detailed tasks, responsibility handoffs, and risk contingencies, refer to the linked spreadsheet and document.
+
+---
+
 
 ## Feature Delivery Timeline
 
