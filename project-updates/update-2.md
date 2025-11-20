@@ -4,7 +4,7 @@
 - Location: Zoom
 
 ## Agenda
-- Each member give a brief update on their work and questions/issues they have
+- Clarify each member's assigned work and questions/issues
 - Go over the questions other students had about our pitch
 - Set up next week's TA check-in (likely Monday or Tuesday over Zoom)
 
