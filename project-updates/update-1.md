@@ -27,4 +27,9 @@ Problem: Emails can get pushed down really fast since dormspam is in outlook wit
 - Regular team check-ins: haven't decided on a day and time for our weekly check-ins.
 
 ## Plans & Decisions
-- We discussed many project ideas and ended up settling on a network query tool. 
+- Settled on a new idea: an app that allows you to search through your social network at ease. Find people with skill sets and knowledge that you're looking for that are within several degrees of connection.
+- Next steps:
+  - Flesh out this idea more and brainstorm specfic concepts needed for the project
+    - What platforms are we going to pull data from? Will it mainly be LinkedIn or will we branch out?
+  - Brainstorm more about ethical issues (specifically privacy)
+  - Complete problem framing
