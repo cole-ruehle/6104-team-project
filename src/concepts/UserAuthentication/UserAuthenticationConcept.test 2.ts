@@ -1,14 +1,6 @@
-[@implementation](implementation.md)
-
-[@testing-concepts](../../background/testing-concepts.md)
-
-# test: UserAuthentication
-
-```typescript
 import { assertEquals } from "jsr:@std/assert";
 import { testDb } from "../../utils/database.ts";
-import UserAuthenticationConcept from "./UserAuthentication.ts";
-import { describe } from "node:test";
+import UserAuthenticationConcept from "./UserAuthenticationConcept.ts";
 
 Deno.test("UserAuthentication: register and authenticate successfully", async () => {
   const [db, client] = await testDb();
@@ -62,7 +54,7 @@ Deno.test("UserAuthentication: duplicate usernames should fail", async () => {
   await client.close();
 });
 
-Deno.test("UserAuthentication: empty username or password", async () => {
+Deno.test("PasswordAuthentication: empty username or password", async () => {
   const [db, client] = await testDb();
   const concept = new UserAuthenticationConcept(db);
 
@@ -181,5 +173,3 @@ Deno.test("UserAuthentication: incorrect password should fail", async () => {
 
   await client.close();
 });
-
-```

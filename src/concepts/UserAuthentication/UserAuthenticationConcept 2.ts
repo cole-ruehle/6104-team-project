@@ -1,15 +1,4 @@
-[@concept-design-overview](../../background/concept-design-overview.md)
-
-[@concept-specifications](../../background/concept-specifications.md)
-
-[@implementing-concepts](../../background/implementing-concepts.md)
-
-[@user-authentication-concept](./UserAuthentication.md)
-
-# implement: UserAuthentication
-
-```typescript
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { Collection, Db } from "npm:mongodb";
 import { Empty, ID } from "../../utils/types.ts";
@@ -36,7 +25,11 @@ export default class UserAuthenticationConcept {
    */
   private hashPassword(password: string): string {
     const salt = randomBytes(16).toString("hex");
-    const hash = createHash("sha256").update(salt + password).digest("hex");
+
+    // 100k iterations, 32-byte output, SHA-256
+    const hash = pbkdf2Sync(password, salt, 100_000, 32, "sha256")
+      .toString("hex");
+
     return `${salt}:${hash}`;
   }
 
@@ -45,11 +38,13 @@ export default class UserAuthenticationConcept {
    */
   private verifyPassword(password: string, stored: string): boolean {
     const [salt, storedHash] = stored.split(":");
-    const hash = createHash("sha256").update(salt + password).digest("hex");
 
-    // Use timing-safe comparison to prevent timing attacks
+    const hash = pbkdf2Sync(password, salt, 100_000, 32, "sha256")
+      .toString("hex");
+
     const a = Buffer.from(hash, "hex");
     const b = Buffer.from(storedHash, "hex");
+
     return a.length === b.length && timingSafeEqual(a, b);
   }
 
@@ -100,18 +95,6 @@ export default class UserAuthenticationConcept {
   }
 
   /**
-   * Internal query to get a user by username.
-   */
-  async _getUserByUsername({
-    username,
-  }: {
-    username: string;
-  }): Promise<{ user: User } | Empty> {
-    const userDoc = await this.users.findOne({ username });
-    return userDoc ? { user: userDoc._id } : {};
-  }
-
-  /**
    * Internal query to get a user by id.
    * Returns both id and username when found.
    */
@@ -123,35 +106,4 @@ export default class UserAuthenticationConcept {
     const userDoc = await this.users.findOne({ _id: id });
     return userDoc ? { id: userDoc._id, username: userDoc.username } : {};
   }
-
-  /**
-   * Search for users by (partial) username match.
-   * Performs a case-insensitive search.
-   */
-  async searchUsers({
-    query,
-    limit = 10,
-  }: {
-    query: string;
-    limit?: number;
-  }): Promise<{ users: { id: User; username: string }[] }> {
-    // Build a case-insensitive regex pattern
-    const regex = new RegExp(query, "i");
-
-    const results = await this.users
-      .find({ username: { $regex: regex } })
-      .limit(limit)
-      .project({ _id: 1, username: 1 })
-      .toArray();
-
-    // Format for clean API response
-    const users = results.map((u) => ({
-      id: u._id,
-      username: u.username,
-    }));
-
-    return { users };
-  }
 }
-
-```

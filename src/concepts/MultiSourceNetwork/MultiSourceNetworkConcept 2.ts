@@ -1,14 +1,3 @@
----
-timestamp: 'Sat Nov 22 2025 12:26:08 GMT-0500 (Eastern Standard Time)'
-parent: '[[../20251122_122608.b394a553.md]]'
-content_id: 49f76fc70fc2fbaa7317abbb754eb03a6ef8a736b08a29553bcfd9ca45008f78
----
-
-# response:
-
-```typescript
-// file: src/concepts/MultiSourceNetwork/MultiSourceNetworkConcept.ts
-
 import { Collection, Db } from "npm:mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
@@ -84,14 +73,14 @@ export default class MultiSourceNetworkConcept {
    */
   async createNetwork(
     { owner, root }: { owner: Owner; root?: Node },
-  ): Promise<Empty> {
+  ): Promise<{ error?: string; network?: Owner }> {
     const existingNetwork = await this.networks.findOne({ owner });
     if (existingNetwork) {
       return { error: `Network for owner ${owner} already exists` };
     }
 
     await this.networks.insertOne({ _id: owner, owner, root });
-    return {};
+    return { network: owner };
   }
 
   /**
@@ -106,7 +95,7 @@ export default class MultiSourceNetworkConcept {
    */
   async setRootNode(
     { owner, root }: { owner: Owner; root: Node },
-  ): Promise<Empty> {
+  ): Promise<Empty | { error: string }> {
     const existingNetwork = await this.networks.findOne({ owner });
     if (!existingNetwork) {
       return { error: `Network for owner ${owner} does not exist` };
@@ -114,7 +103,9 @@ export default class MultiSourceNetworkConcept {
 
     const membership = await this.memberships.findOne({ owner, node: root });
     if (!membership) {
-      return { error: `Node ${root} is not a member of owner ${owner}'s network` };
+      return {
+        error: `Node ${root} is not a member of owner ${owner}'s network`,
+      };
     }
 
     await this.networks.updateOne({ owner }, { $set: { root } });
@@ -131,17 +122,21 @@ export default class MultiSourceNetworkConcept {
    */
   async addNodeToNetwork(
     { owner, node, source }: { owner: Owner; node: Node; source: Source },
-  ): Promise<Empty> {
-    // If a membership document for (owner, node) doesn't exist, it will be inserted.
-    // $setOnInsert ensures _id, owner, node, and an empty sources object are set for the new document.
-    // $set then adds the specific source to the sources map (either to the newly created empty object or an existing one).
+  ): Promise<Empty | { error: string }> {
+    const membership = await this.memberships.findOne({ owner, node });
+    if (!membership) {
+      await this.memberships.insertOne({
+        _id: freshID(),
+        owner,
+        node,
+        sources: { [source]: true },
+      });
+      return {};
+    }
+
     await this.memberships.updateOne(
-      { owner, node }, // Filter to find existing membership by its logical key
-      {
-        $setOnInsert: { _id: freshID(), owner, node, sources: {} }, // Initialize document fields on first insert
-        $set: { [`sources.${source}`]: true }, // Add/update specific source in the map
-      },
-      { upsert: true },
+      { owner, node },
+      { $set: { [`sources.${source}`]: true } },
     );
 
     return {};
@@ -160,39 +155,40 @@ export default class MultiSourceNetworkConcept {
    */
   async removeNodeFromNetwork(
     { owner, node, source }: { owner: Owner; node: Node; source?: Source },
-  ): Promise<Empty> {
+  ): Promise<Empty | { error: string }> {
     const membership = await this.memberships.findOne({ owner, node });
     if (!membership) {
       return { error: `Node ${node} for owner ${owner} is not in the network` };
     }
 
     if (source) {
-      // Remove specific source from the sources map
+      // Remove a single source
       await this.memberships.updateOne(
         { _id: membership._id },
         { $unset: { [`sources.${source}`]: "" } },
       );
 
-      // Re-fetch the updated membership to check if the sources object is now empty.
-      // We check for `updatedMembership.sources` existence because `$unset` removes the field entirely if it's the last one.
       const updatedMembership = await this.memberships.findOne({
         _id: membership._id,
       });
+      const sourcesEmpty = !updatedMembership || !updatedMembership.sources ||
+        Object.keys(updatedMembership.sources).length === 0;
 
-      if (
-        !updatedMembership ||
-        !updatedMembership.sources || // 'sources' field might be completely removed
-        Object.keys(updatedMembership.sources).length === 0
-      ) {
-        // Sources set is empty (or the membership was somehow implicitly deleted, which shouldn't happen here)
-        // Perform full cleanup: delete the membership entry and all associated edges
+      if (sourcesEmpty) {
+        // Delete node and edges if no sources left
         await this.memberships.deleteOne({ _id: membership._id });
-        await this.edges.deleteMany({ owner, $or: [{ from: node }, { to: node }] });
+        await this.edges.deleteMany({
+          owner,
+          $or: [{ from: node }, { to: node }],
+        });
       }
     } else {
-      // No specific source provided, remove the node and all its contributions entirely
+      // Remove node entirely
       await this.memberships.deleteOne({ owner, node });
-      await this.edges.deleteMany({ owner, $or: [{ from: node }, { to: node }] });
+      await this.edges.deleteMany({
+        owner,
+        $or: [{ from: node }, { to: node }],
+      });
     }
 
     return {};
@@ -215,19 +211,19 @@ export default class MultiSourceNetworkConcept {
       source: Source;
       weight?: number;
     },
-  ): Promise<Empty> {
+  ): Promise<Empty | { error: string }> {
     if (from === to) {
-      return { error: "Cannot create an edge from a node to itself (`from` and `to` nodes are identical)" };
+      return {
+        error:
+          "Cannot create an edge from a node to itself (`from` and `to` nodes are identical)",
+      };
     }
 
-    // Upsert the edge.
-    // $setOnInsert generates _id on first insert.
-    // $set ensures all other fields (owner, from, to, source, weight) are correct, whether new or existing.
     await this.edges.updateOne(
-      { owner, from, to, source }, // Logical key for an edge
+      { owner, from, to, source },
       {
-        $setOnInsert: { _id: freshID(), owner, from, to, source }, // Set unique ID and key fields on first insert
-        $set: { weight }, // Update or set the weight for both new and existing documents
+        $setOnInsert: { _id: freshID(), owner, from, to, source },
+        $set: { weight },
       },
       { upsert: true },
     );
@@ -251,14 +247,44 @@ export default class MultiSourceNetworkConcept {
       to: Node;
       source: Source;
     },
-  ): Promise<Empty> {
+  ): Promise<Empty | { error: string }> {
     const existingEdge = await this.edges.findOne({ owner, from, to, source });
     if (!existingEdge) {
-      return { error: `Specified edge for owner ${owner} from ${from} to ${to} from source ${source} does not exist` };
+      return {
+        error:
+          `Specified edge for owner ${owner} from ${from} to ${to} from source ${source} does not exist`,
+      };
     }
 
     await this.edges.deleteOne({ owner, from, to, source });
     return {};
   }
+
+  async _getAdjacencyArray(
+    owner: Owner,
+  ): Promise<
+    Record<Node, Array<{ to: Node; source: Source; weight?: number }>>
+  > {
+    const adjacency: Record<
+      Node,
+      Array<{ to: Node; source: Source; weight?: number }>
+    > = {};
+
+    const memberships = await this.memberships.find({ owner }).toArray();
+    for (const m of memberships) {
+      adjacency[m.node] = [];
+    }
+
+    const ownerEdges = await this.edges.find({ owner }).toArray();
+    for (const edge of ownerEdges) {
+      if (!adjacency[edge.from]) adjacency[edge.from] = [];
+      adjacency[edge.from].push({
+        to: edge.to,
+        source: edge.source,
+        weight: edge.weight,
+      });
+    }
+
+    return adjacency;
+  }
 }
-```
