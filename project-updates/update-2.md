@@ -27,4 +27,21 @@ Below is the responsibilites each team members as taken on for the Alpha checkpo
 - Regular team check-ins: haven't decided on a day and time for our weekly check-ins.
 
 ## Plans & Decisions
-[Will be discussed at meeting]
+- For semantic-search:
+  - Ideally use: https://github.com/neuml/txtai
+  - Fallback for above: Call to Google Gemini
+  - Ultimate fallback: Something deterministic
+- Datas structure for import data (connections):
+  - On MongoDB: {user, …, [connected users]}
+- Create a Context Dependency Diagram:
+  - Take everything from all states
+  - Every action -> MongoDB collection
+  - Make sure each collection has certain fields
+  - Draw line to show dependencies
+- Need to do more search on LinkedIn integration with issue of users changing their custom LinkedIn link.
+- Don't need to have watchdogs to rescrape data. If a user adds a new connection, they would have to manually add it on the platform. Another idea is to have some sync functionality that a user can update and rescrape their network. *Completely resolving this issue is not required if it's too difficult but need to at least address the issue in word for final submission.*
+- For Alpha submission:
+  - Address the major questions students had about our pitch in design document.
+  - List the concepts that are build out to be graded. 
+  - At submission time, adjust the concept specs at the time match the code even if its not complete.
+  - Make sure incomplete concepts/functionality have fallback errors.

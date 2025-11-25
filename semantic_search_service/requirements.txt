@@ -1,0 +1,4 @@
+fastapi
+uvicorn[standard]
+txtai[cpu]
+sentence-transformers
