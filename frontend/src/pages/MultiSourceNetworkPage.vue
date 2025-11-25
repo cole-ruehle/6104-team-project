@@ -157,15 +157,12 @@
         Pulling adjacency data…
       </div>
 
-      <div v-else-if="adjacency && Object.keys(adjacency).length > 0" class="network-visualization-container">
+      <div class="network-visualization-container">
         <div ref="networkContainer" class="network-graph"></div>
         <div v-if="!networkInstance" class="muted" style="padding: 1rem; text-align: center;">
           Loading visualization...
         </div>
       </div>
-      <p v-else class="muted" style="margin-top: 1rem">
-        No network data found for this owner yet. Create a network and add nodes to see the visualization.
-      </p>
 
       <!-- Debug Output -->
       <div v-if="adjacencyDebug" style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
@@ -526,11 +523,9 @@ async function fetchNodeProfiles(nodeIds: string[]) {
       const profileResult = await PublicProfileAPI.getProfile({ user: nodeId });
       profile = profileResult[0]?.profile;
 
-      // If profile exists, use headline as display name (or keep username)
+      // If profile exists, use username for display
       if (profile) {
-        // Prefer headline over username for display, but keep username as fallback
-        const displayName = profile.headline || username;
-
+        // Use username for display (not headline)
         // Get profile picture URL if available
         if ((profile as any).profilePictureUrl) {
           avatarUrl = (profile as any).profilePictureUrl;
@@ -542,7 +537,7 @@ async function fetchNodeProfiles(nodeIds: string[]) {
         nodeProfiles.value[nodeId] = {
           profile,
           avatarUrl,
-          username: displayName, // Use headline for display, username as identifier
+          username: username, // Use username for display
         };
       } else {
         // No profile, but we have username from auth
@@ -564,6 +559,129 @@ async function fetchNodeProfiles(nodeIds: string[]) {
 
   // Wait for all profile fetches to complete
   await Promise.all(profilePromises);
+}
+
+// Render a test network visualization (hardcoded for testing)
+async function renderTestNetwork() {
+  if (!networkContainer.value) {
+    await nextTick();
+    if (!networkContainer.value) {
+      console.warn("Network container not available yet");
+      return;
+    }
+  }
+
+  const nodes = new DataSet<any>([
+    {
+      id: "test-node-1",
+      label: "Node 1",
+      shape: "circle",
+      color: {
+        border: "#fbbf24", // Yellow border
+        background: "#ffffff",
+        highlight: {
+          border: "#f59e0b",
+          background: "#fef3c7",
+        },
+      },
+      borderWidth: 4,
+      size: 50,
+      font: {
+        size: 16,
+        face: "Inter",
+        bold: true,
+      },
+    },
+    {
+      id: "test-node-2",
+      label: "Node 2",
+      shape: "circle",
+      color: {
+        border: "#10b981", // Green border
+        background: "#ffffff",
+        highlight: {
+          border: "#059669",
+          background: "#d1fae5",
+        },
+      },
+      borderWidth: 4,
+      size: 50,
+      font: {
+        size: 16,
+        face: "Inter",
+        bold: true,
+      },
+    },
+  ]);
+
+  const edges = new DataSet<any>([
+    {
+      id: "test-edge-1",
+      from: "test-node-1",
+      to: "test-node-2",
+      color: {
+        color: "#415a77",
+        highlight: "#6699cc",
+      },
+      width: 2,
+    },
+  ]);
+
+  const data = { nodes, edges };
+  const options = {
+    nodes: {
+      shape: "circle",
+      font: {
+        size: 16,
+        face: "Inter",
+      },
+    },
+    edges: {
+      arrows: {
+        to: {
+          enabled: true,
+          scaleFactor: 0.8,
+        },
+      },
+      smooth: {
+        enabled: true,
+        type: "continuous",
+        roundness: 0.5,
+      },
+    },
+    physics: {
+      enabled: true,
+      stabilization: {
+        enabled: true,
+        iterations: 200,
+      },
+      barnesHut: {
+        gravitationalConstant: -2000,
+        centralGravity: 0.3,
+        springLength: 95,
+        springConstant: 0.04,
+        damping: 0.09,
+      },
+    },
+    interaction: {
+      hover: true,
+      tooltipDelay: 200,
+    },
+  };
+
+  // Destroy existing network if it exists
+  if (networkInstance.value) {
+    networkInstance.value.destroy();
+    networkInstance.value = null;
+  }
+
+  try {
+    console.log("Creating test network visualization");
+    networkInstance.value = new Network(networkContainer.value, data, options);
+    console.log("Test network visualization created successfully");
+  } catch (error) {
+    console.error("Error creating test network visualization:", error);
+  }
 }
 
 // Render the network visualization
@@ -629,11 +747,11 @@ async function renderNetwork() {
       ? generateBrightColor(nodeId)
       : "#778da9";
 
-    // Use profile headline or username for label
-    // For owner, prefer username from auth if profile headline not available
-    const nodeLabel = nodeId === auth.userId && !profileData.profile?.headline
+    // Use username for label
+    // For owner, prefer username from auth
+    const nodeLabel = nodeId === auth.userId
       ? (auth.username || profileData.username || nodeId)
-      : (profileData.profile?.headline || profileData.username || nodeId);
+      : (profileData.username || nodeId);
 
     const node: any = {
       id: nodeId,
@@ -641,7 +759,8 @@ async function renderNetwork() {
       shape: "circularImage",
       image: profileData.avatarUrl,
       brokenImage: avatarStore.DEFAULT_AVATAR,
-      borderWidth: isRoot(nodeId) ? 4 : 2,
+      borderWidth: isRoot(nodeId) ? 4 : 3,
+      borderWidthSelected: 5,
       borderColor: nodeColor,
       color: {
         border: nodeColor,
@@ -689,8 +808,8 @@ async function renderNetwork() {
           username: edge.to,
         };
 
-        // Use profile headline or username for label
-        const nodeLabel = profileData.profile?.headline || profileData.username || edge.to;
+        // Use username for label
+        const nodeLabel = profileData.username || edge.to;
 
         nodes.add({
           id: edge.to,
@@ -698,7 +817,8 @@ async function renderNetwork() {
           shape: "circularImage",
           image: profileData.avatarUrl,
           brokenImage: avatarStore.DEFAULT_AVATAR,
-          borderWidth: 2,
+          borderWidth: 3,
+          borderWidthSelected: 5,
           borderColor: "#778da9",
           color: {
             border: "#778da9",
@@ -833,6 +953,10 @@ watch(
 
 // Also load on mount if user is already authenticated
 onMounted(async () => {
+  // Render test visualization immediately
+  await nextTick();
+  await renderTestNetwork();
+
   if (auth.userId) {
     // Wait for DOM to be fully rendered
     await nextTick();

@@ -75,7 +75,7 @@ async function testAdjacencyArray() {
 
     // Step 4: Get adjacency array for Alice
     console.log("\n4. Getting adjacency array for Alice...");
-    const adjacency = await network._getAdjacencyArray(aliceId);
+    const adjacency = await network._getAdjacencyArray({ owner: aliceId });
 
     console.log("\n=== Results ===");
     console.log("Adjacency Array for Alice:");

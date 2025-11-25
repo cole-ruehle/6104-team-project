@@ -76,16 +76,20 @@ export default class MultiSourceNetworkConcept {
   async createNetwork(
     { owner, root }: { owner: Owner; root?: Node },
   ): Promise<{ error?: string; network?: Owner }> {
+    console.log("[MultiSourceNetwork] createNetwork called:", { owner, root });
     const existingNetwork = await this.networks.findOne({ owner });
     if (existingNetwork) {
+      console.log("[MultiSourceNetwork] createNetwork ERROR: Network already exists for owner", owner);
       return { error: `Network for owner ${owner} already exists` };
     }
 
     // Default root to owner if not provided
     const rootNode = root || owner;
+    console.log("[MultiSourceNetwork] createNetwork: Using root node:", rootNode);
 
     // Create the network
     await this.networks.insertOne({ _id: owner, owner, root: rootNode });
+    console.log("[MultiSourceNetwork] createNetwork: Network document created");
 
     // Automatically add the owner as a membership node with source "self"
     // This ensures the owner always appears as a node in their own network
@@ -99,6 +103,7 @@ export default class MultiSourceNetworkConcept {
         node: owner,
         sources: { [selfSource]: true },
       });
+      console.log("[MultiSourceNetwork] createNetwork: Owner membership created with source 'self'");
     } else {
       // If membership already exists, ensure "self" source is present
       // This handles edge cases where owner membership might exist from elsewhere
@@ -106,8 +111,10 @@ export default class MultiSourceNetworkConcept {
         { owner, node: owner },
         { $set: { [`sources.${selfSource}`]: true } },
       );
+      console.log("[MultiSourceNetwork] createNetwork: Owner membership updated with source 'self'");
     }
 
+    console.log("[MultiSourceNetwork] createNetwork SUCCESS: Network created for owner", owner);
     return { network: owner };
   }
 
@@ -124,19 +131,23 @@ export default class MultiSourceNetworkConcept {
   async setRootNode(
     { owner, root }: { owner: Owner; root: Node },
   ): Promise<Empty | { error: string }> {
+    console.log("[MultiSourceNetwork] setRootNode called:", { owner, root });
     const existingNetwork = await this.networks.findOne({ owner });
     if (!existingNetwork) {
+      console.log("[MultiSourceNetwork] setRootNode ERROR: Network does not exist for owner", owner);
       return { error: `Network for owner ${owner} does not exist` };
     }
 
     const membership = await this.memberships.findOne({ owner, node: root });
     if (!membership) {
+      console.log("[MultiSourceNetwork] setRootNode ERROR: Node", root, "is not a member of owner", owner, "network");
       return {
         error: `Node ${root} is not a member of owner ${owner}'s network`,
       };
     }
 
     await this.networks.updateOne({ owner }, { $set: { root } });
+    console.log("[MultiSourceNetwork] setRootNode SUCCESS: Root node set to", root, "for owner", owner);
     return {};
   }
 
@@ -151,6 +162,7 @@ export default class MultiSourceNetworkConcept {
   async addNodeToNetwork(
     { owner, node, source }: { owner: Owner; node: Node; source: Source },
   ): Promise<Empty | { error: string }> {
+    console.log("[MultiSourceNetwork] addNodeToNetwork called:", { owner, node, source });
     const membership = await this.memberships.findOne({ owner, node });
     if (!membership) {
       await this.memberships.insertOne({
@@ -159,6 +171,7 @@ export default class MultiSourceNetworkConcept {
         node,
         sources: { [source]: true },
       });
+      console.log("[MultiSourceNetwork] addNodeToNetwork SUCCESS: New membership created for node", node, "with source", source);
       return {};
     }
 
@@ -166,7 +179,7 @@ export default class MultiSourceNetworkConcept {
       { owner, node },
       { $set: { [`sources.${source}`]: true } },
     );
-
+    console.log("[MultiSourceNetwork] addNodeToNetwork SUCCESS: Updated existing membership for node", node, "added source", source);
     return {};
   }
 
@@ -184,8 +197,10 @@ export default class MultiSourceNetworkConcept {
   async removeNodeFromNetwork(
     { owner, node, source }: { owner: Owner; node: Node; source?: Source },
   ): Promise<Empty | { error: string }> {
+    console.log("[MultiSourceNetwork] removeNodeFromNetwork called:", { owner, node, source: source || "undefined (remove entirely)" });
     const membership = await this.memberships.findOne({ owner, node });
     if (!membership) {
+      console.log("[MultiSourceNetwork] removeNodeFromNetwork ERROR: Node", node, "not in network for owner", owner);
       return { error: `Node ${node} for owner ${owner} is not in the network` };
     }
 
@@ -195,6 +210,7 @@ export default class MultiSourceNetworkConcept {
         { _id: membership._id },
         { $unset: { [`sources.${source}`]: "" } },
       );
+      console.log("[MultiSourceNetwork] removeNodeFromNetwork: Removed source", source, "from node", node);
 
       const updatedMembership = await this.memberships.findOne({
         _id: membership._id,
@@ -205,18 +221,22 @@ export default class MultiSourceNetworkConcept {
       if (sourcesEmpty) {
         // Delete node and edges if no sources left
         await this.memberships.deleteOne({ _id: membership._id });
-        await this.edges.deleteMany({
+        const deleteResult = await this.edges.deleteMany({
           owner,
           $or: [{ from: node }, { to: node }],
         });
+        console.log("[MultiSourceNetwork] removeNodeFromNetwork SUCCESS: Node", node, "removed entirely (no sources left). Deleted", deleteResult.deletedCount, "edges");
+      } else {
+        console.log("[MultiSourceNetwork] removeNodeFromNetwork SUCCESS: Source", source, "removed from node", node, "(node still has other sources)");
       }
     } else {
       // Remove node entirely
       await this.memberships.deleteOne({ owner, node });
-      await this.edges.deleteMany({
+      const deleteResult = await this.edges.deleteMany({
         owner,
         $or: [{ from: node }, { to: node }],
       });
+      console.log("[MultiSourceNetwork] removeNodeFromNetwork SUCCESS: Node", node, "removed entirely. Deleted", deleteResult.deletedCount, "edges");
     }
 
     return {};
@@ -240,7 +260,9 @@ export default class MultiSourceNetworkConcept {
       weight?: number;
     },
   ): Promise<Empty | { error: string }> {
+    console.log("[MultiSourceNetwork] addEdge called:", { owner, from, to, source, weight });
     if (from === to) {
+      console.log("[MultiSourceNetwork] addEdge ERROR: Cannot create edge from node to itself");
       return {
         error:
           "Cannot create an edge from a node to itself (`from` and `to` nodes are identical)",
@@ -255,7 +277,7 @@ export default class MultiSourceNetworkConcept {
       },
       { upsert: true },
     );
-
+    console.log("[MultiSourceNetwork] addEdge SUCCESS: Edge created/updated from", from, "to", to, "with source", source, weight ? `(weight: ${weight})` : "(no weight)");
     return {};
   }
 
@@ -276,8 +298,10 @@ export default class MultiSourceNetworkConcept {
       source: Source;
     },
   ): Promise<Empty | { error: string }> {
+    console.log("[MultiSourceNetwork] removeEdge called:", { owner, from, to, source });
     const existingEdge = await this.edges.findOne({ owner, from, to, source });
     if (!existingEdge) {
+      console.log("[MultiSourceNetwork] removeEdge ERROR: Edge does not exist");
       return {
         error:
           `Specified edge for owner ${owner} from ${from} to ${to} from source ${source} does not exist`,
@@ -285,14 +309,16 @@ export default class MultiSourceNetworkConcept {
     }
 
     await this.edges.deleteOne({ owner, from, to, source });
+    console.log("[MultiSourceNetwork] removeEdge SUCCESS: Edge removed from", from, "to", to, "with source", source);
     return {};
   }
 
   async _getAdjacencyArray(
-    owner: Owner,
+    { owner }: { owner: Owner },
   ): Promise<
     Record<Node, Array<{ to: Node; source: Source; weight?: number }>>
   > {
+    console.log("[MultiSourceNetwork] _getAdjacencyArray called for owner:", owner);
     const adjacency: Record<
       Node,
       Array<{ to: Node; source: Source; weight?: number }>
@@ -300,15 +326,20 @@ export default class MultiSourceNetworkConcept {
 
     // First, get all memberships to initialize nodes
     const memberships = await this.memberships.find({ owner }).toArray();
+    console.log("[MultiSourceNetwork] _getAdjacencyArray: Found", memberships.length, "memberships");
     for (const m of memberships) {
       adjacency[m.node] = [];
     }
 
     // Then, get all edges and populate connections
     const ownerEdges = await this.edges.find({ owner }).toArray();
+    console.log("[MultiSourceNetwork] _getAdjacencyArray: Found", ownerEdges.length, "edges");
     for (const edge of ownerEdges) {
       // Ensure the "from" node exists in adjacency (even if not in memberships)
-      if (!adjacency[edge.from]) adjacency[edge.from] = [];
+      if (!adjacency[edge.from]) {
+        adjacency[edge.from] = [];
+        console.log("[MultiSourceNetwork] _getAdjacencyArray: Added 'from' node", edge.from, "to adjacency (not in memberships)");
+      }
 
       // Add the edge connection
       adjacency[edge.from].push({
@@ -322,6 +353,10 @@ export default class MultiSourceNetworkConcept {
       // if (!adjacency[edge.to]) adjacency[edge.to] = [];
     }
 
+    const nodeCount = Object.keys(adjacency).length;
+    const totalEdges = Object.values(adjacency).reduce((sum, edges) => sum + edges.length, 0);
+    console.log("[MultiSourceNetwork] _getAdjacencyArray SUCCESS: Returning adjacency with", nodeCount, "nodes and", totalEdges, "total connections");
+    console.log("[MultiSourceNetwork] _getAdjacencyArray: Adjacency keys:", Object.keys(adjacency));
     return adjacency;
   }
 }
