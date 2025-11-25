@@ -101,3 +101,16 @@ export const PublicProfileAPI = {
   getProfile: (payload: { user: string }) =>
     postConcept<{ profile: PublicProfile }[]>("PublicProfile", "_getProfile", payload),
 };
+
+export const UserAuthenticationAPI = {
+  register: (payload: { username: string; password: string }) =>
+    postConcept<{ user: string }>("UserAuthentication", "register", payload),
+  authenticate: (payload: { username: string; password: string }) =>
+    postConcept<{ user: string }>("UserAuthentication", "authenticate", payload),
+  getUserById: (payload: { id: string }) =>
+    postConcept<{ id: string; username: string } | Record<string, never>>(
+      "UserAuthentication",
+      "_getUserById",
+      payload,
+    ),
+};

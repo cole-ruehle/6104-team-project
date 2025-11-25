@@ -33,6 +33,10 @@ a {
 }
 
 header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
   background: linear-gradient(135deg, #2563eb, #7c3aed);
   color: #fff;
   padding: 1.5rem 2rem;
@@ -80,6 +84,25 @@ main {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+}
+
+.auth-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.auth-status button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 0.4rem 0.9rem;
+}
+
+.auth-status button:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .page-grid {
@@ -194,8 +217,47 @@ button:disabled {
   background: #f8fafc;
 }
 
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.auth-panel {
+  background: #ffffff;
+  width: min(480px, 90vw);
+  border-radius: 28px;
+  padding: 2rem;
+  box-shadow: 0 50px 120px rgba(15, 23, 42, 0.35);
+}
+
+.auth-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.auth-toggle button {
+  flex: 1;
+  background: #e2e8f0;
+  color: #0f172a;
+  border: none;
+}
+
+.auth-toggle button.active {
+  background: linear-gradient(120deg, #2563eb, #7c3aed);
+  color: #fff;
+}
+
 @media (max-width: 768px) {
   header {
+    flex-direction: column;
     padding: 1.25rem;
   }
 

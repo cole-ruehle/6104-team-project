@@ -206,7 +206,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, watch } from "vue";
 import StatusBanner from "@/components/StatusBanner.vue";
 import ActivityLog from "@/components/ActivityLog.vue";
 import {
@@ -215,6 +215,7 @@ import {
   ConceptApiError,
 } from "@/services/conceptClient";
 import { useActivityLogStore } from "@/stores/useActivityLog";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 type BannerSection = "create" | "root" | "nodes" | "edges" | "explorer";
 
@@ -235,6 +236,22 @@ const adjacency = ref<AdjacencyMap | null>(null);
 const adjacencyLoading = ref(false);
 const banner = ref<{ type: "success" | "error"; message: string; section: BannerSection } | null>(null);
 const activityLog = useActivityLogStore();
+const auth = useAuthStore();
+
+watch(
+  () => auth.userId,
+  (next) => {
+    if (!next) return;
+    if (!createForm.owner) createForm.owner = next;
+    if (!rootForm.owner) rootForm.owner = next;
+    if (!nodeForm.owner) nodeForm.owner = next;
+    if (!removeNodeForm.owner) removeNodeForm.owner = next;
+    if (!edgeForm.owner) edgeForm.owner = next;
+    if (!removeEdgeForm.owner) removeEdgeForm.owner = next;
+    if (!adjacencyOwner.value) adjacencyOwner.value = next;
+  },
+  { immediate: true },
+);
 
 function showBanner(section: BannerSection, type: "success" | "error", message: string) {
   banner.value = { section, type, message };

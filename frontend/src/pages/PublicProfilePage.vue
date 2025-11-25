@@ -1,17 +1,16 @@
 <template>
   <div class="page-grid">
     <section class="card">
-      <h2>Create a Public Profile</h2>
+      <h2>Create Your Public Profile</h2>
+      <p class="muted">
+        Logged in as <strong>{{ auth.username }}</strong> (ID: {{ activeUserId }})
+      </p>
       <StatusBanner
         v-if="banner && banner.section === 'create'"
         :type="banner.type"
         :message="banner.message"
       />
       <form class="form-grid" @submit.prevent="handleCreateProfile">
-        <label>
-          User ID
-          <input v-model.trim="createForm.user" required />
-        </label>
         <label>
           Headline
           <input v-model.trim="createForm.headline" required />
@@ -35,7 +34,7 @@
     </section>
 
     <section class="card">
-      <h2>Update Existing Profile</h2>
+      <h2>Update Your Profile</h2>
       <p class="muted">
         Only fill the fields you want to change. Leave a field blank to keep the
         current value.
@@ -46,10 +45,6 @@
         :message="banner.message"
       />
       <form class="form-grid" @submit.prevent="handleUpdateProfile">
-        <label>
-          User ID
-          <input v-model.trim="updateForm.user" required />
-        </label>
         <label>
           Headline
           <input v-model="updateForm.headline" placeholder="New headline" />
@@ -77,10 +72,6 @@
         :message="banner.message"
       />
       <form class="form-grid" @submit.prevent="handleDeleteProfile">
-        <label>
-          User ID
-          <input v-model.trim="deleteUser" required />
-        </label>
         <button type="submit" style="background: linear-gradient(120deg, #ef4444, #f97316)">
           Delete Profile
         </button>
@@ -133,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, computed, watch } from "vue";
 import StatusBanner from "@/components/StatusBanner.vue";
 import ActivityLog from "@/components/ActivityLog.vue";
 import {
@@ -142,24 +133,25 @@ import {
   ConceptApiError,
 } from "@/services/conceptClient";
 import { useActivityLogStore } from "@/stores/useActivityLog";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 type Section = "create" | "update" | "delete" | "inspect";
 
+const auth = useAuthStore();
+const activeUserId = computed(() => auth.userId ?? "");
+
 const createForm = reactive({
-  user: "",
   headline: "",
   attributes: "",
   links: "",
 });
 
 const updateForm = reactive({
-  user: "",
   headline: "",
   attributes: "",
   links: "",
 });
 
-const deleteUser = ref("");
 const inspectUser = ref("");
 const inspectLoading = ref(false);
 const fetchedProfile = ref<PublicProfile | null>(null);
@@ -191,7 +183,7 @@ function log(conceptAction: string, payload: Record<string, unknown>, status: "s
 
 async function handleCreateProfile() {
   const payload = {
-    user: createForm.user,
+    user: activeUserId.value,
     headline: createForm.headline,
     attributes: parseList(createForm.attributes),
     links: parseList(createForm.links),
@@ -210,7 +202,7 @@ async function handleUpdateProfile() {
     headline?: string;
     attributes?: string[];
     links?: string[];
-  } = { user: updateForm.user };
+  } = { user: activeUserId.value };
 
   if (updateForm.headline.trim()) payload.headline = updateForm.headline.trim();
   if (updateForm.attributes.trim()) payload.attributes = parseList(updateForm.attributes);
@@ -225,7 +217,7 @@ async function handleUpdateProfile() {
 }
 
 async function handleDeleteProfile() {
-  const payload = { user: deleteUser.value };
+  const payload = { user: activeUserId.value };
   try {
     await PublicProfileAPI.deleteProfile(payload);
     log("deleteProfile", payload, "success", "Profile deleted.", "delete");
@@ -263,4 +255,14 @@ function formatError(error: unknown) {
   }
   return "Unexpected error. Check console for details.";
 }
+
+watch(
+  () => auth.userId,
+  (next) => {
+    if (next) {
+      inspectUser.value = next;
+    }
+  },
+  { immediate: true },
+);
 </script>

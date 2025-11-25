@@ -1299,4 +1299,3 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
     }
   }
 }
-

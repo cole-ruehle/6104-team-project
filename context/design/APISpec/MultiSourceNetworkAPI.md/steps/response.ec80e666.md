@@ -1,0 +1,288 @@
+---
+timestamp: 'Tue Nov 25 2025 04:57:18 GMT-0500 (Eastern Standard Time)'
+parent: '[[..\20251125_045718.ce2ca024.md]]'
+content_id: ec80e6660ee24412d17aa186808de8fc16cfd286ea1fc947c9afdaec6abe934a
+---
+
+# response:
+
+## MultiSourceNetwork API Specification
+
+This document describes the API for the `MultiSourceNetworkConcept`, which manages multiple networks, their nodes (memberships), and edges, with support for multiple contributing sources per node and edge.
+
+***
+
+### Class: `MultiSourceNetworkConcept`
+
+Manages a collection of multi-source networks, allowing for the creation and manipulation of networks, nodes (memberships), and edges associated with specific owners and sources.
+
+#### Constructor
+
+```typescript
+new MultiSourceNetworkConcept(db: Db)
+```
+
+**Description:**
+Initializes the `MultiSourceNetworkConcept` with a MongoDB `Db` instance. It sets up connections to three MongoDB collections: `MultiSourceNetwork.networks`, `MultiSourceNetwork.memberships`, and `MultiSourceNetwork.edges`.
+
+**Parameters:**
+
+* `db`: `Db` - The MongoDB database instance to use for data storage.
+
+***
+
+### Methods
+
+#### `createNetwork`
+
+Creates a new network for a given owner.
+
+```typescript
+createNetwork(args: { owner: ID; root?: ID }): Promise<{ error?: string; network?: ID }>
+```
+
+**Description:**
+Creates a new `Networks` entry for the specified owner, optionally setting a root node.
+
+**Parameters:**
+
+* `args`: Object
+  * `owner`: `ID` - The ID of the owner for whom the network is being created. This ID will also serve as the network's `_id` in the `networks` collection.
+  * `root?`: `ID` - (Optional) The ID of the root node for this network.
+
+**Returns:**
+`Promise<{ error?: string; network?: ID }>`
+
+* If successful: `{ network: ID }` where `ID` is the `owner` ID.
+* If an error occurs: `{ error: string }`
+
+**Requirements:**
+
+* No `Networks` entry must already exist for the `owner`.
+
+**Effects:**
+
+* A new `Networks` entry is created with the `owner` as its `_id` and `owner` field, and the optional `root` field.
+
+**Potential Errors:**
+
+* `Network for owner [owner_id] already exists`: If a network for the given owner already exists.
+
+***
+
+#### `setRootNode`
+
+Sets the root node for an existing network.
+
+```typescript
+setRootNode(args: { owner: ID; root: ID }): Promise<Empty | { error: string }>
+```
+
+**Description:**
+Sets the `root` field for the owner’s network to the specified node.
+
+**Parameters:**
+
+* `args`: Object
+  * `owner`: `ID` - The ID of the owner whose network's root node is to be set.
+  * `root`: `ID` - The ID of the node to be set as the root.
+
+**Returns:**
+`Promise<Empty | { error: string }>`
+
+* If successful: `{}` (Empty)
+* If an error occurs: `{ error: string }`
+
+**Requirements:**
+
+* A `Networks` entry must exist for `owner`.
+* A `Memberships` entry must exist for `(owner, root)`, meaning the `root` node must already be a member of the owner's network.
+
+**Effects:**
+
+* The `root` field of the `Networks` entry for the `owner` is updated to the provided `root` node.
+
+**Potential Errors:**
+
+* `Network for owner [owner_id] does not exist`: If no network entry is found for the given owner.
+* `Node [node_id] is not a member of owner [owner_id]'s network`: If the specified `root` node is not found in the `Memberships` for the owner.
+
+***
+
+#### `addNodeToNetwork`
+
+Adds a node to an owner's network or associates a new source with an existing node.
+
+```typescript
+addNodeToNetwork(args: { owner: ID; node: ID; source: ID }): Promise<Empty | { error: string }>
+```
+
+**Description:**
+Creates a new `Memberships` entry or updates an existing one by adding the specified `source` to the node’s `sources` set.
+
+**Parameters:**
+
+* `args`: Object
+  * `owner`: `ID` - The ID of the owner.
+  * `node`: `ID` - The ID of the node to add or update.
+  * `source`: `ID` - The ID of the source contributing to this node's presence.
+
+**Returns:**
+`Promise<Empty | { error: string }>`
+
+* If successful: `{}` (Empty)
+* Currently, this method does not explicitly return errors.
+
+**Requirements:**
+
+* None.
+
+**Effects:**
+
+* If no `Memberships` entry exists for `(owner, node)`, a new entry is created with `_id`, `owner`, `node`, and `sources: { [source]: true }`.
+* If a `Memberships` entry exists for `(owner, node)`, the `source` is added to its `sources` field (e.g., `sources.[source] = true`).
+
+***
+
+#### `removeNodeFromNetwork`
+
+Removes a source's contribution to a node, or removes a node entirely from the network.
+
+```typescript
+removeNodeFromNetwork(args: { owner: ID; node: ID; source?: ID }): Promise<Empty | { error: string }>
+```
+
+**Description:**
+Removes a specific `source` from a node's `sources` set. If no `source` is provided, or if removing the `source` results in an empty `sources` set for the node, the `Memberships` entry for that node is deleted, along with all associated `Edges`.
+
+**Parameters:**
+
+* `args`: Object
+  * `owner`: `ID` - The ID of the owner.
+  * `node`: `ID` - The ID of the node to remove or modify.
+  * `source?`: `ID` - (Optional) The ID of the specific source to remove from the node. If omitted, the entire node is removed.
+
+**Returns:**
+`Promise<Empty | { error: string }>`
+
+* If successful: `{}` (Empty)
+* If an error occurs: `{ error: string }`
+
+**Requirements:**
+
+* A `Memberships` entry must exist for `(owner, node)`.
+
+**Effects:**
+
+* If `source` is provided:
+  * The `source` is removed from the `node`'s `sources` set.
+  * If the `sources` set for the node becomes empty after removal, the `Memberships` entry for `(owner, node)` is deleted.
+  * If the `Memberships` entry is deleted, all `Edges` associated with `(owner, node)` (where `node` is `from` or `to`) are also deleted.
+* If `source` is not provided:
+  * The `Memberships` entry for `(owner, node)` is deleted.
+  * All `Edges` associated with `(owner, node)` (where `node` is `from` or `to`) are deleted.
+
+**Potential Errors:**
+
+* `Node [node_id] for owner [owner_id] is not in the network`: If no membership entry is found for the specified owner and node.
+
+***
+
+#### `addEdge`
+
+Adds a new edge or updates an existing edge between two nodes.
+
+```typescript
+addEdge(args: { owner: ID; from: ID; to: ID; source: ID; weight?: number }): Promise<Empty | { error: string }>
+```
+
+**Description:**
+Creates a new `Edges` entry or updates an existing one for `(owner, from, to, source)` with an optional `weight`.
+
+**Parameters:**
+
+* `args`: Object
+  * `owner`: `ID` - The ID of the owner.
+  * `from`: `ID` - The ID of the starting node of the edge.
+  * `to`: `ID` - The ID of the ending node of the edge.
+  * `source`: `ID` - The ID of the source contributing to this edge.
+  * `weight?`: `number` - (Optional) A numerical weight for the edge.
+
+**Returns:**
+`Promise<Empty | { error: string }>`
+
+* If successful: `{}` (Empty)
+* If an error occurs: `{ error: string }`
+
+**Requirements:**
+
+* `from` must not be equal to `to`.
+
+**Effects:**
+
+* If an `Edges` entry for `(owner, from, to, source)` does not exist, a new one is created with `_id`, `owner`, `from`, `to`, `source`, and the optional `weight`.
+* If an `Edges` entry for `(owner, from, to, source)` already exists, its `weight` field is updated (or set if it didn't exist).
+
+**Potential Errors:**
+
+* `Cannot create an edge from a node to itself ([from] and [to] nodes are identical)`: If `from` and `to` nodes are the same.
+
+***
+
+#### `removeEdge`
+
+Removes a specific edge from the network.
+
+```typescript
+removeEdge(args: { owner: ID; from: ID; to: ID; source: ID }): Promise<Empty | { error: string }>
+```
+
+**Description:**
+Removes the specified `Edges` entry for `(owner, from, to, source)`.
+
+**Parameters:**
+
+* `args`: Object
+  * `owner`: `ID` - The ID of the owner.
+  * `from`: `ID` - The ID of the starting node of the edge.
+  * `to`: `ID` - The ID of the ending node of the edge.
+  * `source`: `ID` - The ID of the source associated with the edge.
+
+**Returns:**
+`Promise<Empty | { error: string }>`
+
+* If successful: `{}` (Empty)
+* If an error occurs: `{ error: string }`
+
+**Requirements:**
+
+* An `Edges` entry must exist for `(owner, from, to, source)`.
+
+**Effects:**
+
+* The `Edges` entry matching `(owner, from, to, source)` is deleted.
+
+**Potential Errors:**
+
+* `Specified edge for owner [owner_id] from [from_node_id] to [to_node_id] from source [source_id] does not exist`: If no matching edge entry is found.
+
+***
+
+#### `_getAdjacencyArray` (Internal Method)
+
+**Note:** This method is prefixed with an underscore (`_`), indicating it is intended for internal use within the class and not part of the public API. It might be subject to change without notice.
+
+```typescript
+_getAdjacencyArray(owner: ID): Promise<Record<ID, Array<{ to: ID; source: ID; weight?: number }>>>
+```
+
+**Description:**
+Constructs an adjacency list representation of the network for a given owner, based on existing memberships and edges.
+
+**Parameters:**
+
+* `owner`: `ID` - The ID of the owner whose network's adjacency array is to be retrieved.
+
+**Returns:**
+`Promise<Record<ID, Array<{ to: ID; source: ID; weight?: number }>>>`
+A promise that resolves to an object where keys are node IDs, and values are arrays of objects, each describing an outgoing edge from that node including its destination (`to`), contributing `source`, and optional `weight`. Nodes without outgoing edges or memberships are included with an empty array.
