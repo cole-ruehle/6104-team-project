@@ -70,6 +70,8 @@ export default class MultiSourceNetworkConcept {
    *
    * **effects**:
    *   Creates a new `Networks` entry for the owner with optional `root`.
+   *   If `root` is not provided, defaults to `owner`.
+   *   Automatically adds the owner as a membership node with source "self".
    */
   async createNetwork(
     { owner, root }: { owner: Owner; root?: Node },
@@ -79,7 +81,33 @@ export default class MultiSourceNetworkConcept {
       return { error: `Network for owner ${owner} already exists` };
     }
 
-    await this.networks.insertOne({ _id: owner, owner, root });
+    // Default root to owner if not provided
+    const rootNode = root || owner;
+
+    // Create the network
+    await this.networks.insertOne({ _id: owner, owner, root: rootNode });
+
+    // Automatically add the owner as a membership node with source "self"
+    // This ensures the owner always appears as a node in their own network
+    const selfSource = "self" as Source;
+    const ownerMembership = await this.memberships.findOne({ owner, node: owner });
+    if (!ownerMembership) {
+      // Create new membership for owner
+      await this.memberships.insertOne({
+        _id: freshID(),
+        owner,
+        node: owner,
+        sources: { [selfSource]: true },
+      });
+    } else {
+      // If membership already exists, ensure "self" source is present
+      // This handles edge cases where owner membership might exist from elsewhere
+      await this.memberships.updateOne(
+        { owner, node: owner },
+        { $set: { [`sources.${selfSource}`]: true } },
+      );
+    }
+
     return { network: owner };
   }
 
@@ -270,19 +298,28 @@ export default class MultiSourceNetworkConcept {
       Array<{ to: Node; source: Source; weight?: number }>
     > = {};
 
+    // First, get all memberships to initialize nodes
     const memberships = await this.memberships.find({ owner }).toArray();
     for (const m of memberships) {
       adjacency[m.node] = [];
     }
 
+    // Then, get all edges and populate connections
     const ownerEdges = await this.edges.find({ owner }).toArray();
     for (const edge of ownerEdges) {
+      // Ensure the "from" node exists in adjacency (even if not in memberships)
       if (!adjacency[edge.from]) adjacency[edge.from] = [];
+
+      // Add the edge connection
       adjacency[edge.from].push({
         to: edge.to,
         source: edge.source,
         weight: edge.weight,
       });
+
+      // // Also ensure the "to" node exists in adjacency (even if not in memberships)
+      // // This handles cases where a node is only referenced as a target
+      // if (!adjacency[edge.to]) adjacency[edge.to] = [];
     }
 
     return adjacency;

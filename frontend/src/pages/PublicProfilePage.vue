@@ -59,7 +59,6 @@
       </p>
     </section>
 
-    <ActivityLog :entries="activityLog.recent" />
   </div>
 
   <div class="modal-overlay" v-if="showCreateModal">
@@ -146,13 +145,11 @@
 import { reactive, ref, computed, watch } from "vue";
 import { RouterLink } from "vue-router";
 import StatusBanner from "@/components/StatusBanner.vue";
-import ActivityLog from "@/components/ActivityLog.vue";
 import {
   PublicProfileAPI,
   type PublicProfile,
   ConceptApiError,
 } from "@/services/conceptClient";
-import { useActivityLogStore } from "@/stores/useActivityLog";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAvatarStore } from "@/stores/useAvatarStore";
 
@@ -179,7 +176,6 @@ const inspectLoading = ref(false);
 const fetchedProfile = ref<PublicProfile | null>(null);
 const inspectResult = ref("");
 const banner = ref<{ section: Section; type: "success" | "error"; message: string } | null>(null);
-const activityLog = useActivityLogStore();
 const avatarStore = useAvatarStore();
 const showCreateModal = ref(false);
 const showUpdateModal = ref(false);
@@ -197,13 +193,6 @@ function parseList(value: string) {
 }
 
 function log(conceptAction: string, payload: Record<string, unknown>, status: "success" | "error", message: string, section: Section) {
-  activityLog.push({
-    concept: "PublicProfile",
-    action: conceptAction,
-    payload,
-    status,
-    message,
-  });
   showBanner(section, status, message);
 }
 

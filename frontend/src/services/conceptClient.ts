@@ -95,6 +95,7 @@ export const PublicProfileAPI = {
     headline?: string;
     attributes?: string[];
     links?: string[];
+    profilePictureUrl?: string;
   }) => postConcept("PublicProfile", "updateProfile", payload),
   deleteProfile: (payload: { user: string }) =>
     postConcept("PublicProfile", "deleteProfile", payload),

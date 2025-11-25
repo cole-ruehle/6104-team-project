@@ -13,6 +13,7 @@ interface ProfileDoc {
   headline: string;
   attributes: string[];
   links: string[];
+  profilePictureUrl?: string; // Optional profile picture URL
 }
 
 /**
@@ -96,11 +97,12 @@ export default class PublicProfileConceptConcept {
    *  - preserves fields not provided.
    */
   async updateProfile(
-    { user, headline, attributes, links }: {
+    { user, headline, attributes, links, profilePictureUrl }: {
       user: User;
       headline?: string;
       attributes?: string[];
       links?: string[];
+      profilePictureUrl?: string;
     },
   ): Promise<Empty | { error: string }> {
     const exists = await this.profiles.findOne({ _id: user });
@@ -126,6 +128,11 @@ export default class PublicProfileConceptConcept {
     // links provided
     if (links !== undefined) {
       updateFields.links = links;
+    }
+
+    // profilePictureUrl provided
+    if (profilePictureUrl !== undefined) {
+      updateFields.profilePictureUrl = profilePictureUrl;
     }
 
     // nothing to update
@@ -193,7 +200,8 @@ export default class PublicProfileConceptConcept {
           headline: doc.headline,
           attributes: doc.attributes,
           links: doc.links,
-        },
+          profilePictureUrl: doc.profilePictureUrl,
+        } as PublicProfileConceptQueryResult & { profilePictureUrl?: string },
       }];
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
