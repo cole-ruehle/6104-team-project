@@ -6,14 +6,14 @@
 Create a `.env` file in the project root with:
 ```bash
 MONGODB_URL=mongodb://localhost:27017
-DB_NAME=your_db_name
+DB_NAME=FrontEnd
 GEMINI_API_KEY=your_key_here  # Optional for full LLM testing
 ```
 
 Or export them:
 ```bash
 export MONGODB_URL="mongodb://localhost:27017"
-export DB_NAME="your_db_name"
+export DB_NAME="FrontEnd"
 export GEMINI_API_KEY="your_key_here"  # Optional
 ```
 
@@ -218,21 +218,21 @@ This means your MongoDB connection string has authentication issues. Fix based o
 ```bash
 # In .env file:
 MONGODB_URL=mongodb://localhost:27017
-DB_NAME=test_db
+DB_NAME=FrontEnd
 ```
 
 **For Local MongoDB (with auth):**
 ```bash
 # In .env file:
 MONGODB_URL=mongodb://username:password@localhost:27017
-DB_NAME=test_db
+DB_NAME=FrontEnd
 ```
 
 **For MongoDB Atlas (cloud):**
 ```bash
 # In .env file:
 MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority
-DB_NAME=test_db
+DB_NAME=FrontEnd
 ```
 
 **Quick Fix - Test with local MongoDB:**
@@ -250,4 +250,3 @@ mongosh --eval "db.version()"  # or `mongo` for older versions
 - No auth: `mongodb://localhost:27017`
 - With auth: `mongodb://username:password@localhost:27017`
 - Atlas: `mongodb+srv://username:password@cluster.mongodb.net/`
-
