@@ -7,3 +7,7 @@ ctx.exe
 src/concepts/concepts.ts
 src/concepts/test_concepts.ts
 src/syncs/syncs.ts
+node_modules/
+package-lock.json
+semantic_search_service/.venv/
+semantic_search_service/__pycache__/
