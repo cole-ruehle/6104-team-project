@@ -2,7 +2,7 @@
 
 ## Progress
 
-We met our goals we set for the Alpha deadline and have implemented core backend concepts, including UserAuthentication, PublicProfile, MultiSourceNetwork, LinkedInImport, and SemanticSearch. Our frontend can support most of these features now as well. 
+We met our goals we set for the Alpha deadline and have implemented core backend concepts, including UserAuthentication, PublicProfile, MultiSourceNetwork, LinkedInImport, and SemanticSearch. Our frontend can support most of these features now as well.
 
 ### Alpha 1 (Network): PublicProfile & MultiSourceNetwork
 
@@ -21,13 +21,15 @@ We met our goals we set for the Alpha deadline and have implemented core backend
 ### Alpha 2 (Search): SemanticSearch
 
 **Backend Lead:** Jenna
-**Frontend Lead:** Jing
+**Frontend Lead:** Jing, Jenna
 
 **Progress:**
-- Implemented indexItem to which store item text in database and foward all owner-scoped text entries to the external semantic search service (txtai) for embedding and indexing.
-- Reindexes items belonging to the same owner, ensuring search results remain consistent without requiring manual reindex calls
-- Allow for storing and refining search queries.
-- Search endpoint returns ranked results with filters.
+- Implemented the SemanticSearch backend concept, including indexItem, queryItems, refineQuery, and searchConnections.
+- Persist owner-scoped indexed items and wire them to txtai so new text is embedded and added to a per-owner semantic index automatically.
+- Added owner-level reindexing so that when items change, the txtai index is refreshed without manual maintenance.
+- Store search queries and support iterative “refine query” flows for better search UX.
+- Implemented a semantic search endpoint that joins txtai results with imported connection data, returning ranked connection previews with key profile fields and a short text snippet.
+- Integrated semantic search into the frontend profile page: users can type natural-language queries (e.g., “SWE”) and see their LinkedIn-style connections surfaced as ranked cards backed by live txtai embeddings.
 
 
 ---
@@ -60,12 +62,12 @@ We met our goals we set for the Alpha deadline and have implemented core backend
 
 Our goals for our Beta checkpoint largely remains the same as we had planned in our previous development plan:
 
-**Backend Lead:** Cole
+**Backend Lead:** Cole, Jenna, Ivy
 **Frontend Lead:** Jing
 
 **Goals:**
 - Public Network Building
-  - Allow users to add people who are outside their network 
+  - Allow users to add people who are outside their network
 - Semantic Search Frontend
   - Integrate semantic search into frontend, allowing updated graph visualizations
 - Frontend UI/UX Polish
@@ -92,7 +94,7 @@ Our goals for our Beta checkpoint largely remains the same as we had planned in 
 | Alpha 2 (Search)     | Jenna          | Jing          | SemanticSearch                      |
 | Alpha 3 (Importing)  | Cole Ruehle    | Jing          | MultiSourceNetwork (import flows)   |
 | Beta (Graph display)    | Cole Ruehle          | Jing          | GraphExplorer, Final Integration    |
-| Beta (Viz/Polish)    | Cole, Ivy          | Jing          | GraphExplorer, Final Integration    |
+| Beta (Viz/Polish)    | Cole, Ivy, Jenna          | Jing          | GraphExplorer, Final Integration    |
 | Beta (Syncs)    | Cole, Jenna, Ivy          | Jing          | Final Integration    |
 | Beta (Public Networks)    |  Ivy          | Jing          | Final Integration    |
 | Beta (Bug Fixing and Improvements)    |  Cole, Jenna, Ivy          | Jing          | Final Integration    |
