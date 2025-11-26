@@ -64,7 +64,7 @@ Deno.test("Principle: Owner creates network, adds nodes and edges, adjacency for
     assertEquals(edges[0].weight, 5);
 
     // 5. Form adjacency array
-    const adjacency = await network._getAdjacencyArray(ownerA);
+    const adjacency = await network._getAdjacencyArray({ owner: ownerA });
     assertEquals(
       adjacency[nodeB].length,
       1,
@@ -267,7 +267,7 @@ Deno.test("Integration: Add multiple nodes and edges, remove sources, check adja
       source: source1,
     });
 
-    const adjacency = await network._getAdjacencyArray(ownerA);
+    const adjacency = await network._getAdjacencyArray({ owner: ownerA });
     assertEquals(
       adjacency[nodeB]?.length,
       0,
@@ -327,7 +327,7 @@ Deno.test("DEBUG: Print adjacency array", async () => {
     });
 
     // Get adjacency
-    const adjacency = await network._getAdjacencyArray(ownerA);
+    const adjacency = await network._getAdjacencyArray({ owner: ownerA });
 
     // Pretty-print adjacency
     console.log("Adjacency Array:");

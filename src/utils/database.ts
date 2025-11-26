@@ -18,12 +18,11 @@ async function initMongoClient() {
   return client;
 }
 
+const DEFAULT_DB_NAME = "FrontEnd";
+
 async function init() {
   const client = await initMongoClient();
-  const DB_NAME = Deno.env.get("DB_NAME");
-  if (DB_NAME === undefined) {
-    throw new Error("Could not find environment variable: DB_NAME");
-  }
+  const DB_NAME = Deno.env.get("DB_NAME") ?? DEFAULT_DB_NAME;
   return [client, DB_NAME] as [MongoClient, string];
 }
 
