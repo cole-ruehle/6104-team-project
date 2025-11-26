@@ -620,12 +620,8 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-<<<<<<< HEAD
         "npm:mongodb@7",
         "npm:txtai@^9.2.0"
-=======
-        "npm:mongodb@7"
->>>>>>> FrontEnd
       ]
     }
   }

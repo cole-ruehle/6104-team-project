@@ -103,6 +103,40 @@ export const PublicProfileAPI = {
     postConcept<{ profile: PublicProfile }[]>("PublicProfile", "_getProfile", payload),
 };
 
+export interface LinkedInConnectionPreview {
+  _id: string;
+  linkedInConnectionId?: string;
+  firstName?: string;
+  lastName?: string;
+  headline?: string | null;
+  location?: string | null;
+  industry?: string | null;
+  currentPosition?: string | null;
+  currentCompany?: string | null;
+  profileUrl?: string | null;
+  profilePictureUrl?: string | null;
+  summary?: string | null;
+}
+
+export interface SemanticConnectionResult {
+  connectionId: string;
+  score: number;
+  text: string;
+  connection?: LinkedInConnectionPreview;
+}
+
+export const SemanticSearchAPI = {
+  searchConnections: (payload: {
+    owner: string;
+    queryText: string;
+    limit?: number;
+  }) => postConcept<{ results: SemanticConnectionResult[] }>(
+    "SemanticSearch",
+    "searchConnections",
+    payload,
+  ),
+};
+
 export const UserAuthenticationAPI = {
   register: (payload: { username: string; password: string }) =>
     postConcept<{ user: string }>("UserAuthentication", "register", payload),

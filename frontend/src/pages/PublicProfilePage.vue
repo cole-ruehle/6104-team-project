@@ -14,17 +14,14 @@
     </section>
 
     <section class="profile-main card">
-      <div class="result-profile-picture" v-if="avatarUrl">
-        <img :src="avatarUrl" alt="Profile avatar" />
-      </div>
       <div class="search-hero">
         <RouterLink class="network-button" to="/network">View My Network</RouterLink>
-        <form class="search-form" @submit.prevent="fetchProfile">
+        <form class="search-form" @submit.prevent="searchConnections">
           <input
             class="search-input"
             v-model.trim="inspectUser"
             :disabled="inspectLoading"
-            placeholder="Who are you looking for?..."
+            placeholder="Describe the connection you're looking for..."
             required
           />
           <button type="submit" :disabled="inspectLoading">
@@ -39,24 +36,49 @@
         :message="banner.message"
       />
 
-      <article v-if="fetchedProfile" class="profile-result">
-        <h3>{{ fetchedProfile.headline }}</h3>
-        <div>
-          <strong>Attributes:</strong>
-          <p>{{ fetchedProfile.attributes.join(", ") || "—" }}</p>
-        </div>
-        <div>
-          <strong>Links:</strong>
-          <ul>
-            <li v-for="link in fetchedProfile.links" :key="link">
-              <a :href="link" target="_blank" rel="noreferrer">{{ link }}</a>
-            </li>
-          </ul>
-        </div>
-      </article>
-      <p v-else-if="inspectResult" class="muted" style="margin-top: 1rem">
+      <p v-if="inspectResult" class="muted" style="margin: 0.75rem 0">
         {{ inspectResult }}
       </p>
+
+      <div v-if="connectionResults.length" class="connection-results">
+        <article
+          v-for="result in connectionResults"
+          :key="result.connectionId"
+          class="connection-card"
+        >
+          <header class="connection-card__header">
+            <div>
+              <h3>{{ connectionDisplayName(result.connection) }}</h3>
+              <p class="muted" v-if="result.connection?.headline">
+                {{ result.connection?.headline }}
+              </p>
+            </div>
+            <span class="score-pill">{{ result.score.toFixed(3) }}</span>
+          </header>
+          <p v-if="result.connection?.currentPosition || result.connection?.currentCompany">
+            {{ result.connection?.currentPosition || "" }}
+            <template v-if="result.connection?.currentCompany">
+              · {{ result.connection?.currentCompany }}
+            </template>
+          </p>
+          <p class="muted" v-if="result.connection?.location">
+            {{ result.connection.location }}
+          </p>
+          <p class="snippet" v-if="result.text">
+            {{ result.text }}
+          </p>
+          <div class="result-links">
+            <a
+              v-if="result.connection?.profileUrl"
+              :href="result.connection.profileUrl"
+              target="_blank"
+              rel="noreferrer"
+            >
+              LinkedIn profile →
+            </a>
+          </div>
+        </article>
+      </div>
     </section>
 
   </div>
@@ -147,11 +169,12 @@ import { RouterLink } from "vue-router";
 import StatusBanner from "@/components/StatusBanner.vue";
 import {
   PublicProfileAPI,
-  type PublicProfile,
   ConceptApiError,
+  SemanticSearchAPI,
+  type SemanticConnectionResult,
+  type LinkedInConnectionPreview,
 } from "@/services/conceptClient";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useAvatarStore } from "@/stores/useAvatarStore";
 
 type Section = "create" | "update" | "inspect";
 
@@ -173,13 +196,11 @@ const createForm = reactive({
 
 const inspectUser = ref("");
 const inspectLoading = ref(false);
-const fetchedProfile = ref<PublicProfile | null>(null);
+const connectionResults = ref<SemanticConnectionResult[]>([]);
 const inspectResult = ref("");
 const banner = ref<{ section: Section; type: "success" | "error"; message: string } | null>(null);
-const avatarStore = useAvatarStore();
 const showCreateModal = ref(false);
 const showUpdateModal = ref(false);
-const avatarUrl = ref<string | null>(null);
 
 function showBanner(section: Section, type: "success" | "error", message: string) {
   banner.value = { section, type, message };
@@ -239,36 +260,51 @@ async function handleUpdateProfile() {
   }
 }
 
-async function fetchProfile() {
-  if (!inspectUser.value) return;
+function connectionDisplayName(connection?: LinkedInConnectionPreview) {
+  if (!connection) return "Unknown connection";
+  const parts = [connection.firstName, connection.lastName]
+    .map((part) => part?.trim())
+    .filter(Boolean);
+  if (parts.length) {
+    return parts.join(" ");
+  }
+  return connection.linkedInConnectionId ?? "LinkedIn connection";
+}
+
+async function searchConnections() {
+  const query = inspectUser.value.trim();
+  if (!query) return;
+  if (!activeUserId.value) {
+    log(
+      "searchConnections",
+      {},
+      "error",
+      "You must be signed in to search your network.",
+      "inspect",
+    );
+    return;
+  }
+
   inspectLoading.value = true;
-  fetchedProfile.value = null;
+  connectionResults.value = [];
   inspectResult.value = "";
-  const targetId = inspectUser.value === activeUsername.value
-    ? activeUserId.value
-    : inspectUser.value;
-  const payload = { user: targetId };
+  const payload = {
+    owner: activeUserId.value,
+    queryText: query,
+    limit: 10,
+  };
+
   try {
-    const result = await PublicProfileAPI.getProfile(payload);
-    if (result.length === 0) {
-      inspectResult.value = "No profile found for this user.";
-      avatarUrl.value = null;
-    } else {
-      fetchedProfile.value = result[0].profile;
-      inspectResult.value = "";
-      const { profilePictureUrl, user } = result[0].profile as PublicProfile & {
-        profilePictureUrl?: string;
-        user?: string;
-      };
-      if (user) {
-        avatarStore.setForUser(user, profilePictureUrl);
-        avatarUrl.value = avatarStore.getForUser(user);
-      }
-    }
-    log("_getProfile", payload, "success", "Profile fetched.", "inspect");
+    const { results } = await SemanticSearchAPI.searchConnections(payload);
+    connectionResults.value = results;
+    inspectResult.value = results.length === 0
+      ? "No matching connections yet. Try a different description."
+      : `Showing ${results.length} semantic match${results.length === 1 ? "" : "es"}.`;
+    log("searchConnections", payload, "success", "Network search completed.", "inspect");
   } catch (error) {
+    connectionResults.value = [];
     inspectResult.value = "";
-    log("_getProfile", payload, "error", formatError(error), "inspect");
+    log("searchConnections", payload, "error", formatError(error), "inspect");
   } finally {
     inspectLoading.value = false;
   }
