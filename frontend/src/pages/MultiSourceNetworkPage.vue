@@ -2,10 +2,10 @@
   <div class="page-grid">
     <div class="card" style="grid-column: 1 / -1; margin-bottom: 1rem;">
       <p class="muted" style="margin: 0;">
-        <strong>Note:</strong> Manually enter nodes and edges through ID for now. This will change to more automatic node adding with LinkedIn import and user-friendly interface by not using node IDs.
+        <strong>⚠️ Warning:</strong> Assuming all usernames are unique for now. You can add nodes and edges using usernames instead of user IDs.
       </p>
       <p class="muted" style="margin: 0.5rem 0 0 0;">
-        <strong>User Lookup:</strong> Can only look people up through user ID for now, but will be replaced with a more user-friendly method like their username.
+        <strong>Note:</strong> Nodes and edges can be added using usernames. The system will automatically resolve usernames to user IDs.
       </p>
     </div>
     <section class="card">
@@ -20,8 +20,8 @@
       />
       <form class="form-grid" @submit.prevent="handleCreateNetwork">
         <label>
-          Root Node (optional)
-          <input v-model.trim="createForm.root" />
+          Root Node (optional - Username or User ID)
+          <input v-model.trim="createForm.root" placeholder="Enter username or user ID" />
         </label>
         <button type="submit">Create Network</button>
       </form>
@@ -36,8 +36,8 @@
       />
       <form class="form-grid" @submit.prevent="handleSetRoot">
         <label>
-          Root Node
-          <input v-model.trim="rootForm.root" required />
+          Root Node (Username or User ID)
+          <input v-model.trim="rootForm.root" required placeholder="Enter username or user ID" />
         </label>
         <button type="submit">Set Root</button>
       </form>
@@ -52,8 +52,8 @@
       />
       <form class="form-grid" @submit.prevent="handleAddNode">
         <label>
-          Node ID
-          <input v-model.trim="nodeForm.node" required />
+          Node (Username or User ID)
+          <input v-model.trim="nodeForm.node" required placeholder="Enter username or user ID" />
         </label>
         <label>
           Source Tag
@@ -72,8 +72,8 @@
         @submit.prevent="handleRemoveNode"
       >
         <label>
-          Node ID
-          <input v-model.trim="removeNodeForm.node" required />
+          Node (Username or User ID)
+          <input v-model.trim="removeNodeForm.node" required placeholder="Enter username or user ID" />
         </label>
         <label>
           Source (optional)
@@ -95,12 +95,12 @@
       />
       <form class="form-grid" @submit.prevent="handleAddEdge">
         <label>
-          From Node
-          <input v-model.trim="edgeForm.from" required />
+          From Node (Username or User ID)
+          <input v-model.trim="edgeForm.from" required placeholder="Enter username or user ID" />
         </label>
         <label>
-          To Node
-          <input v-model.trim="edgeForm.to" required />
+          To Node (Username or User ID)
+          <input v-model.trim="edgeForm.to" required placeholder="Enter username or user ID" />
         </label>
         <label>
           Source
@@ -119,12 +119,12 @@
         @submit.prevent="handleRemoveEdge"
       >
         <label>
-          From Node
-          <input v-model.trim="removeEdgeForm.from" required />
+          From Node (Username or User ID)
+          <input v-model.trim="removeEdgeForm.from" required placeholder="Enter username or user ID" />
         </label>
         <label>
-          To Node
-          <input v-model.trim="removeEdgeForm.to" required />
+          To Node (Username or User ID)
+          <input v-model.trim="removeEdgeForm.to" required placeholder="Enter username or user ID" />
         </label>
         <label>
           Source
@@ -167,11 +167,6 @@
         No network data found for this owner yet. Create a network and add nodes to see the visualization.
       </p>
 
-      <!-- Debug Output -->
-      <div v-if="adjacencyDebug" style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
-        <h3 style="margin-top: 0; font-size: 1rem;">Debug Log</h3>
-        <pre style="margin: 0; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word; max-height: 400px; overflow-y: auto; background: #fff; padding: 0.75rem; border-radius: 4px; border: 1px solid #dee2e6;">{{ adjacencyDebug }}</pre>
-      </div>
     </section>
 
     <section class="card" style="grid-column: 1 / -1">
@@ -241,7 +236,6 @@ const removeEdgeForm = reactive({
 });
 const adjacency = ref<AdjacencyMap | null>(null);
 const adjacencyLoading = ref(false);
-const adjacencyDebug = ref<string>("");
 const banner = ref<{ type: "success" | "error"; message: string; section: BannerSection } | null>(null);
 const auth = useAuthStore();
 const avatarStore = useAvatarStore();
@@ -267,27 +261,59 @@ function logActivity(
   showBanner(section, status, message);
 }
 
+/**
+ * Resolves a username to user ID, or returns the input if it's already a user ID.
+ * Assumes usernames are unique.
+ */
+async function resolveToUserId(input: string): Promise<string> {
+  // If it looks like a UUID (user ID format), return as-is
+  if (input.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    return input;
+  }
+
+  // Try to resolve as username
+  try {
+    const userResult = await UserAuthenticationAPI.getUserByUsername({ username: input });
+    if (userResult.length > 0) {
+      return userResult[0].user;
+    }
+  } catch (error) {
+    console.warn(`Failed to resolve username "${input}":`, error);
+  }
+
+  // If resolution fails, assume it's a user ID anyway
+  return input;
+}
+
 async function handleCreateNetwork() {
   if (!auth.userId) return;
+  let resolvedRoot = createForm.root ? await resolveToUserId(createForm.root) : undefined;
+  // If no root is provided, use the owner as the root node
+  const rootNode = resolvedRoot || auth.userId;
   const payload = {
     owner: auth.userId,
-    root: createForm.root || undefined,
+    root: rootNode,
   };
   try {
     const result = await MultiSourceNetworkAPI.createNetwork(payload);
-    // Set root node to owner (backend defaults to owner if not provided)
-    rootNodeId.value = payload.root || auth.userId;
+    // Set root node to the resolved root (which defaults to owner)
+    rootNodeId.value = rootNode;
     logActivity(
       "create",
       "createNetwork",
       payload,
       "success",
-      `Network ${result.network} created.`,
+      `Network ${result.network} created with root node: ${rootNode}.`,
     );
     // Clear the form
     createForm.root = "";
-    // Automatically refresh visualization to show the owner node
+    // Automatically refresh visualization to show the owner node immediately
+    // The backend automatically adds the owner as a membership node with source "self"
     await fetchAdjacency();
+    // If adjacency is loaded, render the network to show the owner node
+    if (adjacency.value) {
+      await renderNetwork();
+    }
   } catch (error) {
     logActivity(
       "create",
@@ -301,10 +327,11 @@ async function handleCreateNetwork() {
 
 async function handleSetRoot() {
   if (!auth.userId) return;
-  const payload = { owner: auth.userId, root: rootForm.root };
+  const resolvedRoot = await resolveToUserId(rootForm.root);
+  const payload = { owner: auth.userId, root: resolvedRoot };
   try {
     await MultiSourceNetworkAPI.setRootNode(payload);
-    rootNodeId.value = payload.root;
+    rootNodeId.value = resolvedRoot;
     logActivity("root", "setRootNode", payload, "success", "Root node updated.");
     // Refresh visualization if adjacency is already loaded
     if (adjacency.value) {
@@ -317,10 +344,14 @@ async function handleSetRoot() {
 
 async function handleAddNode() {
   if (!auth.userId) return;
-  const payload = { owner: auth.userId, ...nodeForm };
+  const resolvedNode = await resolveToUserId(nodeForm.node);
+  const payload = { owner: auth.userId, node: resolvedNode, source: nodeForm.source };
   try {
     await MultiSourceNetworkAPI.addNodeToNetwork(payload);
     logActivity("nodes", "addNodeToNetwork", payload, "success", "Node stored.");
+    // Clear form
+    nodeForm.node = "";
+    nodeForm.source = "";
     // Automatically refresh visualization
     await fetchAdjacency();
   } catch (error) {
@@ -330,9 +361,10 @@ async function handleAddNode() {
 
 async function handleRemoveNode() {
   if (!auth.userId) return;
+  const resolvedNode = await resolveToUserId(removeNodeForm.node);
   const payload = {
     owner: auth.userId,
-    node: removeNodeForm.node,
+    node: resolvedNode,
     source: removeNodeForm.source || undefined,
   };
   try {
@@ -346,6 +378,9 @@ async function handleRemoveNode() {
         ? `Source ${payload.source} detached.`
         : "Node removed entirely.",
     );
+    // Clear form
+    removeNodeForm.node = "";
+    removeNodeForm.source = "";
     // Automatically refresh visualization
     await fetchAdjacency();
   } catch (error) {
@@ -361,14 +396,23 @@ async function handleRemoveNode() {
 
 async function handleAddEdge() {
   if (!auth.userId) return;
+  const resolvedFrom = await resolveToUserId(edgeForm.from);
+  const resolvedTo = await resolveToUserId(edgeForm.to);
   const payload = {
     owner: auth.userId,
-    ...edgeForm,
+    from: resolvedFrom,
+    to: resolvedTo,
+    source: edgeForm.source,
     weight: Number.isFinite(edgeForm.weight) ? edgeForm.weight : undefined,
   };
   try {
     await MultiSourceNetworkAPI.addEdge(payload);
     logActivity("edges", "addEdge", payload, "success", "Edge saved.");
+    // Clear form
+    edgeForm.from = "";
+    edgeForm.to = "";
+    edgeForm.source = "";
+    edgeForm.weight = undefined;
     // Automatically refresh visualization
     await fetchAdjacency();
   } catch (error) {
@@ -378,10 +422,21 @@ async function handleAddEdge() {
 
 async function handleRemoveEdge() {
   if (!auth.userId) return;
-  const payload = { owner: auth.userId, ...removeEdgeForm };
+  const resolvedFrom = await resolveToUserId(removeEdgeForm.from);
+  const resolvedTo = await resolveToUserId(removeEdgeForm.to);
+  const payload = {
+    owner: auth.userId,
+    from: resolvedFrom,
+    to: resolvedTo,
+    source: removeEdgeForm.source
+  };
   try {
     await MultiSourceNetworkAPI.removeEdge(payload);
     logActivity("edges", "removeEdge", payload, "success", "Edge removed.");
+    // Clear form
+    removeEdgeForm.from = "";
+    removeEdgeForm.to = "";
+    removeEdgeForm.source = "";
     // Automatically refresh visualization
     await fetchAdjacency();
   } catch (error) {
@@ -392,47 +447,12 @@ async function handleRemoveEdge() {
 async function fetchAdjacency() {
   if (!auth.userId) return;
   adjacencyLoading.value = true;
-  adjacencyDebug.value = "";
 
   try {
-    console.log("=== _getAdjacencyArray Debug ===");
-    console.log("Owner (userId):", auth.userId);
-    console.log("Calling MultiSourceNetworkAPI.getAdjacencyArray...");
-
     const data = await MultiSourceNetworkAPI.getAdjacencyArray({
       owner: auth.userId,
     });
 
-    console.log("Raw adjacency data received:", data);
-    console.log("Number of nodes:", Object.keys(data).length);
-    console.log("Node IDs:", Object.keys(data));
-
-    // Build debug string
-    let debugLog = `=== _getAdjacencyArray Debug ===\n\n`;
-    debugLog += `Owner (userId): ${auth.userId}\n`;
-    debugLog += `Timestamp: ${new Date().toISOString()}\n\n`;
-    debugLog += `Total nodes: ${Object.keys(data).length}\n`;
-    debugLog += `Node IDs: ${Object.keys(data).join(", ")}\n\n`;
-    debugLog += `=== Adjacency Array ===\n`;
-    debugLog += JSON.stringify(data, null, 2);
-    debugLog += `\n\n=== Node Details ===\n`;
-
-    for (const [nodeId, edges] of Object.entries(data)) {
-      debugLog += `\n${nodeId}:\n`;
-      if (edges.length === 0) {
-        debugLog += `  → No outgoing connections\n`;
-      } else {
-        edges.forEach((edge) => {
-          debugLog += `  → Connected to: ${edge.to}\n`;
-          debugLog += `    Source: ${edge.source}\n`;
-          if (edge.weight !== undefined) {
-            debugLog += `    Weight: ${edge.weight}\n`;
-          }
-        });
-      }
-    }
-
-    adjacencyDebug.value = debugLog;
     adjacency.value = data;
 
     // Check if root node is set (it might be the owner or we need to track it)
@@ -450,8 +470,6 @@ async function fetchAdjacency() {
       }
     }
 
-    console.log("All node IDs (including targets):", Array.from(allNodeIds));
-
     // Fetch profile data for all nodes
     await fetchNodeProfiles(Array.from(allNodeIds));
 
@@ -467,11 +485,9 @@ async function fetchAdjacency() {
     await nextTick();
     await renderNetwork();
 
-    console.log("=== End Debug ===\n");
   } catch (error) {
     const errorMsg = formatError(error);
     console.error("Error fetching adjacency:", error);
-    adjacencyDebug.value = `=== Error ===\n\n${errorMsg}\n\nStack: ${error instanceof Error ? error.stack : "N/A"}`;
     logActivity(
       "explorer",
       "_getAdjacencyArray",
@@ -526,11 +542,8 @@ async function fetchNodeProfiles(nodeIds: string[]) {
       const profileResult = await PublicProfileAPI.getProfile({ user: nodeId });
       profile = profileResult[0]?.profile;
 
-      // If profile exists, use headline as display name (or keep username)
+      // If profile exists, store it with the username
       if (profile) {
-        // Prefer headline over username for display, but keep username as fallback
-        const displayName = profile.headline || username;
-
         // Get profile picture URL if available
         if ((profile as any).profilePictureUrl) {
           avatarUrl = (profile as any).profilePictureUrl;
@@ -542,7 +555,7 @@ async function fetchNodeProfiles(nodeIds: string[]) {
         nodeProfiles.value[nodeId] = {
           profile,
           avatarUrl,
-          username: displayName, // Use headline for display, username as identifier
+          username: username, // Store actual username, not headline
         };
       } else {
         // No profile, but we have username from auth
@@ -629,11 +642,10 @@ async function renderNetwork() {
       ? generateBrightColor(nodeId)
       : "#778da9";
 
-    // Use profile headline or username for label
-    // For owner, prefer username from auth if profile headline not available
-    const nodeLabel = nodeId === auth.userId && !profileData.profile?.headline
+    // Use username for label (prefer username over headline)
+    const nodeLabel = nodeId === auth.userId
       ? (auth.username || profileData.username || nodeId)
-      : (profileData.profile?.headline || profileData.username || nodeId);
+      : (profileData.username || nodeId);
 
     const node: any = {
       id: nodeId,
@@ -689,8 +701,8 @@ async function renderNetwork() {
           username: edge.to,
         };
 
-        // Use profile headline or username for label
-        const nodeLabel = profileData.profile?.headline || profileData.username || edge.to;
+        // Use username for label (prefer username over headline)
+        const nodeLabel = profileData.username || edge.to;
 
         nodes.add({
           id: edge.to,

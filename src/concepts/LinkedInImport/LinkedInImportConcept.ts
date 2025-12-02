@@ -255,14 +255,38 @@ export default class LinkedInImportConcept {
     }
 
     // Check if token is expired
-    if (
-      existingAccount.expiresAt &&
-      existingAccount.expiresAt < new Date()
-    ) {
-      return {
-        error:
-          "LinkedIn access token has expired. Please refresh the token first.",
-      };
+    // MongoDB may return expiresAt as a string, so convert to Date if needed
+    if (existingAccount.expiresAt) {
+      const expiresAt = existingAccount.expiresAt instanceof Date
+        ? existingAccount.expiresAt
+        : new Date(existingAccount.expiresAt);
+      const now = new Date();
+      const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+
+      // Only consider expired if it's actually in the past (with 5 second buffer for clock skew)
+      const bufferMs = 5 * 1000;
+
+      console.log(
+        `[LinkedInImport] Token expiration check: expiresAt=${expiresAt.toISOString()}, now=${now.toISOString()}, timeUntilExpiry=${timeUntilExpiry}ms (${Math.round(timeUntilExpiry / 1000)}s)`,
+      );
+
+      if (timeUntilExpiry < -bufferMs) {
+        console.log(
+          `[LinkedInImport] ⚠️ Token is expired (expired ${Math.round(-timeUntilExpiry / 1000)}s ago)`,
+        );
+        return {
+          error:
+            "LinkedIn access token has expired. Please refresh the token first.",
+        };
+      } else {
+        console.log(
+          `[LinkedInImport] ✅ Token is valid (expires in ${Math.round(timeUntilExpiry / 1000)}s)`,
+        );
+      }
+    } else {
+      console.log(
+        `[LinkedInImport] ⚠️ No expiration date set for account, allowing import`,
+      );
     }
 
     const importJobId = freshID() as ImportJob;
@@ -989,7 +1013,7 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
         console.log(`[LinkedInImport] First 10 errors:`, errors.slice(0, 10));
         console.log(`[LinkedInImport] ... and ${errors.length - 10} more errors`);
       }
-      
+
       await this.importJobs.updateOne(
         { _id: importJobId },
         {

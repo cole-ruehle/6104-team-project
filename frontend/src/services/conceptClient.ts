@@ -1,5 +1,5 @@
-const DEFAULT_BASE_URL = "http://localhost:8000/api";
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE_URL)
+// Use environment variable for production, default to /api for local dev (Vite will proxy)
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api')
   .replace(/\/+$/, "");
 
 export class ConceptApiError extends Error {
@@ -114,6 +114,12 @@ export const UserAuthenticationAPI = {
       "_getUserById",
       payload,
     ),
+  getUserByUsername: (payload: { username: string }) =>
+    postConcept<{ user: string }[]>(
+      "UserAuthentication",
+      "_getUserByUsername",
+      payload,
+    ),
 };
 
 export const LinkedInImportAPI = {
@@ -148,4 +154,36 @@ export const LinkedInImportAPI = {
       "importConnectionsFromJSON",
       payload,
     ),
+};
+
+export interface SemanticConnectionResult {
+  connectionId: string;
+  score: number;
+  text: string;
+  connection?: {
+    _id: string;
+    linkedInConnectionId?: string;
+    firstName?: string;
+    lastName?: string;
+    headline?: string | null;
+    location?: string | null;
+    industry?: string | null;
+    currentPosition?: string | null;
+    currentCompany?: string | null;
+    profileUrl?: string | null;
+    profilePictureUrl?: string | null;
+    summary?: string | null;
+  };
+}
+
+export const SemanticSearchAPI = {
+  searchConnections: (payload: {
+    owner: string;
+    queryText: string;
+    limit?: number;
+  }) => postConcept<{ results: SemanticConnectionResult[] }>(
+    "SemanticSearch",
+    "searchConnections",
+    payload,
+  ),
 };

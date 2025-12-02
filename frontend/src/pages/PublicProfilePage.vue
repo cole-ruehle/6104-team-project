@@ -19,12 +19,15 @@
       </div>
       <div class="search-hero">
         <RouterLink class="network-button" to="/network">View My Network</RouterLink>
+        <p class="muted" style="margin: 0.5rem 0; font-size: 0.9rem;">
+          You can see people on our application by searching their username.
+        </p>
         <form class="search-form" @submit.prevent="fetchProfile">
           <input
             class="search-input"
             v-model.trim="inspectUser"
             :disabled="inspectLoading"
-            placeholder="Who are you looking for?..."
+            placeholder="Search by username..."
             required
           />
           <button type="submit" :disabled="inspectLoading">
@@ -57,6 +60,69 @@
       <p v-else-if="inspectResult" class="muted" style="margin-top: 1rem">
         {{ inspectResult }}
       </p>
+    </section>
+
+    <section class="profile-main card" style="margin-top: 1.5rem">
+      <h2 style="margin-top: 0">Semantic Search</h2>
+      <p class="muted" style="font-style: italic; margin-bottom: 1rem;">
+        🚧 Still under construction - Semantic search functionality is being developed.
+      </p>
+      <form class="search-form" @submit.prevent="searchConnections">
+        <input
+          class="search-input"
+          v-model.trim="semanticQuery"
+          :disabled="semanticLoading"
+          placeholder="Describe the connection you're looking for..."
+          required
+        />
+        <button type="submit" :disabled="semanticLoading">
+          {{ semanticLoading ? "Searching…" : "Search" }}
+        </button>
+      </form>
+      <StatusBanner
+        v-if="banner && banner.section === 'semantic'"
+        :type="banner.type"
+        :message="banner.message"
+      />
+      <div v-if="semanticResults.length" class="connection-results" style="margin-top: 1rem">
+        <article
+          v-for="result in semanticResults"
+          :key="result.connectionId"
+          class="connection-card"
+        >
+          <header class="connection-card__header">
+            <div>
+              <h3>{{ connectionDisplayName(result.connection) }}</h3>
+              <p class="muted" v-if="result.connection?.headline">
+                {{ result.connection?.headline }}
+              </p>
+            </div>
+            <span class="score-pill">{{ result.score.toFixed(3) }}</span>
+          </header>
+          <p v-if="result.connection?.currentPosition || result.connection?.currentCompany">
+            {{ result.connection?.currentPosition || "" }}
+            <template v-if="result.connection?.currentCompany">
+              · {{ result.connection?.currentCompany }}
+            </template>
+          </p>
+          <p class="muted" v-if="result.connection?.location">
+            {{ result.connection.location }}
+          </p>
+          <p class="snippet" v-if="result.text">
+            {{ result.text }}
+          </p>
+          <div class="result-links">
+            <a
+              v-if="result.connection?.profileUrl"
+              :href="result.connection.profileUrl"
+              target="_blank"
+              rel="noreferrer"
+            >
+              LinkedIn profile →
+            </a>
+          </div>
+        </article>
+      </div>
     </section>
 
   </div>
@@ -147,13 +213,16 @@ import { RouterLink } from "vue-router";
 import StatusBanner from "@/components/StatusBanner.vue";
 import {
   PublicProfileAPI,
+  SemanticSearchAPI,
+  UserAuthenticationAPI,
   type PublicProfile,
+  type SemanticConnectionResult,
   ConceptApiError,
 } from "@/services/conceptClient";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAvatarStore } from "@/stores/useAvatarStore";
 
-type Section = "create" | "update" | "inspect";
+type Section = "create" | "update" | "inspect" | "semantic";
 
 const auth = useAuthStore();
 const activeUserId = computed(() => auth.userId ?? "");
@@ -180,6 +249,9 @@ const avatarStore = useAvatarStore();
 const showCreateModal = ref(false);
 const showUpdateModal = ref(false);
 const avatarUrl = ref<string | null>(null);
+const semanticQuery = ref("");
+const semanticLoading = ref(false);
+const semanticResults = ref<SemanticConnectionResult[]>([]);
 
 function showBanner(section: Section, type: "success" | "error", message: string) {
   banner.value = { section, type, message };
@@ -244,14 +316,43 @@ async function fetchProfile() {
   inspectLoading.value = true;
   fetchedProfile.value = null;
   inspectResult.value = "";
-  const targetId = inspectUser.value === activeUsername.value
-    ? activeUserId.value
-    : inspectUser.value;
+  avatarUrl.value = null;
+
+  let targetId: string | null = null;
+
+  // If it's the current user's username, use their ID
+  if (inspectUser.value === activeUsername.value) {
+    targetId = activeUserId.value;
+  } else {
+    // Try to resolve username to user ID
+    try {
+      const userResult = await UserAuthenticationAPI.getUserByUsername({
+        username: inspectUser.value,
+      });
+      if (userResult.length > 0) {
+        targetId = userResult[0].user;
+      } else {
+        // If username lookup fails, try using the input as user ID directly
+        targetId = inspectUser.value;
+      }
+    } catch (error) {
+      // If username lookup fails, assume it's already a user ID
+      console.log("Username lookup failed, treating as user ID:", error);
+      targetId = inspectUser.value;
+    }
+  }
+
+  if (!targetId) {
+    inspectResult.value = `User "${inspectUser.value}" not found.`;
+    inspectLoading.value = false;
+    return;
+  }
+
   const payload = { user: targetId };
   try {
     const result = await PublicProfileAPI.getProfile(payload);
     if (result.length === 0) {
-      inspectResult.value = "No profile found for this user.";
+      inspectResult.value = `No profile found for "${inspectUser.value}".`;
       avatarUrl.value = null;
     } else {
       fetchedProfile.value = result[0].profile;
@@ -261,13 +362,20 @@ async function fetchProfile() {
         user?: string;
       };
       if (user) {
-        avatarStore.setForUser(user, profilePictureUrl);
-        avatarUrl.value = avatarStore.getForUser(user);
+        // Set avatar for the fetched user
+        if (profilePictureUrl) {
+          avatarStore.setForUser(user, profilePictureUrl);
+          avatarUrl.value = avatarStore.getForUser(user);
+        } else {
+          // Clear avatar if no profile picture
+          avatarUrl.value = null;
+        }
       }
     }
     log("_getProfile", payload, "success", "Profile fetched.", "inspect");
   } catch (error) {
-    inspectResult.value = "";
+    inspectResult.value = `Error fetching profile: ${formatError(error)}`;
+    avatarUrl.value = null;
     log("_getProfile", payload, "error", formatError(error), "inspect");
   } finally {
     inspectLoading.value = false;
@@ -279,6 +387,56 @@ function formatError(error: unknown) {
     return error.message;
   }
   return "Unexpected error. Check console for details.";
+}
+
+async function searchConnections() {
+  const query = semanticQuery.value.trim();
+  if (!query) return;
+  if (!activeUserId.value) {
+    log(
+      "searchConnections",
+      {},
+      "error",
+      "You must be signed in to search your network.",
+      "semantic",
+    );
+    return;
+  }
+
+  semanticLoading.value = true;
+  semanticResults.value = [];
+  const payload = {
+    owner: activeUserId.value,
+    queryText: query,
+    limit: 10,
+  };
+
+  try {
+    const { results } = await SemanticSearchAPI.searchConnections(payload);
+    semanticResults.value = results;
+    log(
+      "searchConnections",
+      payload,
+      "success",
+      results.length === 0
+        ? "No matching connections found."
+        : `Found ${results.length} semantic match${results.length === 1 ? "" : "es"}.`,
+      "semantic",
+    );
+  } catch (error) {
+    semanticResults.value = [];
+    log("searchConnections", payload, "error", formatError(error), "semantic");
+  } finally {
+    semanticLoading.value = false;
+  }
+}
+
+function connectionDisplayName(connection?: SemanticConnectionResult["connection"]): string {
+  if (!connection) return "Unknown Connection";
+  const firstName = connection.firstName || "";
+  const lastName = connection.lastName || "";
+  const name = `${firstName} ${lastName}`.trim();
+  return name || "Unknown Connection";
 }
 
 watch(

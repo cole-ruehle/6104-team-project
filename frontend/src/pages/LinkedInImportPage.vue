@@ -5,6 +5,9 @@
       <p class="muted">
         Upload a CSV or JSON file containing your LinkedIn connections to import them into your network.
       </p>
+      <div class="banner info" style="margin-bottom: 1rem;">
+        🚧 You can still upload files, but nodes won't be automatically populated. Synchronization of reading the import and automatically adding nodes is still needed.
+      </div>
 
       <StatusBanner
         v-if="banner"
@@ -174,7 +177,7 @@ async function getOrCreateLinkedInAccount(): Promise<string> {
   });
 
   if ("error" in result) {
-    throw new Error(result.error);
+    throw new Error(String(result.error));
   }
 
   return result.account;
@@ -193,13 +196,13 @@ async function handleUpload() {
   try {
     // Read file content
     const fileContent = await readFileContent(selectedFile.value);
-    
+
     // Get or create LinkedIn account
     const account = await getOrCreateLinkedInAccount();
 
     // Determine file type and call appropriate import method
     const isCSV = selectedFile.value.name.toLowerCase().endsWith(".csv");
-    
+
     let result;
     if (isCSV) {
       result = await LinkedInImportAPI.importConnectionsFromCSV({
@@ -394,4 +397,3 @@ function formatError(error: unknown): string {
   cursor: not-allowed;
 }
 </style>
-
