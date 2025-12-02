@@ -339,6 +339,109 @@ Deno.test("DEBUG: Print adjacency array", async () => {
   }
 });
 
+Deno.test("Auth: Users only see their own nodes in search", async () => {
+  const [db, client] = await testDb();
+  const network = new MultiSourceNetworkConcept(db);
+
+  const ownerB = "owner:BobUser" as ID;
+
+  try {
+    // create networks for both owners
+    await network.createNetwork({ owner: ownerA });
+    await network.createNetwork({ owner: ownerB });
+
+    // Owner B creates a node named 'Bob'
+    const created = await network.createNodeForUser({
+      owner: ownerB,
+      firstName: "Bob",
+      lastName: "Private",
+      label: "Bob Private",
+    });
+    if (created.error) throw new Error(created.error);
+
+    // Owner A searches for 'Bob' and should NOT see Owner B's node
+    const searchA = await network.searchNodes({ owner: ownerA, query: "Bob" });
+    assertEquals(
+      searchA.total,
+      0,
+      "Owner A should not see nodes created by Owner B",
+    );
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Auth: cannot create edges using nodes outside owner's membership", async () => {
+  const [db, client] = await testDb();
+  const network = new MultiSourceNetworkConcept(db);
+
+  const ownerB = "owner:BobUser" as ID;
+
+  try {
+    // create networks for both owners
+    await network.createNetwork({ owner: ownerA });
+    await network.createNetwork({ owner: ownerB });
+
+    // Owner B creates a node
+    const created = await network.createNodeForUser({
+      owner: ownerB,
+      firstName: "Bob",
+      lastName: "Private",
+      label: "Bob Private",
+    });
+    if (created.error) throw new Error(created.error);
+    const bobNode = created.node as ID;
+
+    // Owner A creates a node
+    const aCreated = await network.createNodeForUser({
+      owner: ownerA,
+      firstName: "Alice",
+      lastName: "Public",
+      label: "Alice Public",
+    });
+    if (aCreated.error) throw new Error(aCreated.error);
+    const aliceNode = aCreated.node as ID;
+
+    // Owner A attempts to create an edge from their node to Bob's node (should fail)
+    const res = await network.addEdge({
+      owner: ownerA,
+      from: aliceNode,
+      to: bobNode,
+      source: source1,
+    });
+    assertEquals(
+      "error" in res,
+      true,
+      "Owner A should not be able to create an edge to Owner B's node",
+    );
+
+    // Positive case: Owner B can create edges among their own nodes
+    // Create second Bob node
+    const created2 = await network.createNodeForUser({
+      owner: ownerB,
+      firstName: "Bob",
+      lastName: "Other",
+      label: "Bob Other",
+    });
+    if (created2.error) throw new Error(created2.error);
+    const bobNode2 = created2.node as ID;
+
+    const res2 = await network.addEdge({
+      owner: ownerB,
+      from: bobNode,
+      to: bobNode2,
+      source: source1,
+    });
+    assertEquals(
+      "error" in res2,
+      false,
+      "Owner B should be able to create an edge between their own nodes",
+    );
+  } finally {
+    await client.close();
+  }
+});
+
 Deno.test("E2E: create nodes via createNodeForUser, search by name, then create edges and verify adjacency", async () => {
   const [db, client] = await testDb();
   const network = new MultiSourceNetworkConcept(db);

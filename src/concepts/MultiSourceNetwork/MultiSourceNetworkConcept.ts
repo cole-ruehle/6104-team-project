@@ -741,6 +741,21 @@ export default class MultiSourceNetworkConcept {
       };
     }
 
+    // Authorization: ensure both 'from' and 'to' nodes are members of the owner's network
+    const fromMembership = await this.memberships.findOne({
+      owner,
+      node: from,
+    });
+    const toMembership = await this.memberships.findOne({ owner, node: to });
+    if (!fromMembership || !toMembership) {
+      console.log(
+        "[MultiSourceNetwork] addEdge ERROR: one or both nodes are not members of owner's network",
+      );
+      return {
+        error: `One or both nodes are not members of owner ${owner}'s network`,
+      };
+    }
+
     await this.edges.updateOne(
       { owner, from, to, source },
       {
