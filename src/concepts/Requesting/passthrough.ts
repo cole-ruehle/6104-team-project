@@ -25,12 +25,21 @@
  */
 
 export const inclusions: Record<string, string> = {
-  // Feel free to delete these example inclusions
-  "/api/LikertSurvey/_getSurveyQuestions": "this is a public query",
-  "/api/LikertSurvey/_getSurveyResponses": "responses are public",
-  "/api/LikertSurvey/_getRespondentAnswers": "answers are visible",
-  "/api/LikertSurvey/submitResponse": "allow anyone to submit response",
-  "/api/LikertSurvey/updateResponse": "allow anyone to update their response",
+  "/api/UserAuthentication/register": "allow visitors to create accounts",
+  "/api/UserAuthentication/authenticate": "allow visitors to login",
+
+  "/api/PublicProfile/createProfile": "users manage their own public card",
+  "/api/PublicProfile/updateProfile": "users update their profile",
+  "/api/PublicProfile/deleteProfile": "users can delete their profile",
+  "/api/PublicProfile/_getProfile": "frontend fetches profile data",
+
+  "/api/MultiSourceNetwork/createNetwork": "authenticated users bootstrap their network",
+  "/api/MultiSourceNetwork/setRootNode": "users adjust their network root",
+  "/api/MultiSourceNetwork/addNodeToNetwork": "users ingest nodes from imports",
+  "/api/MultiSourceNetwork/removeNodeFromNetwork": "users prune nodes",
+  "/api/MultiSourceNetwork/addEdge": "users link contacts together",
+  "/api/MultiSourceNetwork/removeEdge": "users unlink contacts",
+  "/api/MultiSourceNetwork/_getAdjacencyArray": "frontend explorer visualizes graph data",
 };
 
 /**
