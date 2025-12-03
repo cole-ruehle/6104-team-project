@@ -1,5 +1,5 @@
 // Use environment variable for production, default to /api for local dev (Vite will proxy)
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api")
   .replace(/\/+$/, "");
 
 export class ConceptApiError extends Error {
@@ -49,11 +49,16 @@ export interface AdjacencyMap {
 
 export const MultiSourceNetworkAPI = {
   createNetwork: (payload: { owner: string; root?: string }) =>
-    postConcept<{ network: string }>("MultiSourceNetwork", "createNetwork", payload),
+    postConcept<{ network: string }>(
+      "MultiSourceNetwork",
+      "createNetwork",
+      payload,
+    ),
   setRootNode: (payload: { owner: string; root: string }) =>
     postConcept("MultiSourceNetwork", "setRootNode", payload),
-  addNodeToNetwork: (payload: { owner: string; node: string; source: string }) =>
-    postConcept("MultiSourceNetwork", "addNodeToNetwork", payload),
+  addNodeToNetwork: (
+    payload: { owner: string; node: string; source: string },
+  ) => postConcept("MultiSourceNetwork", "addNodeToNetwork", payload),
   removeNodeFromNetwork: (payload: {
     owner: string;
     node: string;
@@ -73,7 +78,11 @@ export const MultiSourceNetworkAPI = {
     source: string;
   }) => postConcept("MultiSourceNetwork", "removeEdge", payload),
   getAdjacencyArray: (payload: { owner: string }) =>
-    postConcept<AdjacencyMap>("MultiSourceNetwork", "_getAdjacencyArray", payload),
+    postConcept<AdjacencyMap>(
+      "MultiSourceNetwork",
+      "_getAdjacencyArray",
+      payload,
+    ),
 };
 
 export interface PublicProfile {
@@ -100,7 +109,11 @@ export const PublicProfileAPI = {
   deleteProfile: (payload: { user: string }) =>
     postConcept("PublicProfile", "deleteProfile", payload),
   getProfile: (payload: { user: string }) =>
-    postConcept<{ profile: PublicProfile }[]>("PublicProfile", "_getProfile", payload),
+    postConcept<{ profile: PublicProfile }[]>(
+      "PublicProfile",
+      "_getProfile",
+      payload,
+    ),
 };
 
 export interface LinkedInConnectionPreview {
@@ -118,30 +131,15 @@ export interface LinkedInConnectionPreview {
   summary?: string | null;
 }
 
-export interface SemanticConnectionResult {
-  connectionId: string;
-  score: number;
-  text: string;
-  connection?: LinkedInConnectionPreview;
-}
-
-export const SemanticSearchAPI = {
-  searchConnections: (payload: {
-    owner: string;
-    queryText: string;
-    limit?: number;
-  }) => postConcept<{ results: SemanticConnectionResult[] }>(
-    "SemanticSearch",
-    "searchConnections",
-    payload,
-  ),
-};
-
 export const UserAuthenticationAPI = {
   register: (payload: { username: string; password: string }) =>
     postConcept<{ user: string }>("UserAuthentication", "register", payload),
   authenticate: (payload: { username: string; password: string }) =>
-    postConcept<{ user: string }>("UserAuthentication", "authenticate", payload),
+    postConcept<{ user: string }>(
+      "UserAuthentication",
+      "authenticate",
+      payload,
+    ),
   getUserById: (payload: { id: string }) =>
     postConcept<{ id: string; username: string } | Record<string, never>>(
       "UserAuthentication",
@@ -165,24 +163,35 @@ export const LinkedInImportAPI = {
     linkedInUserId: string;
     linkedInEmail?: string;
     linkedInName?: string;
-  }) => postConcept<{ account: string }>("LinkedInImport", "connectLinkedInAccount", payload),
+  }) =>
+    postConcept<{ account: string }>(
+      "LinkedInImport",
+      "connectLinkedInAccount",
+      payload,
+    ),
   getLinkedInAccount: (payload: { user: string }) =>
-    postConcept<Array<{
-      _id: string;
-      user: string;
-      linkedInUserId: string;
-      linkedInEmail?: string;
-      linkedInName?: string;
-      createdAt: string;
-      lastImportedAt?: string;
-    }>>("LinkedInImport", "_getLinkedInAccount", payload),
-  importConnectionsFromCSV: (payload: { account: string; csvContent: string }) =>
+    postConcept<
+      Array<{
+        _id: string;
+        user: string;
+        linkedInUserId: string;
+        linkedInEmail?: string;
+        linkedInName?: string;
+        createdAt: string;
+        lastImportedAt?: string;
+      }>
+    >("LinkedInImport", "_getLinkedInAccount", payload),
+  importConnectionsFromCSV: (
+    payload: { account: string; csvContent: string },
+  ) =>
     postConcept<{ importJob: string; connectionsImported: number }>(
       "LinkedInImport",
       "importConnectionsFromCSV",
       payload,
     ),
-  importConnectionsFromJSON: (payload: { account: string; jsonContent: string }) =>
+  importConnectionsFromJSON: (
+    payload: { account: string; jsonContent: string },
+  ) =>
     postConcept<{ importJob: string; connectionsImported: number }>(
       "LinkedInImport",
       "importConnectionsFromJSON",
@@ -194,20 +203,7 @@ export interface SemanticConnectionResult {
   connectionId: string;
   score: number;
   text: string;
-  connection?: {
-    _id: string;
-    linkedInConnectionId?: string;
-    firstName?: string;
-    lastName?: string;
-    headline?: string | null;
-    location?: string | null;
-    industry?: string | null;
-    currentPosition?: string | null;
-    currentCompany?: string | null;
-    profileUrl?: string | null;
-    profilePictureUrl?: string | null;
-    summary?: string | null;
-  };
+  connection?: LinkedInConnectionPreview;
 }
 
 export const SemanticSearchAPI = {
@@ -215,9 +211,10 @@ export const SemanticSearchAPI = {
     owner: string;
     queryText: string;
     limit?: number;
-  }) => postConcept<{ results: SemanticConnectionResult[] }>(
-    "SemanticSearch",
-    "searchConnections",
-    payload,
-  ),
+  }) =>
+    postConcept<{ results: SemanticConnectionResult[] }>(
+      "SemanticSearch",
+      "searchConnections",
+      payload,
+    ),
 };
