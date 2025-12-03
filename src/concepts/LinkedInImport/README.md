@@ -182,4 +182,3 @@ This concept is designed to work with:
 - Support for additional LinkedIn data fields
 - Batch import operations
 - Error recovery and retry logic
-
