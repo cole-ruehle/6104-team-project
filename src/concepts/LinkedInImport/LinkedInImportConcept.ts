@@ -1,6 +1,7 @@
 import { Collection, Db } from "npm:mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
+import SemanticSearchConcept from "../SemanticSearch/SemanticSearchConcept.ts";
 import "jsr:@std/dotenv/load";
 
 // Collection prefix to ensure namespace separation
@@ -89,11 +90,53 @@ export default class LinkedInImportConcept {
   accounts: Collection<LinkedInAccountDoc>;
   connections: Collection<ConnectionDoc>;
   importJobs: Collection<ImportJobDoc>;
+  semanticSearch: SemanticSearchConcept;
 
   constructor(private readonly db: Db) {
     this.accounts = this.db.collection(PREFIX + "accounts");
     this.connections = this.db.collection(PREFIX + "connections");
     this.importJobs = this.db.collection(PREFIX + "importJobs");
+    this.semanticSearch = new SemanticSearchConcept(this.db);
+  }
+
+  /** Build a rich text description of a connection for semantic indexing. */
+  private buildConnectionText(doc: ConnectionDoc): string {
+    const parts: string[] = [];
+
+    const name = [doc.firstName, doc.lastName].filter(Boolean).join(" ").trim();
+    if (name) parts.push(name);
+
+    if (doc.headline) parts.push(doc.headline);
+    if (doc.location) parts.push(doc.location);
+    if (doc.industry) parts.push(doc.industry);
+    if (doc.currentPosition || doc.currentCompany) {
+      const role = [doc.currentPosition, doc.currentCompany]
+        .filter(Boolean)
+        .join(" at ");
+      if (role) parts.push(role);
+    }
+    if (doc.summary) parts.push(doc.summary);
+
+    if (doc.skills && doc.skills.length) {
+      parts.push(`Skills: ${doc.skills.join(", ")}`);
+    }
+
+    if (doc.experience && doc.experience.length) {
+      const expSnippets = doc.experience
+        .slice(0, 3)
+        .map((e) => {
+          const title = e.title ?? "";
+          const company = e.company ?? "";
+          const where = [title, company].filter(Boolean).join(" at ");
+          return where || undefined;
+        })
+        .filter((x): x is string => Boolean(x));
+      if (expSnippets.length) {
+        parts.push(`Experience: ${expSnippets.join("; ")}`);
+      }
+    }
+
+    return parts.join(". ");
   }
 
   /**
@@ -137,7 +180,8 @@ export default class LinkedInImportConcept {
     const existingAccount = await this.accounts.findOne({ user });
     if (existingAccount) {
       return {
-        error: `LinkedIn account already exists for user ${user}. Use updateLinkedInAccount to update tokens.`,
+        error:
+          `LinkedIn account already exists for user ${user}. Use updateLinkedInAccount to update tokens.`,
       };
     }
 
@@ -267,12 +311,16 @@ export default class LinkedInImportConcept {
       const bufferMs = 5 * 1000;
 
       console.log(
-        `[LinkedInImport] Token expiration check: expiresAt=${expiresAt.toISOString()}, now=${now.toISOString()}, timeUntilExpiry=${timeUntilExpiry}ms (${Math.round(timeUntilExpiry / 1000)}s)`,
+        `[LinkedInImport] Token expiration check: expiresAt=${expiresAt.toISOString()}, now=${now.toISOString()}, timeUntilExpiry=${timeUntilExpiry}ms (${
+          Math.round(timeUntilExpiry / 1000)
+        }s)`,
       );
 
       if (timeUntilExpiry < -bufferMs) {
         console.log(
-          `[LinkedInImport] ⚠️ Token is expired (expired ${Math.round(-timeUntilExpiry / 1000)}s ago)`,
+          `[LinkedInImport] ⚠️ Token is expired (expired ${
+            Math.round(-timeUntilExpiry / 1000)
+          }s ago)`,
         );
         return {
           error:
@@ -280,7 +328,9 @@ export default class LinkedInImportConcept {
         };
       } else {
         console.log(
-          `[LinkedInImport] ✅ Token is valid (expires in ${Math.round(timeUntilExpiry / 1000)}s)`,
+          `[LinkedInImport] ✅ Token is valid (expires in ${
+            Math.round(timeUntilExpiry / 1000)
+          }s)`,
         );
       }
     } else {
@@ -378,33 +428,54 @@ export default class LinkedInImportConcept {
 
     if (existingConnection) {
       // Update existing connection
+      const updated: ConnectionDoc = {
+        ...existingConnection,
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(headline !== undefined && { headline }),
+        ...(location !== undefined && { location }),
+        ...(industry !== undefined && { industry }),
+        ...(currentPosition !== undefined && { currentPosition }),
+        ...(currentCompany !== undefined && { currentCompany }),
+        ...(profileUrl !== undefined && { profileUrl }),
+        ...(profilePictureUrl !== undefined && { profilePictureUrl }),
+        ...(summary !== undefined && { summary }),
+        ...(skills !== undefined && { skills }),
+        ...(education !== undefined && { education }),
+        ...(experience !== undefined && { experience }),
+        ...(rawData !== undefined && { rawData }),
+        importedAt: new Date(),
+      };
+
       await this.connections.updateOne(
         { _id: existingConnection._id },
-        {
-          $set: {
-            ...(firstName !== undefined && { firstName }),
-            ...(lastName !== undefined && { lastName }),
-            ...(headline !== undefined && { headline }),
-            ...(location !== undefined && { location }),
-            ...(industry !== undefined && { industry }),
-            ...(currentPosition !== undefined && { currentPosition }),
-            ...(currentCompany !== undefined && { currentCompany }),
-            ...(profileUrl !== undefined && { profileUrl }),
-            ...(profilePictureUrl !== undefined && { profilePictureUrl }),
-            ...(summary !== undefined && { summary }),
-            ...(skills !== undefined && { skills }),
-            ...(education !== undefined && { education }),
-            ...(experience !== undefined && { experience }),
-            ...(rawData !== undefined && { rawData }),
-            importedAt: new Date(),
-          },
-        },
+        { $set: updated },
       );
+
+      // Auto-index for semantic search using the owning user as owner.
+      const owner = existingAccount.user;
+      const text = this.buildConnectionText(updated);
+      if (text.trim()) {
+        try {
+          await this.semanticSearch.indexItem({
+            owner,
+            item: existingConnection._id,
+            text,
+          });
+        } catch (e) {
+          console.error(
+            "Failed to semantic-index connection",
+            existingConnection._id,
+            e,
+          );
+        }
+      }
+
       return { connection: existingConnection._id };
     } else {
       // Create new connection
       const connectionId = freshID() as Connection;
-      await this.connections.insertOne({
+      const doc: ConnectionDoc = {
         _id: connectionId,
         account,
         linkedInConnectionId,
@@ -423,7 +494,27 @@ export default class LinkedInImportConcept {
         experience: experience || [],
         importedAt: new Date(),
         rawData,
-      });
+      };
+      await this.connections.insertOne(doc);
+
+      // Auto-index new connection for semantic search.
+      const owner = existingAccount.user;
+      const text = this.buildConnectionText(doc);
+      if (text.trim()) {
+        try {
+          await this.semanticSearch.indexItem({
+            owner,
+            item: connectionId,
+            text,
+          });
+        } catch (e) {
+          console.error(
+            "Failed to semantic-index new connection",
+            connectionId,
+            e,
+          );
+        }
+      }
       return { connection: connectionId };
     }
   }
@@ -580,7 +671,8 @@ export default class LinkedInImportConcept {
       return { error: "GEMINI_API_KEY environment variable not set" };
     }
 
-    const fieldMappingPrompt = `You are a data mapping assistant. Given JSON object keys from a LinkedIn connections export, map them to the following ConnectionDoc fields:
+    const fieldMappingPrompt =
+      `You are a data mapping assistant. Given JSON object keys from a LinkedIn connections export, map them to the following ConnectionDoc fields:
 
 Available fields:
 - linkedInConnectionId (required): unique identifier for the connection
@@ -654,7 +746,8 @@ Return ONLY a JSON object mapping JSON key names to ConnectionDoc field names. U
       return { error: "GEMINI_API_KEY environment variable not set" };
     }
 
-    const fieldMappingPrompt = `You are a data mapping assistant. Given CSV column headers from a LinkedIn connections export, map them to the following ConnectionDoc fields:
+    const fieldMappingPrompt =
+      `You are a data mapping assistant. Given CSV column headers from a LinkedIn connections export, map them to the following ConnectionDoc fields:
 
 Available fields:
 - linkedInConnectionId (required): unique identifier for the connection
@@ -719,7 +812,9 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
   /**
    * Helper: Parses CSV content into rows with headers.
    */
-  private parseCSV(csvContent: string): { headers: string[]; rows: string[][] } | { error: string } {
+  private parseCSV(
+    csvContent: string,
+  ): { headers: string[]; rows: string[][] } | { error: string } {
     const lines = csvContent.split("\n").filter((line) => line.trim() !== "");
     if (lines.length === 0) {
       return { error: "CSV content is empty" };
@@ -841,7 +936,10 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
       }
 
       const { headers, rows } = parseResult;
-      console.log(`[LinkedInImport] Parsed CSV: ${rows.length} rows with headers:`, headers);
+      console.log(
+        `[LinkedInImport] Parsed CSV: ${rows.length} rows with headers:`,
+        headers,
+      );
 
       // Use LLM to map CSV fields
       const mappingResult = await this.mapCSVFieldsWithLLM(headers);
@@ -871,7 +969,9 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
         const row = rows[rowIndex];
         if (row.length !== headers.length) {
           errors.push(
-            `Row ${rowIndex + 2}: column count mismatch (expected ${headers.length}, got ${row.length})`,
+            `Row ${
+              rowIndex + 2
+            }: column count mismatch (expected ${headers.length}, got ${row.length})`,
           );
           continue;
         }
@@ -958,16 +1058,23 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
         connectionData.rawData = rawRowData;
 
         // Generate linkedInConnectionId if not provided
-        if (!connectionData.linkedInConnectionId || connectionData.linkedInConnectionId.trim() === "") {
+        if (
+          !connectionData.linkedInConnectionId ||
+          connectionData.linkedInConnectionId.trim() === ""
+        ) {
           // Extract LinkedIn ID from profile URL if available
           let fallbackId: string;
           if (connectionData.profileUrl) {
             // Extract LinkedIn username from URL (e.g., https://www.linkedin.com/in/username -> username)
-            const urlMatch = connectionData.profileUrl.match(/linkedin\.com\/in\/([^\/\?]+)/);
+            const urlMatch = connectionData.profileUrl.match(
+              /linkedin\.com\/in\/([^\/\?]+)/,
+            );
             fallbackId = urlMatch ? urlMatch[1] : connectionData.profileUrl;
           } else {
             // Use name combination or row index as fallback
-            const nameCombo = `${connectionData.firstName || ""}_${connectionData.lastName || ""}`.trim();
+            const nameCombo = `${connectionData.firstName || ""}_${
+              connectionData.lastName || ""
+            }`.trim();
             fallbackId = nameCombo || `connection_${rowIndex}`;
           }
           connectionData.linkedInConnectionId = fallbackId;
@@ -995,12 +1102,16 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
 
       // Update import job
       const finalStatus = errors.length === 0 ? "completed" : "failed";
-      console.log(`[LinkedInImport] Import complete: ${connectionsImported}/${rows.length} connections imported, ${errors.length} errors`);
+      console.log(
+        `[LinkedInImport] Import complete: ${connectionsImported}/${rows.length} connections imported, ${errors.length} errors`,
+      );
       if (errors.length > 0 && errors.length <= 10) {
         console.log(`[LinkedInImport] Errors:`, errors);
       } else if (errors.length > 10) {
         console.log(`[LinkedInImport] First 10 errors:`, errors.slice(0, 10));
-        console.log(`[LinkedInImport] ... and ${errors.length - 10} more errors`);
+        console.log(
+          `[LinkedInImport] ... and ${errors.length - 10} more errors`,
+        );
       }
 
       await this.importJobs.updateOne(
@@ -1253,12 +1364,12 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
                       fieldOfStudy: edu.fieldOfStudy
                         ? String(edu.fieldOfStudy)
                         : undefined,
-                      startYear:
-                        typeof edu.startYear === "number"
-                          ? edu.startYear
-                          : undefined,
-                      endYear:
-                        typeof edu.endYear === "number" ? edu.endYear : undefined,
+                      startYear: typeof edu.startYear === "number"
+                        ? edu.startYear
+                        : undefined,
+                      endYear: typeof edu.endYear === "number"
+                        ? edu.endYear
+                        : undefined,
                     };
                   }
                   return {};
@@ -1272,7 +1383,9 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
                     return {
                       title: exp.title ? String(exp.title) : undefined,
                       company: exp.company ? String(exp.company) : undefined,
-                      startDate: exp.startDate ? String(exp.startDate) : undefined,
+                      startDate: exp.startDate
+                        ? String(exp.startDate)
+                        : undefined,
                       endDate: exp.endDate ? String(exp.endDate) : undefined,
                       description: exp.description
                         ? String(exp.description)
@@ -1295,9 +1408,9 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
           connectionData.linkedInConnectionId.trim() === ""
         ) {
           // Use email, profile URL, or name combination as fallback
-          const fallbackId =
-            connectionData.profileUrl ||
-            `${connectionData.firstName || ""}_${connectionData.lastName || ""}`.trim() ||
+          const fallbackId = connectionData.profileUrl ||
+            `${connectionData.firstName || ""}_${connectionData.lastName || ""}`
+              .trim() ||
             `connection_${objIndex}`;
           connectionData.linkedInConnectionId = fallbackId;
         }
@@ -1320,8 +1433,7 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
             status: finalStatus,
             connectionsImported,
             connectionsTotal: connectionsArray.length,
-            errorMessage:
-              errors.length > 0 ? errors.join("; ") : undefined,
+            errorMessage: errors.length > 0 ? errors.join("; ") : undefined,
             completedAt: new Date(),
           },
         },

@@ -44,7 +44,7 @@
 
       <div v-if="connectionResults.length" class="connection-results">
         <article
-          v-for="result in connectionResults"
+          v-for="result in connectionResults.filter((r) => r.connection)"
           :key="result.connectionId"
           class="connection-card"
         >
@@ -64,10 +64,151 @@
             "
           >
             {{ result.connection?.currentPosition || "" }}
-            <template v-if="result.connection?.currentCompany"> </template>
+            <template v-if="result.connection?.currentCompany">
+              at {{ result.connection.currentCompany }}
+            </template>
+          </p>
+
+          <p v-if="result.connection?.summary">
+            {{ result.connection.summary }}
+          </p>
+
+          <p v-if="result.connection?.profileUrl">
+            <a
+              :href="result.connection.profileUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View on LinkedIn
+            </a>
           </p>
         </article>
       </div>
     </section>
   </div>
 </template>
+
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import StatusBanner from "../components/StatusBanner.vue";
+import { useAuthStore } from "../stores/useAuthStore";
+import { SemanticSearchAPI } from "../services/conceptClient";
+const auth = useAuthStore();
+
+const showCreateModal = ref(false);
+const showUpdateModal = ref(false);
+
+const inspectUser = ref("");
+const inspectLoading = ref(false);
+const inspectResult = ref<string | null>(null);
+
+type BannerSection = "inspect" | "profile";
+type BannerType = "info" | "success" | "error";
+
+const banner = ref<{
+  section: BannerSection;
+  type: BannerType;
+  message: string;
+} | null>(null);
+
+interface LinkedInConnectionPreview {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  headline?: string | null;
+  location?: string | null;
+  industry?: string | null;
+  currentPosition?: string | null;
+  currentCompany?: string | null;
+  profileUrl?: string | null;
+  profilePictureUrl?: string | null;
+  summary?: string | null;
+}
+
+interface SemanticConnectionResult {
+  connectionId: string;
+  score: number;
+  text: string;
+  connection?: LinkedInConnectionPreview;
+}
+
+const connectionResults = ref<SemanticConnectionResult[]>([]);
+
+const currentUserId = computed(() => auth.userId || "");
+
+function setBanner(section: BannerSection, type: BannerType, message: string) {
+  banner.value = { section, type, message };
+}
+
+function clearBanner(section: BannerSection) {
+  if (banner.value && banner.value.section === section) {
+    banner.value = null;
+  }
+}
+
+function connectionDisplayName(connection?: LinkedInConnectionPreview) {
+  if (!connection) return "Unknown connection";
+  const first = connection.firstName?.trim();
+  const last = connection.lastName?.trim();
+  if (first || last) return [first, last].filter(Boolean).join(" ");
+  return "Unknown connection";
+}
+
+async function searchConnections() {
+  clearBanner("inspect");
+  inspectResult.value = null;
+  connectionResults.value = [];
+
+  const owner = currentUserId.value;
+  if (!owner) {
+    setBanner(
+      "inspect",
+      "error",
+      "You must be signed in to search your network."
+    );
+    return;
+  }
+
+  const queryText = inspectUser.value.trim();
+  if (!queryText) {
+    setBanner("inspect", "error", "Please enter a description to search.");
+    return;
+  }
+
+  inspectLoading.value = true;
+  try {
+    const { results } = await SemanticSearchAPI.searchConnections({
+      owner,
+      queryText,
+      limit: 20,
+    });
+
+    connectionResults.value = results ?? [];
+
+    if (!connectionResults.value.length) {
+      setBanner(
+        "inspect",
+        "info",
+        "No semantic matches found in your network for this description."
+      );
+      inspectResult.value = null;
+    } else {
+      setBanner(
+        "inspect",
+        "success",
+        `Network search completed. Showing ${connectionResults.value.length} semantic matches.`
+      );
+      inspectResult.value = null;
+    }
+  } catch (error) {
+    console.error("searchConnections error", error);
+    setBanner(
+      "inspect",
+      "error",
+      "Something went wrong while searching your network."
+    );
+  } finally {
+    inspectLoading.value = false;
+  }
+}
+</script>

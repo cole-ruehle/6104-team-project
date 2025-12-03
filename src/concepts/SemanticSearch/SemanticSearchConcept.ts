@@ -62,7 +62,7 @@ async function semanticIndex(
 }
 
 async function semanticSearch(
-  _owner: Owner,
+  owner: Owner,
   query: string,
   _filters: unknown,
   limit = 20,
@@ -72,6 +72,9 @@ async function semanticSearch(
   if (typeof limit === "number") {
     url.searchParams.set("limit", String(limit));
   }
+
+  // Enforce owner-level privacy in txtai by filtering on tags.owner.
+  url.searchParams.set("filters", JSON.stringify({ owner }));
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -304,11 +307,27 @@ export default class SemanticSearchConcept {
         id && !["FULLSTACK_ID", "BACKEND_ID", "ML_ID"].includes(id)
       );
 
-    const connectionsCollection = this.db.collection(
+    const connectionsCollection = this.db.collection<
+      { _id: string; account: unknown }
+    >(
       "LinkedInImport.connections",
     );
+    // Only return connections that belong to accounts owned by this user.
+    // We infer ownership by matching connection.account to any LinkedInImport
+    // account whose user field equals the provided owner.
+    const accountsCollection = this.db.collection(
+      "LinkedInImport.accounts",
+    );
+    const ownerAccounts = await accountsCollection
+      .find({ user: owner as unknown })
+      .toArray();
+    const ownerAccountIds = ownerAccounts.map((a) => a._id);
+
     const docs = await connectionsCollection
-      .find({ _id: { $in: ids as unknown[] } })
+      .find({
+        _id: { $in: ids as string[] },
+        account: { $in: ownerAccountIds as unknown[] },
+      })
       .toArray();
 
     const byId = new Map<string, any>(
@@ -343,6 +362,8 @@ export default class SemanticSearchConcept {
       return { connectionId, score, text, connection };
     });
 
-    return { results };
+    // 4. Prefer results that resolve to real connections; hide bare ids.
+    const connected = results.filter((r) => r.connection);
+    return { results: connected };
   }
 }

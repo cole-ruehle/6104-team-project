@@ -171,7 +171,7 @@ main {
 }
 
 .search-hero {
-  background: var(--color-navy-600);
+  background: #f8fafc;
   border-radius: 24px;
   padding: 1.5rem;
   display: flex;
@@ -231,11 +231,11 @@ main {
 }
 
 .connection-card {
-  background: var(--color-card);
+  background: #ffffff;
   border-radius: 18px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.12);
   padding: 1rem 1.25rem;
-  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 }
 
 .connection-card__header {
@@ -606,15 +606,18 @@ button:disabled {
 .connection-card__header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 0.75rem;
   gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #e5edf7; /* light, high-contrast strip for name/score */
 }
 
 .connection-card__header h3 {
   margin: 0;
-  font-size: 1.1rem;
-  color: var(--color-navy-900);
+  font-size: 1.05rem;
+  color: var(--color-navy-900); /* very dark text on light bg */
 }
 
 .score-pill {
@@ -622,7 +625,7 @@ button:disabled {
   color: #fff;
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
