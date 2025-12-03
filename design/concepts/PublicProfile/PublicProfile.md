@@ -23,7 +23,7 @@
         * **requires**:
             * A `Profiles` entry exists for `user`.
             * If `headline` is provided, it is not empty.
-        * **effects**:
+        * **effects**: 
             * Updates each provided field on the profile.
             * Leaves unprovided fields unchanged.
             * Overwrites fields if explicitly provided as empty.
