@@ -214,7 +214,6 @@ import StatusBanner from "@/components/StatusBanner.vue";
 import {
   MultiSourceNetworkAPI,
   type AdjacencyMap,
-  type AdjacencyResponse,
   ConceptApiError,
   PublicProfileAPI,
   type PublicProfile,
@@ -236,7 +235,7 @@ const removeEdgeForm = reactive({
   source: "",
 });
 const adjacency = ref<AdjacencyMap | null>(null);
-dconst nodeLabels = ref<Record<string, string | undefined>>({});
+const nodeLabels = ref<Record<string, string | undefined>>({});
 const adjacencyLoading = ref(false);
 const banner = ref<{ type: "success" | "error"; message: string; section: BannerSection } | null>(null);
 const auth = useAuthStore();
@@ -474,11 +473,15 @@ async function fetchAdjacency() {
 
     // Check if root node is set (it might be the owner or we need to track it)
     // For now, we'll use the first node or owner as root if not explicitly set
-    if (!rootNodeId.value && Object.keys(adjacency.value).length > 0) {
+    if (!rootNodeId.value && adjacency.value && Object.keys(adjacency.value).length > 0) {
       rootNodeId.value = auth.userId;
     }
 
     // Collect all node IDs (sources and targets)
+    if (!adjacency.value) {
+      console.error("Adjacency data is null after processing");
+      return;
+    }
     const allNodeIds = new Set<string>(Object.keys(adjacency.value));
     for (const nodeId of Object.keys(adjacency.value)) {
       const edges = adjacency.value[nodeId] || [];
@@ -769,12 +772,18 @@ async function renderNetwork() {
         size: 14,
         face: "Inter",
       },
-      margin: 20, // Add margin around nodes for better spacing
+      margin: {
+        top: 20,
+        right: 20,
+        bottom: 20,
+        left: 20,
+      },
       borderWidth: 2,
       chosen: {
         node: (values: any) => {
           values.borderWidth = 4;
         },
+        label: false,
       },
     },
     edges: {
