@@ -53,6 +53,24 @@ Adds or updates a connection in the database. Typically called during import ope
 
 **Output**: `{ connection: Connection }` or `{ error: string }`
 
+### `importConnectionsFromCSV`
+Imports connections from a CSV payload. Uses an LLM helper to map CSV columns to the internal
+ConnectionDoc shape, calls `addConnection` for each row, and returns the import job plus the
+created connection documents.
+
+**Input**: `account`, `csvContent` (string)
+
+**Output**: `{ importJob: ImportJob; connectionsImported: number; connections: ConnectionDoc[] }` or `{ error: string }`
+
+### `importConnectionsFromJSON`
+Imports connections from a JSON string representing an array of connection objects. Works like
+the CSV importer but maps JSON keys to ConnectionDoc fields via the LLM helper and returns the
+created connection documents.
+
+**Input**: `account`, `jsonContent` (string)
+
+**Output**: `{ importJob: ImportJob; connectionsImported: number; connections: ConnectionDoc[] }` or `{ error: string }`
+
 ### `updateImportJobStatus`
 Updates the status and progress of an import job.
 
@@ -94,28 +112,39 @@ const { account } = await LinkedInImport.connectLinkedInAccount({
 // 3. Start import
 const { importJob } = await LinkedInImport.startImport({ account });
 
-// 4. Fetch and add connections (this would typically be done in a sync or background job)
-await LinkedInImport.updateImportJobStatus({
-  importJob,
-  status: "in_progress",
-  connectionsImported: 0,
-});
+// 4. Import connections (CSV or JSON)
+//
+// The concept provides convenience actions for importing many connections at once.
+// `importConnectionsFromCSV` accepts a CSV string and returns the import job plus
+// an array of the created `ConnectionDoc` objects. `importConnectionsFromJSON` does
+// the same for a JSON array input.
 
-const connections = await getConnections(tokenData.access_token);
-for (const connection of connections) {
-  await LinkedInImport.addConnection({
-    account,
-    linkedInConnectionId: connection.id,
-    ...transformProfileToConnection(connection),
-  });
+await LinkedInImport.updateImportJobStatus({ importJob, status: "in_progress", connectionsImported: 0 });
+
+// Example: import from CSV content
+const csvContent = /* string payload from uploaded CSV */ "...";
+const csvResult = await LinkedInImport.importConnectionsFromCSV({ account, csvContent });
+if ("error" in csvResult) {
+  // handle import error
+  console.error("Import failed:", csvResult.error);
+} else {
+  // csvResult.connections contains the created ConnectionDoc[] for downstream processing
+  console.log(`Imported ${csvResult.connectionsImported} connections, sample:`, csvResult.connections.slice(0, 3));
 }
 
 await LinkedInImport.updateImportJobStatus({
   importJob,
   status: "completed",
-  connectionsImported: connections.length,
-  connectionsTotal: connections.length,
+  connectionsImported: Array.isArray(csvResult?.connections) ? csvResult.connections.length : 0,
+  connectionsTotal: Array.isArray(csvResult?.connections) ? csvResult.connections.length : undefined,
 });
+
+// Note: A synchronization (`src/syncs/linkedinImport.create_nodes.sync.ts`) listens for
+// the import action (the CSV importer) and will create canonical MultiSourceNetwork
+// nodes for each returned connection and upsert an owner -> node edge. This means
+// callers typically do not need to manually create canonical nodes after an import;
+// the sync will run and call `MultiSourceNetwork.addOrMigrateNodeFromSource` for each
+// imported connection.
 ```
 
 ## LinkedIn API Integration
@@ -138,6 +167,11 @@ The `linkedinApi.ts` helper module provides utilities for:
 
 This concept is designed to work with:
 - **MultiSourceNetwork**: Imported connections can be added as nodes with source "linkedin"
+  - A sync (see `src/syncs/linkedinImport.create_nodes.sync.ts`) listens for the import actions
+    (`importConnectionsFromCSV` / `importConnectionsFromJSON`) and, for each returned connection,
+    calls `MultiSourceNetwork.addOrMigrateNodeFromSource` to create or merge a canonical node and
+    upsert an owner → node edge. This makes imported connections show up in the owner's network
+    automatically.
 - **SemanticSearch**: Connection profiles can be indexed for semantic search
 - **PublicProfile**: User's own LinkedIn profile can be used to populate their public profile
 
@@ -148,4 +182,3 @@ This concept is designed to work with:
 - Support for additional LinkedIn data fields
 - Batch import operations
 - Error recovery and retry logic
-

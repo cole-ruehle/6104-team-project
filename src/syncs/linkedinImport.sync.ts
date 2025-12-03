@@ -25,6 +25,7 @@ export const AddLinkedInConnectionToNetwork: Sync = ({
   lastName,
   label,
   rootNode,
+  connectionDoc,
 }) => ({
   when: actions([
     LinkedInImport.addConnection,
@@ -91,6 +92,14 @@ export const AddLinkedInConnectionToNetwork: Sync = ({
 
     // Set root node to owner (user)
     frames[0][rootNode] = userValue;
+
+
+    // Also fetch the full connection document so we can create a canonical node
+    frames = await frames.query(
+      LinkedInImport._getConnection,
+      { connection },
+      { connectionDoc },
+    );
 
     return frames;
   },

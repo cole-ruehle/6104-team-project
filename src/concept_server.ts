@@ -1,4 +1,5 @@
 import { Hono } from "jsr:@hono/hono";
+import type { Context } from "jsr:@hono/hono";
 import { getDb } from "@utils/database.ts";
 import { walk } from "jsr:@std/fs";
 import { parseArgs } from "jsr:@std/cli/parse-args";
@@ -24,7 +25,7 @@ async function main() {
   const [db] = await getDb();
   const app = new Hono();
 
-  app.get("/", (c) => c.text("Concept Server is running."));
+  app.get("/", (c: Context) => c.text("Concept Server is running."));
 
   // --- Dynamic Concept Loading and Routing ---
   console.log(`Scanning for concepts in ./${CONCEPTS_DIR}...`);
@@ -73,7 +74,7 @@ async function main() {
         const actionName = methodName;
         const route = `${BASE_URL}/${conceptApiName}/${actionName}`;
 
-        app.post(route, async (c) => {
+        app.post(route, async (c: Context) => {
           try {
             const body = await c.req.json().catch(() => ({})); // Handle empty body
             const result = await instance[methodName](body);

@@ -33,13 +33,15 @@ export const inclusions: Record<string, string> = {
   "/api/PublicProfile/deleteProfile": "users can delete their profile",
   "/api/PublicProfile/_getProfile": "frontend fetches profile data",
 
-  "/api/MultiSourceNetwork/createNetwork": "authenticated users bootstrap their network",
+  "/api/MultiSourceNetwork/createNetwork":
+    "authenticated users bootstrap their network",
   "/api/MultiSourceNetwork/setRootNode": "users adjust their network root",
   "/api/MultiSourceNetwork/addNodeToNetwork": "users ingest nodes from imports",
   "/api/MultiSourceNetwork/removeNodeFromNetwork": "users prune nodes",
   "/api/MultiSourceNetwork/addEdge": "users link contacts together",
   "/api/MultiSourceNetwork/removeEdge": "users unlink contacts",
-  "/api/MultiSourceNetwork/_getAdjacencyArray": "frontend explorer visualizes graph data",
+  "/api/MultiSourceNetwork/_getAdjacencyArray":
+    "frontend explorer visualizes graph data",
 };
 
 /**
@@ -56,4 +58,6 @@ export const exclusions: Array<string> = [
   // Feel free to delete these example exclusions
   "/api/LikertSurvey/createSurvey",
   "/api/LikertSurvey/addQuestion",
+
+  "/api/LinkedInImport/addConnection",
 ];

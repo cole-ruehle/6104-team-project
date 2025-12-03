@@ -110,6 +110,7 @@ const importResult = ref<{
   status: string;
   importJob?: string;
   connectionsImported?: number;
+  connections?: Array<Record<string, unknown>>;
   error?: string;
 } | null>(null);
 
@@ -220,6 +221,7 @@ async function handleUpload() {
       status: "success",
       importJob: result.importJob,
       connectionsImported: result.connectionsImported,
+      connections: result.connections,
     };
 
     showBanner(

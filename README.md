@@ -13,6 +13,7 @@
 - [Update 1](project-updates/update-1.md)
 - [Update 2](project-updates/update-2.md)
 - [Update 3](project-updates/update-3.md)
+- [Update 4](project-updates/update-4.md)
 
 ### Devlopment Plan
 [Devlopment Plan](development-plan-update.md)
