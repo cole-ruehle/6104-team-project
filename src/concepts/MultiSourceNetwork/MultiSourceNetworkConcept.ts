@@ -829,6 +829,50 @@ export default class MultiSourceNetworkConcept {
       "[MultiSourceNetwork] _getAdjacencyArray called for owner:",
       owner,
     );
+    console.log(
+      "[MultiSourceNetwork] _getAdjacencyArray: Owner type:",
+      typeof owner,
+      "value:",
+      JSON.stringify(owner),
+    );
+
+    // Debug: Check what's actually in the database
+    const allMemberships = await this.memberships.find({}).toArray();
+    console.log(
+      "[MultiSourceNetwork] _getAdjacencyArray: Total memberships in DB:",
+      allMemberships.length,
+    );
+    if (allMemberships.length > 0) {
+      console.log(
+        "[MultiSourceNetwork] _getAdjacencyArray: Sample membership owner:",
+        allMemberships[0].owner,
+        "type:",
+        typeof allMemberships[0].owner,
+      );
+      console.log(
+        "[MultiSourceNetwork] _getAdjacencyArray: All unique owners in memberships:",
+        [...new Set(allMemberships.map((m) => m.owner))],
+      );
+    }
+
+    const allEdges = await this.edges.find({}).toArray();
+    console.log(
+      "[MultiSourceNetwork] _getAdjacencyArray: Total edges in DB:",
+      allEdges.length,
+    );
+    if (allEdges.length > 0) {
+      console.log(
+        "[MultiSourceNetwork] _getAdjacencyArray: Sample edge owner:",
+        allEdges[0].owner,
+        "type:",
+        typeof allEdges[0].owner,
+      );
+      console.log(
+        "[MultiSourceNetwork] _getAdjacencyArray: All unique owners in edges:",
+        [...new Set(allEdges.map((e) => e.owner))],
+      );
+    }
+
     const adjacency: Record<
       Node,
       Array<{ to: Node; source: Source; weight?: number }>
@@ -839,7 +883,8 @@ export default class MultiSourceNetworkConcept {
     console.log(
       "[MultiSourceNetwork] _getAdjacencyArray: Found",
       memberships.length,
-      "memberships",
+      "memberships for owner:",
+      owner,
     );
     for (const m of memberships) {
       adjacency[m.node] = [];
@@ -850,7 +895,8 @@ export default class MultiSourceNetworkConcept {
     console.log(
       "[MultiSourceNetwork] _getAdjacencyArray: Found",
       ownerEdges.length,
-      "edges",
+      "edges for owner:",
+      owner,
     );
     for (const edge of ownerEdges) {
       // Ensure the "from" node exists in adjacency (even if not in memberships)

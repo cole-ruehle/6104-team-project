@@ -139,6 +139,38 @@ export const UserAuthenticationAPI = {
     ),
 };
 
+export interface LinkedInConnection {
+  _id: string;
+  account: string;
+  linkedInConnectionId: string;
+  firstName?: string;
+  lastName?: string;
+  headline?: string;
+  location?: string;
+  industry?: string;
+  currentPosition?: string;
+  currentCompany?: string;
+  profileUrl?: string;
+  profilePictureUrl?: string;
+  summary?: string;
+  skills?: string[];
+  education?: Array<{
+    school?: string;
+    degree?: string;
+    fieldOfStudy?: string;
+    startYear?: number;
+    endYear?: number;
+  }>;
+  experience?: Array<{
+    title?: string;
+    company?: string;
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+  }>;
+  importedAt: string;
+}
+
 export const LinkedInImportAPI = {
   connectLinkedInAccount: (payload: {
     user: string;
@@ -159,6 +191,8 @@ export const LinkedInImportAPI = {
       createdAt: string;
       lastImportedAt?: string;
     }>>("LinkedInImport", "_getLinkedInAccount", payload),
+  getConnections: (payload: { account: string }) =>
+    postConcept<LinkedInConnection[]>("LinkedInImport", "_getConnections", payload),
   importConnectionsFromCSV: (payload: { account: string; csvContent: string }) =>
     postConcept<{ importJob: string; connectionsImported: number }>(
       "LinkedInImport",

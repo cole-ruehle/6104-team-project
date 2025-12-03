@@ -4,6 +4,7 @@ const MultiSourceNetworkPage = () =>
   import("@/pages/MultiSourceNetworkPage.vue");
 const PublicProfilePage = () => import("@/pages/PublicProfilePage.vue");
 const LinkedInImportPage = () => import("@/pages/LinkedInImportPage.vue");
+const NetworkSearchPage = () => import("@/pages/NetworkSearchPage.vue");
 
 const router = createRouter({
   history: createWebHistory(),
@@ -26,6 +27,11 @@ const router = createRouter({
       path: "/import",
       name: "import",
       component: LinkedInImportPage,
+    },
+    {
+      path: "/search",
+      name: "search",
+      component: NetworkSearchPage,
     },
   ],
   scrollBehavior() {
