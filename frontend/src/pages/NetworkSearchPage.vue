@@ -85,6 +85,7 @@
           v-for="node in filteredResults"
           :key="node.id"
           class="result-card"
+          @click="openProfileModal(node.id)"
         >
           <div class="result-avatar">
             <img
@@ -123,6 +124,233 @@
       </div>
     </div>
   </div>
+
+  <!-- Profile Modal -->
+  <div v-if="selectedProfileId" class="modal-overlay" @click.self="closeProfileModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Connection Profile</h2>
+        <button class="modal-close" @click="closeProfileModal" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div v-if="isEditing" class="edit-form">
+          <!-- Profile Picture Upload -->
+          <div class="form-section">
+            <label class="form-label">Profile Picture</label>
+            <div
+              class="upload-area"
+              :class="{ 'drag-over': isDragging, 'has-image': editForm.profilePictureUrl }"
+              @dragover.prevent="handleDragOver"
+              @dragleave.prevent="handleDragLeave"
+              @drop.prevent="handleDrop"
+              @click="triggerFilePicker"
+            >
+              <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                class="file-input"
+                @change="handleFileChange"
+              />
+              <div v-if="!editForm.profilePictureUrl" class="upload-placeholder">
+                <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                <p class="upload-text">Drag and drop an image here, or click to browse</p>
+                <p class="upload-hint">Supports JPG, PNG, GIF (max 5MB)</p>
+              </div>
+              <div v-else class="upload-preview">
+                <img :src="editForm.profilePictureUrl" alt="Preview" @error="handleImageError" />
+                <button
+                  type="button"
+                  class="remove-image-btn"
+                  @click.stop="removeImage"
+                  aria-label="Remove image"
+                >
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+            <div v-if="uploadError" class="upload-error">
+              <i class="fa-solid fa-exclamation-circle"></i> {{ uploadError }}
+            </div>
+          </div>
+
+          <!-- Name -->
+          <div class="form-row">
+            <div class="form-section">
+              <label class="form-label">First Name</label>
+              <input v-model="editForm.firstName" type="text" class="form-input" />
+            </div>
+            <div class="form-section">
+              <label class="form-label">Last Name</label>
+              <input v-model="editForm.lastName" type="text" class="form-input" />
+            </div>
+          </div>
+
+          <!-- Headline -->
+          <div class="form-section">
+            <label class="form-label">Headline</label>
+            <input v-model="editForm.headline" type="text" class="form-input" />
+          </div>
+
+          <!-- Company & Position -->
+          <div class="form-row">
+            <div class="form-section">
+              <label class="form-label">Current Company</label>
+              <input v-model="editForm.currentCompany" type="text" class="form-input" />
+            </div>
+            <div class="form-section">
+              <label class="form-label">Current Position</label>
+              <input v-model="editForm.currentPosition" type="text" class="form-input" />
+            </div>
+          </div>
+
+          <!-- Location & Industry -->
+          <div class="form-row">
+            <div class="form-section">
+              <label class="form-label">Location</label>
+              <input v-model="editForm.location" type="text" class="form-input" />
+            </div>
+            <div class="form-section">
+              <label class="form-label">Industry</label>
+              <input v-model="editForm.industry" type="text" class="form-input" />
+            </div>
+          </div>
+
+          <!-- LinkedIn URL -->
+          <div class="form-section">
+            <label class="form-label">LinkedIn Profile URL</label>
+            <input v-model="editForm.profileUrl" type="url" class="form-input" />
+          </div>
+
+          <!-- Summary -->
+          <div class="form-section">
+            <label class="form-label">Summary</label>
+            <textarea v-model="editForm.summary" class="form-textarea" rows="4"></textarea>
+          </div>
+
+          <!-- Skills -->
+          <div class="form-section">
+            <label class="form-label">Skills (comma-separated)</label>
+            <input v-model="editForm.skillsText" type="text" class="form-input" placeholder="JavaScript, Python, React" />
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="form-actions">
+            <button @click="saveProfile" class="btn-primary" :disabled="saving">
+              <i class="fa-solid fa-save"></i> {{ saving ? 'Saving...' : 'Save Changes' }}
+            </button>
+            <button @click="cancelEdit" class="btn-secondary">Cancel</button>
+          </div>
+        </div>
+
+        <div v-else class="profile-view">
+          <!-- Profile Header -->
+          <div class="profile-header">
+            <div class="profile-avatar-large">
+              <img
+                v-if="selectedProfileData.avatarUrl"
+                :src="selectedProfileData.avatarUrl"
+                :alt="selectedProfileData.displayName"
+                @error="handleImageError"
+              />
+              <div v-else class="avatar-placeholder-large">
+                {{ selectedProfileData.initials }}
+              </div>
+            </div>
+            <div class="profile-header-info">
+              <h2 class="profile-name">{{ selectedProfileData.displayName }}</h2>
+              <p v-if="selectedProfileData.headline" class="profile-headline">
+                {{ selectedProfileData.headline }}
+              </p>
+              <div class="profile-meta">
+                <span v-if="selectedProfileData.currentCompany" class="profile-meta-item">
+                  <i class="fa-solid fa-building"></i> {{ selectedProfileData.currentCompany }}
+                </span>
+                <span v-if="selectedProfileData.location" class="profile-meta-item">
+                  <i class="fa-solid fa-map-marker-alt"></i> {{ selectedProfileData.location }}
+                </span>
+                <span v-if="selectedProfileData.sources.length > 0" class="profile-meta-item">
+                  <i class="fa-solid fa-link"></i> {{ selectedProfileData.sources.join(', ') }}
+                </span>
+              </div>
+            </div>
+            <button @click="startEdit" class="btn-edit">
+              <i class="fa-solid fa-pencil"></i> Edit
+            </button>
+          </div>
+
+          <!-- Profile Details -->
+          <div class="profile-details">
+            <div v-if="selectedProfileData.currentPosition" class="detail-section">
+              <h3 class="detail-title">Current Position</h3>
+              <p>{{ selectedProfileData.currentPosition }}</p>
+            </div>
+
+            <div v-if="selectedProfileData.industry" class="detail-section">
+              <h3 class="detail-title">Industry</h3>
+              <p>{{ selectedProfileData.industry }}</p>
+            </div>
+
+            <div v-if="selectedProfileData.summary" class="detail-section">
+              <h3 class="detail-title">Summary</h3>
+              <p class="profile-summary">{{ selectedProfileData.summary }}</p>
+            </div>
+
+            <div v-if="selectedProfileData.skills && selectedProfileData.skills.length > 0" class="detail-section">
+              <h3 class="detail-title">Skills</h3>
+              <div class="skills-list">
+                <span v-for="skill in selectedProfileData.skills" :key="skill" class="skill-tag">
+                  {{ skill }}
+                </span>
+              </div>
+            </div>
+
+            <div v-if="selectedProfileData.experience && selectedProfileData.experience.length > 0" class="detail-section">
+              <h3 class="detail-title">Experience</h3>
+              <div class="experience-list">
+                <div v-for="(exp, idx) in selectedProfileData.experience" :key="idx" class="experience-item">
+                  <div class="experience-header">
+                    <strong>{{ exp.title }}</strong>
+                    <span v-if="exp.company"> at {{ exp.company }}</span>
+                  </div>
+                  <div v-if="exp.startDate || exp.endDate" class="experience-dates">
+                    {{ exp.startDate || '?' }} - {{ exp.endDate || 'Present' }}
+                  </div>
+                  <p v-if="exp.description" class="experience-description">{{ exp.description }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="selectedProfileData.education && selectedProfileData.education.length > 0" class="detail-section">
+              <h3 class="detail-title">Education</h3>
+              <div class="education-list">
+                <div v-for="(edu, idx) in selectedProfileData.education" :key="idx" class="education-item">
+                  <div class="education-header">
+                    <strong>{{ edu.school || 'Unknown School' }}</strong>
+                  </div>
+                  <div v-if="edu.degree || edu.fieldOfStudy" class="education-degree">
+                    {{ [edu.degree, edu.fieldOfStudy].filter(Boolean).join(' in ') }}
+                  </div>
+                  <div v-if="edu.startYear || edu.endYear" class="education-years">
+                    {{ edu.startYear || '?' }} - {{ edu.endYear || 'Present' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="selectedProfileData.profileUrl" class="detail-section">
+              <a :href="selectedProfileData.profileUrl" target="_blank" rel="noopener" class="profile-link">
+                <i class="fab fa-linkedin"></i> View LinkedIn Profile
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -148,6 +376,27 @@ const showAutocompleteDropdown = ref(false);
 const selectedAutocompleteIndex = ref(-1);
 const activeFilters = ref<Array<{ type: string; label: string; value: string }>>([]);
 const adjacency = ref<AdjacencyMap | null>(null);
+
+// Profile modal state
+const selectedProfileId = ref<string | null>(null);
+const isEditing = ref(false);
+const saving = ref(false);
+const isDragging = ref(false);
+const uploadError = ref('');
+const fileInput = ref<HTMLInputElement | null>(null);
+const editForm = ref({
+  firstName: '',
+  lastName: '',
+  headline: '',
+  location: '',
+  industry: '',
+  currentPosition: '',
+  currentCompany: '',
+  profileUrl: '',
+  profilePictureUrl: '',
+  summary: '',
+  skillsText: '',
+});
 const nodeProfiles = ref<Record<string, { profile?: any; avatarUrl: string; username?: string }>>({});
 const linkedInConnections = ref<Record<string, LinkedInConnection>>({});
 const allNodes = ref<Array<{
@@ -326,6 +575,71 @@ const autocompleteSuggestions = computed(() => {
 const hasActiveFilters = computed(() => activeFilters.value.length > 0 || searchQuery.value.length > 0);
 
 const totalNodes = computed(() => allNodes.value.length);
+
+// Computed profile data for selected profile
+const selectedProfileData = computed(() => {
+  if (!selectedProfileId.value) {
+    return {
+      id: '',
+      displayName: '',
+      headline: '',
+      currentCompany: '',
+      currentPosition: '',
+      location: '',
+      industry: '',
+      summary: '',
+      skills: [] as string[],
+      experience: [] as any[],
+      education: [] as any[],
+      profileUrl: '',
+      avatarUrl: '',
+      initials: '',
+      sources: [] as string[],
+    };
+  }
+
+  const node = allNodes.value.find(n => n.id === selectedProfileId.value);
+  if (!node) {
+    return {
+      id: selectedProfileId.value,
+      displayName: selectedProfileId.value,
+      headline: '',
+      currentCompany: '',
+      currentPosition: '',
+      location: '',
+      industry: '',
+      summary: '',
+      skills: [] as string[],
+      experience: [] as any[],
+      education: [] as any[],
+      profileUrl: '',
+      avatarUrl: '',
+      initials: selectedProfileId.value.substring(0, 2).toUpperCase(),
+      sources: [] as string[],
+    };
+  }
+
+  const linkedInConn = linkedInConnections.value[selectedProfileId.value];
+  const profile = nodeProfiles.value[selectedProfileId.value];
+
+  return {
+    id: node.id,
+    displayName: node.displayName,
+    headline: linkedInConn?.headline || profile?.profile?.headline || '',
+    currentCompany: linkedInConn?.currentCompany || profile?.profile?.company || '',
+    currentPosition: linkedInConn?.currentPosition || '',
+    location: linkedInConn?.location || profile?.profile?.location || '',
+    industry: linkedInConn?.industry || '',
+    summary: linkedInConn?.summary || '',
+    skills: linkedInConn?.skills || [],
+    experience: linkedInConn?.experience || [],
+    education: linkedInConn?.education || [],
+    profileUrl: linkedInConn?.profileUrl || '',
+    avatarUrl: node.avatarUrl,
+    initials: node.initials,
+    sources: node.sources,
+  };
+});
 
 const filteredResults = computed(() => {
   let results = [...allNodes.value];
@@ -537,6 +851,180 @@ function hideAutocomplete() {
 function handleImageError(event: Event) {
   const img = event.target as HTMLImageElement;
   img.src = avatarStore.DEFAULT_AVATAR;
+}
+
+function openProfileModal(nodeId: string) {
+  selectedProfileId.value = nodeId;
+  isEditing.value = false;
+}
+
+function closeProfileModal() {
+  selectedProfileId.value = null;
+  isEditing.value = false;
+}
+
+function startEdit() {
+  if (!selectedProfileId.value) return;
+  
+  const data = selectedProfileData.value;
+  const linkedInConn = linkedInConnections.value[selectedProfileId.value];
+  
+  editForm.value = {
+    firstName: linkedInConn?.firstName || '',
+    lastName: linkedInConn?.lastName || '',
+    headline: data.headline || '',
+    location: data.location || '',
+    industry: data.industry || '',
+    currentPosition: data.currentPosition || '',
+    currentCompany: data.currentCompany || '',
+    profileUrl: data.profileUrl || '',
+    profilePictureUrl: data.avatarUrl || '',
+    summary: data.summary || '',
+    skillsText: data.skills.join(', ') || '',
+  };
+  
+  isEditing.value = true;
+}
+
+function cancelEdit() {
+  isEditing.value = false;
+}
+
+function triggerFilePicker() {
+  fileInput.value?.click();
+}
+
+function handleDragOver(event: DragEvent) {
+  isDragging.value = true;
+  event.preventDefault();
+}
+
+function handleDragLeave(event: DragEvent) {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  const x = event.clientX;
+  const y = event.clientY;
+  
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    isDragging.value = false;
+  }
+}
+
+function handleDrop(event: DragEvent) {
+  isDragging.value = false;
+  const files = event.dataTransfer?.files;
+  if (files && files.length > 0) {
+    processFile(files[0]);
+  }
+}
+
+function handleFileChange(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (file) {
+    processFile(file);
+  }
+}
+
+function processFile(file: File) {
+  uploadError.value = '';
+  
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    uploadError.value = 'Please select an image file';
+    return;
+  }
+  
+  // Validate file size (5MB max)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    uploadError.value = 'Image size must be less than 5MB';
+    return;
+  }
+  
+  // Read file as data URL
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const result = e.target?.result;
+    if (typeof result === 'string') {
+      editForm.value.profilePictureUrl = result;
+      uploadError.value = '';
+    }
+  };
+  reader.onerror = () => {
+    uploadError.value = 'Failed to read image file';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  editForm.value.profilePictureUrl = '';
+  uploadError.value = '';
+  if (fileInput.value) {
+    fileInput.value.value = '';
+  }
+}
+
+async function saveProfile() {
+  if (!selectedProfileId.value) return;
+  
+  saving.value = true;
+  
+  try {
+    // Get the LinkedIn account for the current user
+    const accounts = await LinkedInImportAPI.getLinkedInAccount({ user: auth.userId });
+    if (accounts.length === 0) {
+      alert('No LinkedIn account found. Please connect your LinkedIn account first.');
+      saving.value = false;
+      return;
+    }
+    
+    const accountId = accounts[0]._id;
+    const linkedInConn = linkedInConnections.value[selectedProfileId.value];
+    
+    if (!linkedInConn) {
+      alert('This connection does not have LinkedIn data to update.');
+      saving.value = false;
+      return;
+    }
+    
+    // Parse skills from comma-separated string
+    const skills = editForm.value.skillsText
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+    
+    // Update the connection using addConnection (which updates if exists)
+    const result = await LinkedInImportAPI.addConnection({
+      account: accountId,
+      linkedInConnectionId: linkedInConn.linkedInConnectionId,
+      firstName: editForm.value.firstName || undefined,
+      lastName: editForm.value.lastName || undefined,
+      headline: editForm.value.headline || undefined,
+      location: editForm.value.location || undefined,
+      industry: editForm.value.industry || undefined,
+      currentPosition: editForm.value.currentPosition || undefined,
+      currentCompany: editForm.value.currentCompany || undefined,
+      profileUrl: editForm.value.profileUrl || undefined,
+      profilePictureUrl: editForm.value.profilePictureUrl || undefined,
+      summary: editForm.value.summary || undefined,
+      skills: skills.length > 0 ? skills : undefined,
+    });
+    
+    if ('error' in result) {
+      alert(`Error updating profile: ${result.error}`);
+    } else {
+      // Reload the connection data
+      await loadLinkedInConnections();
+      // Update the node data
+      await loadNetworkData();
+      isEditing.value = false;
+    }
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    alert('Failed to save profile. Please try again.');
+  } finally {
+    saving.value = false;
+  }
 }
 
 function getInitials(text: string): string {
@@ -965,6 +1453,7 @@ onMounted(() => {
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 0.75rem;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .result-card:hover {
@@ -1056,6 +1545,511 @@ onMounted(() => {
   margin: 0;
   color: #64748b;
   font-size: 0.9rem;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.modal-close:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Profile View */
+.profile-header {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.profile-avatar-large {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #e2e8f0;
+}
+
+.profile-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder-large {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.profile-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.profile-headline {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.profile-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.profile-meta-item i {
+  font-size: 0.75rem;
+}
+
+.btn-edit {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  background: var(--color-navy-600);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.btn-edit:hover {
+  background: var(--color-navy-700);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detail-section {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.detail-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.profile-summary {
+  margin: 0;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skill-tag {
+  padding: 0.375rem 0.75rem;
+  background: #e2e8f0;
+  color: #1e293b;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.experience-list,
+.education-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.experience-item,
+.education-item {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  border-left: 3px solid var(--color-navy-400);
+}
+
+.experience-header,
+.education-header {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.experience-dates,
+.education-years {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.education-degree {
+  font-size: 0.875rem;
+  color: #475569;
+  margin-bottom: 0.25rem;
+}
+
+.experience-description {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #0A66C2;
+  color: white;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.profile-link:hover {
+  background: #095a9e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(10, 102, 194, 0.3);
+}
+
+/* Edit Form */
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.form-input,
+.form-textarea {
+  padding: 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  border-color: var(--color-navy-400);
+  box-shadow: 0 0 0 3px rgba(102, 153, 204, 0.2);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* File Upload Area */
+.upload-area {
+  position: relative;
+  border: 2px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-area:hover {
+  border-color: var(--color-navy-400);
+  background: #f1f5f9;
+}
+
+.upload-area.drag-over {
+  border-color: var(--color-navy-600);
+  background: #e2e8f0;
+  transform: scale(1.02);
+}
+
+.upload-area.has-image {
+  padding: 0;
+  border: 2px solid #e2e8f0;
+  background: white;
+  min-height: auto;
+}
+
+.file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.upload-icon {
+  font-size: 3rem;
+  color: #94a3b8;
+}
+
+.upload-text {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.upload-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.upload-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.remove-image-btn:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+.upload-error {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-error i {
+  font-size: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: var(--color-navy-600);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-navy-700);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  background: #f1f5f9;
+  color: #1e293b;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .btn-edit {
+    align-self: center;
+  }
 }
 </style>
 
