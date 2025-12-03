@@ -64,6 +64,28 @@ interface NodeDoc {
   headline?: string;
   profileUrl?: string;
   avatarUrl?: string;
+  // LinkedIn-like optional profile fields
+  location?: string;
+  industry?: string;
+  currentPosition?: string;
+  currentCompany?: string;
+  profilePictureUrl?: string; // original field name from LinkedIn import
+  summary?: string;
+  skills?: string[];
+  education?: Array<{
+    school?: string;
+    degree?: string;
+    fieldOfStudy?: string;
+    startYear?: number;
+    endYear?: number;
+  }>;
+  experience?: Array<{
+    title?: string;
+    company?: string;
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+  }>;
   tags?: string[];
   createdAt: Date;
   updatedAt?: Date;
@@ -230,7 +252,7 @@ export default class MultiSourceNetworkConcept {
       owner: Owner;
       node?: Node;
       source: Source;
-      nodeMeta?: {
+      nodeMeta?: Partial<NodeDoc> | {
         externalId?: string;
         label?: string;
         avatarUrl?: string;
@@ -243,17 +265,19 @@ export default class MultiSourceNetworkConcept {
     if (!nodeId && nodeMeta) {
       // When creating a node via nodeMeta through addNodeToNetwork, a node is created and the owner will be added as a member
       // Prepare sourceIds (prefer provided sourceIds, else map externalId)
+      const meta = nodeMeta as Partial<NodeDoc>;
+      const legacyMeta = nodeMeta as { externalId?: string } | undefined;
       const sourceIds =
-        nodeMeta.sourceIds && Object.keys(nodeMeta.sourceIds || {}).length > 0
-          ? nodeMeta.sourceIds
-          : (nodeMeta.externalId
-            ? { [source]: nodeMeta.externalId }
+        (meta && meta.sourceIds && Object.keys(meta.sourceIds || {}).length > 0)
+          ? meta.sourceIds
+          : (legacyMeta && legacyMeta.externalId
+            ? { [source]: legacyMeta.externalId }
             : undefined);
       // Derive names from label if possible
       let firstName: string | undefined;
       let lastName: string | undefined;
-      if (nodeMeta.label) {
-        const parts = nodeMeta.label.trim().split(/\s+/);
+      if (meta && meta.label) {
+        const parts = meta.label.trim().split(/\s+/);
         if (parts.length >= 2) {
           firstName = parts[0];
           lastName = parts.slice(1).join(" ");
@@ -261,14 +285,25 @@ export default class MultiSourceNetworkConcept {
           firstName = parts[0];
         }
       }
-
       const res = await this.createNodeForUser({
         owner,
         firstName: firstName || "",
         lastName: lastName || "",
-        label: nodeMeta.label,
-        avatarUrl: nodeMeta.avatarUrl,
+        label: meta?.label,
+        headline: meta?.headline,
+        profileUrl: meta?.profileUrl,
+        avatarUrl: meta?.avatarUrl || meta?.profilePictureUrl,
+        tags: meta?.tags,
         sourceIds,
+        location: meta?.location,
+        industry: meta?.industry,
+        currentPosition: meta?.currentPosition,
+        currentCompany: meta?.currentCompany,
+        profilePictureUrl: meta?.profilePictureUrl,
+        summary: meta?.summary,
+        skills: meta?.skills,
+        education: meta?.education,
+        experience: meta?.experience,
       });
       if (res.error) return { error: res.error };
       nodeId = res.node as Node;
@@ -430,9 +465,18 @@ export default class MultiSourceNetworkConcept {
       label: providedMeta.label,
       headline: providedMeta.headline,
       profileUrl: providedMeta.profileUrl,
-      avatarUrl: providedMeta.avatarUrl,
+      avatarUrl: providedMeta.avatarUrl || providedMeta.profilePictureUrl,
       tags: providedMeta.tags,
       sourceIds,
+      location: providedMeta.location,
+      industry: providedMeta.industry,
+      currentPosition: providedMeta.currentPosition,
+      currentCompany: providedMeta.currentCompany,
+      profilePictureUrl: providedMeta.profilePictureUrl,
+      summary: providedMeta.summary,
+      skills: providedMeta.skills,
+      education: providedMeta.education,
+      experience: providedMeta.experience,
       skipMembership: true,
     });
     if (createRes.error) throw new Error(createRes.error);
@@ -594,6 +638,16 @@ export default class MultiSourceNetworkConcept {
     tags,
     sourceIds,
     skipMembership,
+    // optional LinkedIn-like fields
+    location,
+    industry,
+    currentPosition,
+    currentCompany,
+    profilePictureUrl,
+    summary,
+    skills,
+    education,
+    experience,
   }: {
     owner: Owner;
     firstName?: string;
@@ -605,6 +659,27 @@ export default class MultiSourceNetworkConcept {
     tags?: string[];
     sourceIds?: Record<string, string>;
     skipMembership?: boolean;
+    location?: string;
+    industry?: string;
+    currentPosition?: string;
+    currentCompany?: string;
+    profilePictureUrl?: string;
+    summary?: string;
+    skills?: string[];
+    education?: Array<{
+      school?: string;
+      degree?: string;
+      fieldOfStudy?: string;
+      startYear?: number;
+      endYear?: number;
+    }>;
+    experience?: Array<{
+      title?: string;
+      company?: string;
+      startDate?: string;
+      endDate?: string;
+      description?: string;
+    }>;
   }): Promise<{ node?: ID; error?: string }> {
     // Accept either explicit first+last name, or a label we can derive names from.
     let fn = firstName?.trim();
@@ -619,13 +694,14 @@ export default class MultiSourceNetworkConcept {
       }
     }
 
-    if (
-      (!fn || fn === "") && (!ln || ln === "") &&
-      (!label || label.trim() === "")
-    ) {
-      return {
-        error: "firstName+lastName or label is required to create a node",
-      };
+    // Ensure first and last name exist (label may have been used to derive them)
+    if (!fn || fn === "" || !ln || ln === "") {
+      return { error: "firstName and lastName are required to create a node" };
+    }
+
+    // headline is mandatory per new requirement
+    if (!headline || headline.trim() === "") {
+      return { error: "headline is required to create a node" };
     }
 
     const displayLabel = label && label.trim() !== ""
@@ -668,9 +744,19 @@ export default class MultiSourceNetworkConcept {
       label: displayLabel,
       firstName: fn,
       lastName: ln,
-      headline: headline?.trim(),
+      headline: headline!.trim(),
       profileUrl: profileUrl?.trim(),
-      avatarUrl: avatarUrl?.trim(),
+      // prefer explicit avatarUrl, fall back to profilePictureUrl if present
+      avatarUrl: (avatarUrl || profilePictureUrl)?.trim(),
+      location: location?.trim(),
+      industry: industry?.trim(),
+      currentPosition: currentPosition?.trim(),
+      currentCompany: currentCompany?.trim(),
+      profilePictureUrl: profilePictureUrl?.trim(),
+      summary: summary?.trim(),
+      skills: skills || [],
+      education: education || [],
+      experience: experience || [],
       tags,
       ...(sourceIds ? { sourceIds } : {}),
     } as NodeDoc;
@@ -1023,7 +1109,9 @@ export default class MultiSourceNetworkConcept {
    * Returns canonical node documents for the requested ids. This is a lightweight
    * helper used by frontends to fetch display metadata for nodes returned in adjacency maps.
    */
-  async getNodes({ ids, owner }: { ids: string[]; owner?: Owner }): Promise<Array<Record<string, unknown>>> {
+  async getNodes(
+    { ids, owner }: { ids: string[]; owner?: Owner },
+  ): Promise<Array<Record<string, unknown>>> {
     if (!ids || !Array.isArray(ids) || ids.length === 0) return [];
     const docs = await this.nodes.find(
       { _id: { $in: ids as unknown as ID[] } },
@@ -1037,14 +1125,27 @@ export default class MultiSourceNetworkConcept {
           avatarUrl: 1,
           profileUrl: 1,
           sourceIds: 1,
+          // LinkedIn-like fields
+          location: 1,
+          industry: 1,
+          currentPosition: 1,
+          currentCompany: 1,
+          profilePictureUrl: 1,
+          summary: 1,
+          skills: 1,
+          education: 1,
+          experience: 1,
         },
       },
     ).toArray();
 
     // If owner provided, also fetch membership sources for these node ids and attach as membershipSources
-  const membershipMap: Record<string, Record<string, true>> = {};
+    const membershipMap: Record<string, Record<string, true>> = {};
     if (owner) {
-      const memberships = await this.memberships.find({ owner, node: { $in: ids as unknown as ID[] } }).toArray();
+      const memberships = await this.memberships.find({
+        owner,
+        node: { $in: ids as unknown as ID[] },
+      }).toArray();
       for (const m of memberships) {
         const raw = m.sources || {};
         // Filter out internal/automatic membership keys that should not be shown in the UI
@@ -1059,6 +1160,11 @@ export default class MultiSourceNetworkConcept {
       }
     }
 
-  return docs.map((d) => ({ ...(d as unknown as Record<string, unknown>), membershipSources: membershipMap[(d as unknown as Record<string, unknown>)._id as string] || {} }));
+    return docs.map((d) => ({
+      ...(d as unknown as Record<string, unknown>),
+      membershipSources: membershipMap[
+        (d as unknown as Record<string, unknown>)._id as string
+      ] || {},
+    }));
   }
 }

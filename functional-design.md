@@ -198,16 +198,8 @@ Social media apps for networking don’t help with the problem of finding who I 
         * `updatedAt?` String
     * a set of `Nodes` with
         * `_id` String
-        * `sourceIds?` JSON
-        * `label?` String
-        * `firstName?` String
-        * `lastName?` String
-        * `headline?` String
-        * `profileUrl?` String
-        * `avatarUrl?` String
-        * `tags?` String
-        * `createdAt?` String
-        * `updatedAt?` String
+        * `sourceIds?` String
+        * `metaData?` JSON
 
 * **actions**:
 
@@ -274,7 +266,7 @@ Social media apps for networking don’t help with the problem of finding who I 
 
     * `setRootNode` and `addEdge` assume the caller enforces authorization (owner or sync acting on behalf of owner); `updateNode` operations should require membership-based authorization.
 
-    * `createNodeForUser ({ owner, firstName?, lastName?, label?, headline?, profileUrl?, avatarUrl?, tags?, sourceIds? }): { node } | { error }`
+    * `createNodeForUser ({ owner, metaData?, ..., sourceIds? }): { node } | { error }`
         * **requires**: either `firstName+lastName` or `label` (a display name) so a canonical label can be derived.
         * **effects**:
             * Inserts a `Nodes` document (with `sourceIds` if provided) and a `Memberships` entry for `(owner, node)` with the source set to `user` (or the internal caller tag). Returns the new canonical node id.
@@ -284,6 +276,7 @@ Social media apps for networking don’t help with the problem of finding who I 
         * **effects**: creates `{ node }` with the canonical node id.
 
 * **notes**:
+    * metadata for nodes vary from implementation to implementation, depending on what the network represents.
     * The concept is multi-source because each node or edge may be contributed by one or more independent sources (e.g., multiple platforms).
     * This supports combining, removing, and updating source-specific network data without affecting other sources.
     * `Networks` represents the owner’s unified network workspace and stores per-owner configuration such as the chosen `root` node.

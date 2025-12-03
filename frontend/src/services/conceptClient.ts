@@ -107,12 +107,12 @@ export const MultiSourceNetworkAPI = {
       "_getAdjacencyArray",
       payload,
     ),
-    getNodes: (payload: { ids: string[]; owner?: string }) =>
-      postConcept<Array<Record<string, unknown>>>(
-        "MultiSourceNetwork",
-        "getNodes",
-        payload,
-      ),
+  getNodes: (payload: { ids: string[]; owner?: string }) =>
+    postConcept<Array<Record<string, unknown>>>(
+      "MultiSourceNetwork",
+      "getNodes",
+      payload,
+    ),
 };
 
 export interface PublicProfile {

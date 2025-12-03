@@ -798,7 +798,10 @@ async function loadNetworkData() {
         );
         // First, fetch canonical node documents (if available) from MultiSourceNetwork
         try {
-            const nodeDocs = await MultiSourceNetworkAPI.getNodes({ ids: Array.from(allNodeIds), owner: auth.userId });
+            const nodeDocs = await MultiSourceNetworkAPI.getNodes({
+                ids: Array.from(allNodeIds),
+                owner: auth.userId,
+            });
             (nodeDocs || []).forEach((nd: Record<string, any>) => {
                 const id = nd._id as string;
                 if (!id) return;
@@ -813,7 +816,8 @@ async function loadNetworkData() {
                         // keep other fields available to template consumers
                         ...nd,
                     },
-                    avatarUrl: (nd.avatarUrl as string) || avatarStore.DEFAULT_AVATAR,
+                    avatarUrl:
+                        (nd.avatarUrl as string) || avatarStore.DEFAULT_AVATAR,
                     username: (nd.label as string) || id,
                 };
             });
@@ -904,7 +908,9 @@ async function loadNetworkData() {
             }
 
             // Also include membership-declared sources (e.g., when a node was created with sourceIds
-            const membershipSources = (nodeProfiles.value[nodeId]?.profile as any)?.membershipSources || {};
+            const membershipSources =
+                (nodeProfiles.value[nodeId]?.profile as any)
+                    ?.membershipSources || {};
             Object.keys(membershipSources).forEach((s) => {
                 if (s) sources.add(s);
             });
