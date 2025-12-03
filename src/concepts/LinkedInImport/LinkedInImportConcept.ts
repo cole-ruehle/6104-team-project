@@ -1016,7 +1016,14 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
         }
 
         // Add connection
-        const addResult = await this.addConnection(connectionData);
+        // Use instrumented version if available (when called through proxy), otherwise use raw method
+        // This ensures syncs trigger when importConnectionsFromCSV is called through the instrumented proxy
+        const instrumented = (this as any).__instrumented;
+        const addConnectionMethod = instrumented?.addConnection || this.addConnection;
+        const addConnectionThis = instrumented || this;
+        console.log(`[LinkedInImport] Calling addConnection for row ${rowIndex + 1} (linkedInConnectionId: ${connectionData.linkedInConnectionId})...`);
+        const addResult = await addConnectionMethod.call(addConnectionThis, connectionData);
+        console.log(`[LinkedInImport] addConnection completed for row ${rowIndex + 1}:`, "error" in addResult ? `ERROR: ${addResult.error}` : `SUCCESS: connection=${addResult.connection}`);
         if ("error" in addResult) {
           const errorMsg = `Row ${rowIndex + 2}: ${addResult.error}`;
           errors.push(errorMsg);
@@ -1345,7 +1352,14 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
         }
 
         // Add connection
-        const addResult = await this.addConnection(connectionData);
+        // Use instrumented version if available (when called through proxy), otherwise use raw method
+        // This ensures syncs trigger when importConnectionsFromJSON is called through the instrumented proxy
+        const instrumented = (this as any).__instrumented;
+        const addConnectionMethod = instrumented?.addConnection || this.addConnection;
+        const addConnectionThis = instrumented || this;
+        console.log(`[LinkedInImport] Calling addConnection for JSON object ${objIndex + 1} (linkedInConnectionId: ${connectionData.linkedInConnectionId})...`);
+        const addResult = await addConnectionMethod.call(addConnectionThis, connectionData);
+        console.log(`[LinkedInImport] addConnection completed for JSON object ${objIndex + 1}:`, "error" in addResult ? `ERROR: ${addResult.error}` : `SUCCESS: connection=${addResult.connection}`);
         if ("error" in addResult) {
           errors.push(`Object ${objIndex + 1}: ${addResult.error}`);
         } else {

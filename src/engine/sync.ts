@@ -100,26 +100,43 @@ export class SyncConcept {
     }
     const syncs = await this.syncsByAction.get(record.action);
     if (syncs) {
+      console.log(`[SyncEngine] Found ${syncs.size} sync(s) watching this action`);
       for (const sync of syncs) {
+        console.log(`[SyncEngine] Checking sync: ${sync.sync}`);
         let [frames, actionSymbols] = await this.matchWhen(
           record,
           sync,
         );
         if (frames.length > 0) {
+          console.log(`[SyncEngine] ✓ Pattern matched for sync: ${sync.sync} (${frames.length} frame(s))`);
           this.logFrames(
             `Matched \`sync\`: ${sync.sync} with \`when\`:`,
             frames,
           );
           if (sync.where !== undefined) {
+            console.log(`[SyncEngine] Executing 'where' clause for sync: ${sync.sync}`);
             const maybeFrames = sync.where(frames);
             frames = maybeFrames instanceof Promise
               ? await maybeFrames
               : maybeFrames;
+            if (frames.length === 0) {
+              console.log(`[SyncEngine] ⚠️ 'where' clause returned 0 frames, sync will not execute`);
+            } else {
+              console.log(`[SyncEngine] ✓ 'where' clause returned ${frames.length} frame(s), proceeding to 'then'`);
+            }
             this.logFrames(`After processing \`where\`:`, frames);
           }
-          await this.addThen(frames, sync, actionSymbols);
+          if (frames.length > 0) {
+            console.log(`[SyncEngine] Executing 'then' actions for sync: ${sync.sync}`);
+            await this.addThen(frames, sync, actionSymbols);
+            console.log(`[SyncEngine] ✓ Completed sync: ${sync.sync}`);
+          }
+        } else {
+          console.log(`[SyncEngine] ✗ Pattern did not match for sync: ${sync.sync}`);
         }
       }
+    } else {
+      console.log(`[SyncEngine] No syncs found watching this action`);
     }
   }
   logFrames(message: string, frames: Frames) {
@@ -282,7 +299,7 @@ export class SyncConcept {
     const Action = this.Action;
     const synchronize = this.synchronize.bind(this);
     const boundActions = this.boundActions;
-    return new Proxy(concept, {
+    const instrumentedProxy = new Proxy(concept, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
         // Bind queries (starts with "_") without instrumenting
@@ -365,6 +382,10 @@ export class SyncConcept {
         return value;
       },
     });
+    // Store reference to instrumented proxy on the concept instance
+    // This allows methods like importConnectionsFromCSV to call instrumented addConnection
+    (concept as any).__instrumented = instrumentedProxy;
+    return instrumentedProxy;
   }
   instrument<T extends Record<string, object>>(concepts: T): T {
     return Object.fromEntries(
