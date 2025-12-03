@@ -152,6 +152,19 @@ export default class MultiSourceNetworkConcept {
 
     // Automatically add the owner as a membership node with source "self"
     // This ensures the owner always appears as a node in their own network
+    const now = new Date();
+    try {
+      await this.nodes.insertOne({
+        _id: owner,
+        createdAt: now,
+        updatedAt: now,
+        label: String(owner),
+        firstName: "Self",
+        lastName: "",
+      } as unknown as NodeDoc);
+    } catch (_e) {
+      // best-effort: ignore insert errors (concurrent create)
+    }
     const selfSource = "self" as Source;
     const ownerMembership = await this.memberships.findOne({
       owner,
@@ -177,6 +190,30 @@ export default class MultiSourceNetworkConcept {
       );
       console.log(
         "[MultiSourceNetwork] createNetwork: Owner membership updated with source 'self'",
+      );
+    }
+
+    // Ensure there's a canonical node document for the owner so edges can reference it.
+    try {
+      const ownerNode = await this.nodes.findOne({ _id: owner });
+      if (!ownerNode) {
+        const now = new Date();
+        await this.nodes.insertOne({
+          _id: owner,
+          createdAt: now,
+          updatedAt: now,
+          label: String(owner),
+        } as unknown as NodeDoc);
+        console.log(
+          "[MultiSourceNetwork] createNetwork: Created owner node document",
+          owner,
+        );
+      }
+    } catch (e) {
+      // best-effort: do not fail network creation if node insert fails
+      console.warn(
+        "[MultiSourceNetwork] createNetwork: could not ensure owner node",
+        e,
       );
     }
 
@@ -490,6 +527,40 @@ export default class MultiSourceNetworkConcept {
       });
     }
 
+    // Helper: upsert both owner->node and node->owner edges for this owner/node/source
+    const upsertConnectionEdges = async () => {
+      try {
+        // await this.edges.updateOne(
+        //   { owner, from: owner, to: node },
+        //   {
+        //     $setOnInsert: {
+        //       _id: freshID(),
+        //       owner,
+        //       from: owner,
+        //       to: node,
+        //     },
+        //     $set: { source: normalizedSource, weight: undefined },
+        //   },
+        //   { upsert: true },
+        // );
+        await this.edges.updateOne(
+          { owner, from: node, to: owner },
+          {
+            $setOnInsert: {
+              _id: freshID(),
+              owner,
+              from: node,
+              to: owner,
+            },
+            $set: { source: normalizedSource, weight: undefined },
+          },
+          { upsert: true },
+        );
+      } catch (_e) {
+        // best-effort
+      }
+    };
+
     // Find any existing membership that used the legacy node id
     if (legacyNodeId) {
       const oldMembership = await this.memberships.findOne({
@@ -510,6 +581,8 @@ export default class MultiSourceNetworkConcept {
         await this.memberships.updateOne({ _id: oldMembership._id }, {
           $set: { [`sources.${normalizedSource}`]: true },
         });
+        // Ensure edges exist for owner <-> canonical node
+        await upsertConnectionEdges();
         return { node };
       }
 
@@ -525,6 +598,8 @@ export default class MultiSourceNetworkConcept {
         });
         // Remove legacy membership
         await this.memberships.deleteOne({ _id: oldMembership._id });
+        // Ensure edges exist for owner <-> canonical node
+        await upsertConnectionEdges();
         return { node };
       }
 
@@ -536,6 +611,8 @@ export default class MultiSourceNetworkConcept {
           node,
           sources: { [normalizedSource]: true },
         });
+        // Ensure edges exist for owner <-> canonical node
+        await upsertConnectionEdges();
         return { node };
       }
 
@@ -544,6 +621,8 @@ export default class MultiSourceNetworkConcept {
         await this.memberships.updateOne({ _id: canonicalMembership._id }, {
           $set: { [`sources.${normalizedSource}`]: true },
         });
+        // Ensure edges exist for owner <-> canonical node
+        await upsertConnectionEdges();
         return { node };
       }
     }
@@ -576,6 +655,8 @@ export default class MultiSourceNetworkConcept {
           createdAt: now,
           updatedAt: now,
           label: String(owner),
+          firstName: "Self",
+          lastName: "",
         } as unknown as NodeDoc);
       } catch (_e) {
         // best-effort: ignore insert errors (concurrent create)
@@ -593,30 +674,6 @@ export default class MultiSourceNetworkConcept {
           sources: { ["self" as unknown as Source]: true },
         });
       }
-    }
-
-    // Create an edge from owner node -> canonical node representing the imported connection.
-    try {
-      // Upsert an owner->node edge and mark the source as the normalized label.
-      await this.edges.updateOne(
-        { owner, from: owner, to: node },
-        {
-          $setOnInsert: {
-            _id: freshID(),
-            owner,
-            from: owner,
-            to: node,
-          },
-          $set: { source: normalizedSource, weight: undefined },
-        },
-        { upsert: true },
-      );
-      console.log(
-        "[MultiSourceNetwork] addOrMigrateNodeFromSource: created/updated edge from owner to node",
-        { owner, node, source },
-      );
-    } catch (_e) {
-      // best-effort logging; don't fail the main flow if edge creation fails
     }
 
     return { node };
