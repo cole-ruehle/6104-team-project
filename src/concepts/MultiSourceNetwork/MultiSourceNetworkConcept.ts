@@ -376,7 +376,7 @@ export default class MultiSourceNetworkConcept {
         owner,
         node: nodeId,
         sources: { [source]: true },
-      });
+      };
       return { node: nodeId };
     }
 

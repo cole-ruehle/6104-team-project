@@ -25,7 +25,6 @@ export const AddLinkedInConnectionToNetwork: Sync = ({
   lastName,
   label,
   rootNode,
-  connectionDoc,
 }) => ({
   when: actions([
     LinkedInImport.addConnection,
