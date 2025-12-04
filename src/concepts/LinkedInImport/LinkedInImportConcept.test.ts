@@ -45,6 +45,11 @@ Jane,Smith,Product Manager,New York`;
     } else {
       assertEquals(typeof importResult.importJob, "string", "Import job should be created");
       assertEquals(typeof importResult.connectionsImported, "number", "Should return connection count");
+      // If connections are returned, they should be an array and match count
+      if (importResult.connections) {
+        assertEquals(Array.isArray(importResult.connections), true, "connections should be an array");
+        assertEquals(importResult.connections.length, importResult.connectionsImported, "connections length should match imported count");
+      }
     }
   } finally {
     await client.close();
@@ -123,6 +128,11 @@ Jane,"Smith, PhD",Manager`;
 
     // Should parse without errors (even if LLM fails)
     assertExists(result, "Should return a result");
+    if (!("error" in result)) {
+      if (result.connections) {
+        assertEquals(Array.isArray(result.connections), true, "connections should be an array");
+      }
+    }
   } finally {
     await client.close();
   }
@@ -176,6 +186,9 @@ Deno.test("Action: importConnectionsFromJSON parses basic JSON array and creates
     } else {
       assertEquals(typeof importResult.importJob, "string", "Import job should be created");
       assertEquals(typeof importResult.connectionsImported, "number", "Should return connection count");
+      if (importResult.connections) {
+        assertEquals(Array.isArray(importResult.connections), true, "connections should be an array");
+      }
     }
   } finally {
     await client.close();

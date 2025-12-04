@@ -64,7 +64,7 @@ Deno.test("Principle: Owner creates network, adds nodes and edges, adjacency for
     assertEquals(edges[0].weight, 5);
 
     // 5. Form adjacency array
-    const adjacency = await network._getAdjacencyArray(ownerA);
+    const adjacency = await network._getAdjacencyArray({ owner: ownerA });
     assertEquals(
       adjacency[nodeB].length,
       1,
@@ -267,7 +267,7 @@ Deno.test("Integration: Add multiple nodes and edges, remove sources, check adja
       source: source1,
     });
 
-    const adjacency = await network._getAdjacencyArray(ownerA);
+    const adjacency = await network._getAdjacencyArray({ owner: ownerA });
     assertEquals(
       adjacency[nodeB]?.length,
       0,
@@ -327,13 +327,243 @@ Deno.test("DEBUG: Print adjacency array", async () => {
     });
 
     // Get adjacency
-    const adjacency = await network._getAdjacencyArray(ownerA);
+    const adjacency = await network._getAdjacencyArray({ owner: ownerA });
 
     // Pretty-print adjacency
     console.log("Adjacency Array:");
     console.log(JSON.stringify(adjacency, null, 2));
 
     console.log("=== End adjacency ===\n");
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Auth: Users only see their own nodes in search", async () => {
+  const [db, client] = await testDb();
+  const network = new MultiSourceNetworkConcept(db);
+
+  const ownerB = "owner:BobUser" as ID;
+
+  try {
+    // create networks for both owners
+    await network.createNetwork({ owner: ownerA });
+    await network.createNetwork({ owner: ownerB });
+
+    // Owner B creates a node named 'Bob'
+    const created = await network.createNodeForUser({
+      owner: ownerB,
+      firstName: "Bob",
+      lastName: "Private",
+      label: "Bob Private",
+    });
+    if (created.error) throw new Error(created.error);
+
+    // Owner A searches for 'Bob' and should NOT see Owner B's node
+    const searchA = await network.searchNodes({ owner: ownerA, query: "Bob" });
+    assertEquals(
+      searchA.total,
+      0,
+      "Owner A should not see nodes created by Owner B",
+    );
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Auth: cannot create edges using nodes outside owner's membership", async () => {
+  const [db, client] = await testDb();
+  const network = new MultiSourceNetworkConcept(db);
+
+  const ownerB = "owner:BobUser" as ID;
+
+  try {
+    // create networks for both owners
+    await network.createNetwork({ owner: ownerA });
+    await network.createNetwork({ owner: ownerB });
+
+    // Owner B creates a node
+    const created = await network.createNodeForUser({
+      owner: ownerB,
+      firstName: "Bob",
+      lastName: "Private",
+      label: "Bob Private",
+    });
+    if (created.error) throw new Error(created.error);
+    const bobNode = created.node as ID;
+
+    // Owner A creates a node
+    const aCreated = await network.createNodeForUser({
+      owner: ownerA,
+      firstName: "Alice",
+      lastName: "Public",
+      label: "Alice Public",
+    });
+    if (aCreated.error) throw new Error(aCreated.error);
+    const aliceNode = aCreated.node as ID;
+
+    // Owner A attempts to create an edge from their node to Bob's node (should fail)
+    const res = await network.addEdge({
+      owner: ownerA,
+      from: aliceNode,
+      to: bobNode,
+      source: source1,
+    });
+    assertEquals(
+      "error" in res,
+      true,
+      "Owner A should not be able to create an edge to Owner B's node",
+    );
+
+    // Positive case: Owner B can create edges among their own nodes
+    // Create second Bob node
+    const created2 = await network.createNodeForUser({
+      owner: ownerB,
+      firstName: "Bob",
+      lastName: "Other",
+      label: "Bob Other",
+    });
+    if (created2.error) throw new Error(created2.error);
+    const bobNode2 = created2.node as ID;
+
+    const res2 = await network.addEdge({
+      owner: ownerB,
+      from: bobNode,
+      to: bobNode2,
+      source: source1,
+    });
+    assertEquals(
+      "error" in res2,
+      false,
+      "Owner B should be able to create an edge between their own nodes",
+    );
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("E2E: create nodes via createNodeForUser, search by name, then create edges and verify adjacency", async () => {
+  const [db, client] = await testDb();
+  const network = new MultiSourceNetworkConcept(db);
+
+  const owner = "owner:TestUser" as ID;
+  try {
+    // create network
+    await network.createNetwork({ owner });
+
+    // create two nodes via createNodeForUser
+    const a = await network.createNodeForUser({
+      owner,
+      firstName: "John",
+      lastName: "Smith",
+      label: "John Smith",
+    });
+    if (a.error) throw new Error(a.error);
+    const nodeA = a.node as ID;
+
+    const b = await network.createNodeForUser({
+      owner,
+      firstName: "Jane",
+      lastName: "Doe",
+      label: "Jane Doe",
+    });
+    if (b.error) throw new Error(b.error);
+    const nodeB = b.node as ID;
+
+    // search for John
+    const searchJ = await network.searchNodes({ owner, query: "John" });
+    // Expect at least one result and that John's node is present
+    assertEquals(searchJ.total > 0, true);
+    const names = searchJ.results.map((r) => ({
+      first: (r.firstName as string) || "",
+      last: (r.lastName as string) || "",
+      label: (r.label as string) || "",
+    }));
+    const foundJohn = names.some((n) =>
+      n.first === "John" && (n.last === "Smith" || n.label.includes("John"))
+    );
+    assertEquals(foundJohn, true, "Search should return John Smith");
+
+    // search for Doe
+    const searchDoe = await network.searchNodes({ owner, query: "Doe" });
+    assertEquals(searchDoe.total > 0, true);
+    const foundJane = searchDoe.results.some((r) =>
+      (r.firstName as string) === "Jane" || (r.lastName as string) === "Doe" ||
+      (r.label as string).includes("Jane")
+    );
+    assertEquals(foundJane, true, "Search should return Jane Doe");
+
+    // create an edge from John -> Jane
+    await network.addEdge({
+      owner,
+      from: nodeA,
+      to: nodeB,
+      source: source1,
+      weight: 7,
+    });
+
+    // verify edge exists
+    const edges = await network.edges.find({ owner }).toArray();
+    const edgeExists = edges.some((e) =>
+      e.from === nodeA && e.to === nodeB && e.weight === 7
+    );
+    assertEquals(
+      edgeExists,
+      true,
+      "Edge John->Jane should exist with weight 7",
+    );
+
+    // verify adjacency
+    const adjacency = await network._getAdjacencyArray({ owner });
+    assertEquals(Array.isArray(adjacency[nodeA]), true);
+    assertEquals(adjacency[nodeA][0].to, nodeB);
+    assertEquals(adjacency[nodeA][0].weight, 7);
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Feature: addEdge updates existing owner/from/to edge instead of creating duplicate", async () => {
+  const [db, client] = await testDb();
+  const network = new MultiSourceNetworkConcept(db);
+
+  const owner = "owner:UpdaterTest" as ID;
+  try {
+    await network.createNetwork({ owner });
+
+    // create two nodes
+    const r1 = await network.createNodeForUser({
+      owner,
+      firstName: "Edge",
+      lastName: "SourceA",
+      label: "Edge SourceA",
+    });
+    if (r1.error) throw new Error(r1.error);
+    const from = r1.node as ID;
+
+    const r2 = await network.createNodeForUser({
+      owner,
+      firstName: "Edge",
+      lastName: "SourceB",
+      label: "Edge SourceB",
+    });
+    if (r2.error) throw new Error(r2.error);
+    const to = r2.node as ID;
+
+    // Add initial edge with source1 and weight 1
+    await network.addEdge({ owner, from, to, source: source1, weight: 1 });
+
+    // Add a second edge for the same from->to but different source and weight
+    await network.addEdge({ owner, from, to, source: source2, weight: 9 });
+
+    // Verify only one edge exists for this owner and from->to, and that it was updated
+    const edges = await network.edges.find({ owner }).toArray();
+    // There should be exactly one edge for this owner
+    const matching = edges.filter((e) => e.from === from && e.to === to);
+    assertEquals(matching.length, 1, "There should be exactly one edge for from->to");
+    const edge = matching[0];
+    assertEquals(edge.source, source2, "Edge source should be updated to the later source");
+    assertEquals(edge.weight, 9, "Edge weight should be updated to the later weight");
   } finally {
     await client.close();
   }

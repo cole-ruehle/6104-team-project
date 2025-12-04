@@ -1,5 +1,6 @@
 import { Collection, Db } from "npm:mongodb";
 import { Empty, ID } from "@utils/types.ts";
+import { freshID } from "@utils/database.ts";
 
 const PREFIX = "PublicProfileConcept" + ".";
 
@@ -9,10 +10,12 @@ type User = ID;
  * MongoDB representation of the concept state.
  */
 interface ProfileDoc {
-  _id: User; // Maps to user
+  _id: ID; // Unique profile document ID (different from user ID)
+  user: User; // Maps to the user ID
   headline: string;
   attributes: string[];
   links: string[];
+  profilePictureUrl?: string; // Optional profile picture URL
 }
 
 /**
@@ -52,9 +55,9 @@ export default class PublicProfileConceptConcept {
     },
   ): Promise<Empty | { error: string }> {
     // Requires: no entry exists
-    const existing = await this.profiles.findOne({ _id: user });
+    const existing = await this.profiles.findOne({ user: user });
     if (existing) {
-      return { error: `Profile for user ${user} already exists.` };
+      return { error: "Profile exists already, update your profile instead." };
     }
 
     // Requires: headline non-empty
@@ -67,7 +70,8 @@ export default class PublicProfileConceptConcept {
     links = [...new Set(links)];
 
     const newDoc: ProfileDoc = {
-      _id: user,
+      _id: freshID(),
+      user: user,
       headline: headline.trim(),
       attributes,
       links,
@@ -96,14 +100,15 @@ export default class PublicProfileConceptConcept {
    *  - preserves fields not provided.
    */
   async updateProfile(
-    { user, headline, attributes, links }: {
+    { user, headline, attributes, links, profilePictureUrl }: {
       user: User;
       headline?: string;
       attributes?: string[];
       links?: string[];
+      profilePictureUrl?: string;
     },
   ): Promise<Empty | { error: string }> {
-    const exists = await this.profiles.findOne({ _id: user });
+    const exists = await this.profiles.findOne({ user: user });
     if (!exists) {
       return { error: `Profile for user ${user} does not exist.` };
     }
@@ -128,6 +133,11 @@ export default class PublicProfileConceptConcept {
       updateFields.links = links;
     }
 
+    // profilePictureUrl provided
+    if (profilePictureUrl !== undefined) {
+      updateFields.profilePictureUrl = profilePictureUrl;
+    }
+
     // nothing to update
     if (Object.keys(updateFields).length === 0) {
       return {};
@@ -135,7 +145,7 @@ export default class PublicProfileConceptConcept {
 
     try {
       await this.profiles.updateOne(
-        { _id: user },
+        { user: user },
         { $set: updateFields },
       );
       return {};
@@ -159,7 +169,7 @@ export default class PublicProfileConceptConcept {
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
     try {
-      const result = await this.profiles.deleteOne({ _id: user });
+      const result = await this.profiles.deleteOne({ user: user });
 
       if (result.deletedCount === 0) {
         return { error: `Profile for user ${user} does not exist.` };
@@ -183,17 +193,18 @@ export default class PublicProfileConceptConcept {
     { user }: { user: User },
   ): Promise<{ profile: PublicProfileConceptQueryResult }[]> {
     try {
-      const doc = await this.profiles.findOne({ _id: user });
+      const doc = await this.profiles.findOne({ user: user });
 
       if (!doc) return [];
 
       return [{
         profile: {
-          user: doc._id,
+          user: doc.user,
           headline: doc.headline,
           attributes: doc.attributes,
           links: doc.links,
-        },
+          profilePictureUrl: doc.profilePictureUrl,
+        } as PublicProfileConceptQueryResult & { profilePictureUrl?: string },
       }];
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));

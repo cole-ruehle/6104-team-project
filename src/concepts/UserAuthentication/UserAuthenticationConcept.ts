@@ -106,4 +106,20 @@ export default class UserAuthenticationConcept {
     const userDoc = await this.users.findOne({ _id: id });
     return userDoc ? { id: userDoc._id, username: userDoc.username } : {};
   }
+
+  /**
+   * Internal query to get a user by username.
+   * Returns user id if username exists.
+   */
+  async _getUserByUsername({
+    username,
+  }: {
+    username: string;
+  }): Promise<{ user: User }[]> {
+    const userDoc = await this.users.findOne({ username });
+    if (userDoc) {
+      return [{ user: userDoc._id }];
+    }
+    return [];
+  }
 }

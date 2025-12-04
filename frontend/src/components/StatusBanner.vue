@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 defineProps<{
-  type: "success" | "error";
+  type: "success" | "error" | "info";
   message: string;
 }>();
 </script>

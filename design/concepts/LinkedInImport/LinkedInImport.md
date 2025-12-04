@@ -1,6 +1,6 @@
 * **concept**: LinkedInImport [User]
-* **purpose**: Enable users to import their LinkedIn connections and associated profile information into the system, making this data available for network exploration and semantic search.
-* **principle**: If a user exports their LinkedIn connections as CSV or JSON and imports them into the system, then the system uses LLM-powered field mapping to parse and store the connection data, and these connections are automatically added to their unified network graph.
+* **purpose**: Enable users to connect their LinkedIn account via OAuth and import their connections with associated profile information into the system, making this data available for network exploration and semantic search.
+* **principle**: When a user connects their LinkedIn account via OAuth and initiates an import, or exports their LinkedIn connections as CSV or JSON and imports them into the system, then the system uses LLM-powered field mapping (for CSV/JSON) or API calls (for OAuth) to retrieve and store the connection data, and these connections are automatically added to their unified network graph.
 
 * **state**:
     * a set of `LinkedInAccounts` with
@@ -26,9 +26,9 @@
         * `profileUrl` String?
         * `profilePictureUrl` String?
         * `summary` String?
-        * `skills` set of String?
-        * `education` JSON?
-        * `experience` JSON?
+        * `skills` Array of String?
+        * `education` Array of EducationEntry? (with school, degree, fieldOfStudy, startYear, endYear)
+        * `experience` Array of ExperienceEntry? (with title, company, startDate, endDate, description)
         * `importedAt` Date
         * `rawData` JSON?
     * a set of `ImportJobs` with
@@ -64,6 +64,14 @@
         * **effects**:
             * Removes the `LinkedInAccounts` entry and all associated `Connections` and `ImportJobs`.
 
+    * `startImport (account: LinkedInAccount): (importJob: ImportJob)`
+        * **requires**:
+            * A `LinkedInAccounts` entry with the given `account` ID exists.
+            * The account's `accessToken` is valid (not expired).
+        * **effects**:
+            * Creates a new `ImportJobs` entry with status "pending".
+            * Returns the importJob ID.
+
     * `importConnectionsFromCSV (account: LinkedInAccount, csvContent: String): (importJob: ImportJob, connectionsImported: Number)`
         * **requires**:
             * A `LinkedInAccounts` entry with the given `account` ID exists.
@@ -88,7 +96,7 @@
             * Updates `ImportJobs` status to "completed" or "failed".
             * Returns the importJob ID and number of connections imported.
 
-    * `addConnection (account: LinkedInAccount, linkedInConnectionId: String, firstName: String?, lastName: String?, headline: String?, location: String?, industry: String?, currentPosition: String?, currentCompany: String?, profileUrl: String?, profilePictureUrl: String?, summary: String?, skills: set of String?, education: JSON?, experience: JSON?, rawData: JSON?): (connection: Connection)`
+    * `addConnection (account: LinkedInAccount, linkedInConnectionId: String, firstName: String?, lastName: String?, headline: String?, location: String?, industry: String?, currentPosition: String?, currentCompany: String?, profileUrl: String?, profilePictureUrl: String?, summary: String?, skills: Array of String?, education: Array of EducationEntry?, experience: Array of ExperienceEntry?, rawData: JSON?): (connection: Connection)`
         * **requires**:
             * A `LinkedInAccounts` entry with the given `account` ID exists.
             * `linkedInConnectionId` is not empty.
@@ -133,8 +141,9 @@
         * **effects**: Returns the user (owner) for the LinkedIn account.
 
 * **notes**:
-    * The first version uses manual CSV/JSON import from LinkedIn's export feature rather than API scraping, ensuring ethical data handling and avoiding API limitations.
-    * LLM-powered field mapping allows the system to intelligently interpret various CSV/JSON formats that users may export from LinkedIn.
+    * The concept supports both OAuth-based API imports and manual CSV/JSON import from LinkedIn's export feature.
+    * For OAuth imports, users connect their LinkedIn account and the system can fetch connections via the LinkedIn API (requires LinkedIn Partner approval for full access).
+    * For CSV/JSON imports, LLM-powered field mapping allows the system to intelligently interpret various CSV/JSON formats that users may export from LinkedIn.
     * Connections are automatically added to MultiSourceNetwork via synchronization when `addConnection` is called.
-    * The concept supports future expansion to OAuth-based API imports once proper permissions and ethical considerations are addressed.
+    * The `linkedinApi.ts` helper module provides utilities for OAuth flow, token management, and API interactions.
 

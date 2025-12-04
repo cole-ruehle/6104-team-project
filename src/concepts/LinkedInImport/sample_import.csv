@@ -1,0 +1,6 @@
+linkedInConnectionId,profileUrl,firstName,lastName,headline,currentCompany,currentPosition,skills,profilePictureUrl,location,industry,summary,education,experience
+"urn:li:person:123","https://www.linkedin.com/in/bob-doe","James","Doe","Senior Software Engineer","Acme Corp","Senior Engineer","JavaScript, TypeScript, Deno","https://example.com/john.jpg","San Francisco, CA","Software","Experienced engineer focused on web platforms","[{""school"":""MIT"",""degree"":""BS Computer Science"",""startYear"":2008,""endYear"":2012}]","[{""title"":""Senior Engineer"",""company"":""Acme Corp"",""startDate"":""2018-01"",""endDate"":""2024-06"",""description"":""Worked on web stack""}]"
+"","https://www.linkedin.com/in/john-smith","John","Smith","Product Manager","Example Inc","Product Manager","Product Strategy, Roadmaps","https://example.com/jane.jpg","New York, NY","Product","PM with cross-functional experience","",""
+"","","Alice","Public","Engineer","Startup Co","Software Engineer","Go, Rust","","Austin, TX","Tech","Early-stage engineer","",""
+"custom-id-999","","Bob","NoUrl","Designer","Design Studio","Lead Designer","UI, UX, Figma","https://example.com/bob.jpg","Portland, OR","Design","Design leader","",""
+"123","","Tim","the Beaver","Beaver","Dam Builder","Lead Beaver","UI, UX, Figma","https://example.com/tim.jpg","Cambridge, MA","Design","Beaver leader","",""

@@ -22,27 +22,6 @@ interface SearchQueries {
   resultItems: Item[];
 }
 
-interface LinkedInConnectionPreview {
-  _id: Item;
-  account: string;
-  linkedInConnectionId?: string;
-  firstName?: string;
-  lastName?: string;
-  headline?: string | null;
-  location?: string | null;
-  industry?: string | null;
-  currentPosition?: string | null;
-  currentCompany?: string | null;
-  profileUrl?: string | null;
-  profilePictureUrl?: string | null;
-  summary?: string | null;
-  skills?: string[];
-  education?: Array<Record<string, unknown>>;
-  experience?: Array<Record<string, unknown>>;
-  importedAt?: Date;
-  rawData?: Record<string, unknown>;
-}
-
 const SEMANTIC_SERVICE_URL = Deno.env.get("SEMANTIC_SERVICE_URL") ??
   "http://localhost:8001";
 
@@ -83,7 +62,7 @@ async function semanticIndex(
 }
 
 async function semanticSearch(
-  _owner: Owner,
+  owner: Owner,
   query: string,
   _filters: unknown,
   limit = 20,
@@ -93,6 +72,9 @@ async function semanticSearch(
   if (typeof limit === "number") {
     url.searchParams.set("limit", String(limit));
   }
+
+  // Enforce owner-level privacy in txtai by filtering on tags.owner.
+  url.searchParams.set("filters", JSON.stringify({ owner }));
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -117,12 +99,10 @@ async function semanticSearch(
 export default class SemanticSearchConcept {
   indexedItems: Collection<IndexedItems>;
   searchQueries: Collection<SearchQueries>;
-  connections: Collection<LinkedInConnectionPreview>;
 
   constructor(private readonly db: Db) {
     this.indexedItems = this.db.collection(PREFIX + "indexedItems");
     this.searchQueries = this.db.collection(PREFIX + "searchQueries");
-    this.connections = this.db.collection("Network.LinkedInImport.connections");
   }
 
   /**
@@ -273,6 +253,15 @@ export default class SemanticSearchConcept {
     return {};
   }
 
+  /**
+   * searchConnections (owner: Owner, queryText: String, limit?: Number): { results: { connectionId, score, text, connection }[] }
+   *
+   * **requires** queryText is not empty.
+   *
+   * **effects** runs a semantic search for the given owner and queryText and
+   * joins the ranked item ids against LinkedInImport.connections to return
+   * rich connection previews for the frontend.
+   */
   async searchConnections({
     owner,
     queryText,
@@ -281,47 +270,110 @@ export default class SemanticSearchConcept {
     owner: Owner;
     queryText: string;
     limit?: number;
-  }): Promise<
-    {
-      results: Array<
-        {
-          connectionId: Item;
-          score: number;
-          text: string;
-          connection?: LinkedInConnectionPreview;
-        }
-      >;
-    }
-  > {
-    const trimmedQuery = queryText?.trim();
-    if (!trimmedQuery) {
+  }): Promise<{
+    results: Array<{
+      connectionId: string;
+      score: number;
+      text: string;
+      connection?: {
+        _id: string;
+        linkedInConnectionId?: string;
+        firstName?: string;
+        lastName?: string;
+        headline?: string | null;
+        location?: string | null;
+        industry?: string | null;
+        currentPosition?: string | null;
+        currentCompany?: string | null;
+        profileUrl?: string | null;
+        profilePictureUrl?: string | null;
+        summary?: string | null;
+      };
+    }>;
+  }> {
+    const trimmed = queryText.trim();
+    if (!trimmed) {
       return { results: [] };
     }
 
-    const searchResults = await semanticSearch(owner, trimmedQuery, {}, limit);
-    if (searchResults.length === 0) {
-      return { results: [] };
-    }
+    // 1. Run semantic search via txtai.
+    const rawResults = await semanticSearch(owner, trimmed, {}, limit);
+    if (!rawResults.length) return { results: [] };
 
-    const connectionIds = searchResults.map((hit) => hit.item);
+    // 2. Fetch matching LinkedIn connections by _id where possible.
+    const ids = rawResults
+      .map((r) => String(r.item))
+      .filter((id) =>
+        id && !["FULLSTACK_ID", "BACKEND_ID", "ML_ID"].includes(id)
+      );
 
-    const [connections, indexedDocs] = await Promise.all([
-      this.connections.find({ _id: { $in: connectionIds } }).toArray(),
-      this.indexedItems.find({ owner, item: { $in: connectionIds } }).toArray(),
-    ]);
-
-    const connectionMap = new Map(
-      connections.map((doc) => [doc._id, doc]),
+    const connectionsCollection = this.db.collection<
+      { _id: string; account: unknown }
+    >(
+      "LinkedInImport.connections",
     );
-    const textMap = new Map(indexedDocs.map((doc) => [doc.item, doc.text]));
+    // Only return connections that belong to accounts owned by this user.
+    // We infer ownership by matching connection.account to any LinkedInImport
+    // account whose user field equals the provided owner.
+    const accountsCollection = this.db.collection(
+      "LinkedInImport.accounts",
+    );
+    const ownerAccounts = await accountsCollection
+      .find({ user: owner as unknown })
+      .toArray();
+    const ownerAccountIds = ownerAccounts.map((a) => a._id);
 
-    return {
-      results: searchResults.map((hit) => ({
-        connectionId: hit.item,
-        score: hit.score,
-        text: textMap.get(hit.item) ?? "",
-        connection: connectionMap.get(hit.item),
-      })),
-    };
+    const docs = await connectionsCollection
+      .find({
+        _id: { $in: ids as string[] },
+        account: { $in: ownerAccountIds as unknown[] },
+      })
+      .toArray();
+
+    const byId = new Map<string, any>(
+      docs.map((doc) => [String(doc._id), doc]),
+    );
+
+    // 3. Build rich results in the original semantic order.
+    const results = rawResults.map((r) => {
+      const connectionId = String(r.item);
+      const score = Number.isFinite(r.score) ? r.score : 0;
+      const doc = byId.get(connectionId);
+
+      const connection = doc
+        ? {
+          _id: String(doc._id),
+          linkedInConnectionId: doc.linkedInConnectionId,
+          firstName: doc.firstName,
+          lastName: doc.lastName,
+          headline: doc.headline ?? null,
+          location: doc.location ?? null,
+          industry: doc.industry ?? null,
+          currentPosition: doc.currentPosition ?? null,
+          currentCompany: doc.currentCompany ?? null,
+          profileUrl: doc.profileUrl ?? null,
+          profilePictureUrl: doc.profilePictureUrl ?? null,
+          summary: doc.summary ?? null,
+        }
+        : undefined;
+
+      const text = doc?.summary ? String(doc.summary) : trimmed;
+
+      return { connectionId, score, text, connection };
+    });
+
+    // 4. Prefer results that resolve to real connections; hide bare ids.
+    const connected = results.filter((r) => r.connection);
+
+    // 5. De-duplicate by connectionId, keeping the highest score per id.
+    const bestById = new Map<string, (typeof connected)[number]>();
+    for (const r of connected) {
+      const existing = bestById.get(r.connectionId);
+      if (!existing || r.score > existing.score) {
+        bestById.set(r.connectionId, r);
+      }
+    }
+
+    return { results: Array.from(bestById.values()) };
   }
 }

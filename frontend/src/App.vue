@@ -10,6 +10,8 @@
         <nav>
           <RouterLink to="/network">MultiSource Network</RouterLink>
           <RouterLink to="/profiles">Public Profiles</RouterLink>
+          <RouterLink to="/import">Import LinkedIn</RouterLink>
+          <RouterLink to="/search">Network Search</RouterLink>
         </nav>
       </div>
       <div class="auth-status" v-if="auth.isAuthenticated">

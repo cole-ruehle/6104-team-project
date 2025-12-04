@@ -15,7 +15,9 @@
 
     <section class="profile-main card">
       <div class="search-hero">
-        <RouterLink class="network-button" to="/network">View My Network</RouterLink>
+        <RouterLink class="network-button" to="/network"
+          >View My Network</RouterLink
+        >
         <form class="search-form" @submit.prevent="searchConnections">
           <input
             class="search-input"
@@ -25,7 +27,7 @@
             required
           />
           <button type="submit" :disabled="inspectLoading">
-            {{ inspectLoading ? "Searching…" : "Search" }}
+            {{ inspectLoading ? "Searching" : "Search" }}
           </button>
         </form>
       </div>
@@ -40,9 +42,9 @@
         {{ inspectResult }}
       </p>
 
-      <div v-if="connectionResults.length" class="connection-results">
+      <div v-if="uniqueConnectionResults.length" class="connection-results">
         <article
-          v-for="result in connectionResults"
+          v-for="result in uniqueConnectionResults.filter((r) => r.connection)"
           :key="result.connectionId"
           class="connection-card"
         >
@@ -55,275 +57,171 @@
             </div>
             <span class="score-pill">{{ result.score.toFixed(3) }}</span>
           </header>
-          <p v-if="result.connection?.currentPosition || result.connection?.currentCompany">
+          <p
+            v-if="
+              result.connection?.currentPosition ||
+              result.connection?.currentCompany
+            "
+          >
             {{ result.connection?.currentPosition || "" }}
             <template v-if="result.connection?.currentCompany">
-              · {{ result.connection?.currentCompany }}
+              at {{ result.connection.currentCompany }}
             </template>
           </p>
-          <p class="muted" v-if="result.connection?.location">
-            {{ result.connection.location }}
+
+          <p v-if="result.connection?.summary">
+            {{ result.connection.summary }}
           </p>
-          <p class="snippet" v-if="result.text">
-            {{ result.text }}
-          </p>
-          <div class="result-links">
+
+          <p v-if="result.connection?.profileUrl">
             <a
-              v-if="result.connection?.profileUrl"
               :href="result.connection.profileUrl"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
-              LinkedIn profile →
+              View on LinkedIn
             </a>
-          </div>
+          </p>
         </article>
       </div>
     </section>
-
-  </div>
-
-  <div class="modal-overlay" v-if="showCreateModal">
-    <div class="modal-card half">
-      <button class="close-btn" type="button" @click="showCreateModal = false">×</button>
-      <h2>Create Your Public Profile</h2>
-      <p class="muted">
-        Logged in as <strong>{{ activeUsername }}</strong>
-      </p>
-      <StatusBanner
-        v-if="banner && banner.section === 'create'"
-        :type="banner.type"
-        :message="banner.message"
-      />
-      <form class="form-grid" @submit.prevent="handleCreateProfile">
-        <label>
-          Headline
-          <input v-model.trim="createForm.headline" required />
-        </label>
-        <label>
-          Attributes (comma separated)
-          <input
-            v-model="createForm.attributes"
-            placeholder="Go-to connector, Product leader, Startup mentor"
-          />
-        </label>
-        <label>
-          Links (comma separated URLs)
-          <input
-            v-model="createForm.links"
-            placeholder="https://example.com, https://linkedin.com/in/me"
-          />
-        </label>
-        <div class="modal-actions">
-          <button type="button" class="muted-btn" @click="showCreateModal = false">
-            Cancel
-          </button>
-          <button type="submit">Create Profile</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="modal-overlay" v-if="showUpdateModal">
-    <div class="modal-card half">
-      <button class="close-btn" type="button" @click="showUpdateModal = false">×</button>
-      <h2>Update Your Profile</h2>
-      <p class="muted">
-        Only fill the fields you want to change. Leave blank to keep existing data.
-      </p>
-      <StatusBanner
-        v-if="banner && banner.section === 'update'"
-        :type="banner.type"
-        :message="banner.message"
-      />
-      <form class="form-grid" @submit.prevent="handleUpdateProfile">
-        <label>
-          Headline
-          <input v-model="updateForm.headline" placeholder="New headline" />
-        </label>
-        <label>
-          Attributes (comma separated)
-          <input
-            v-model="updateForm.attributes"
-            placeholder="Leave blank to skip"
-          />
-        </label>
-        <label>
-          Links (comma separated URLs)
-          <input v-model="updateForm.links" placeholder="Leave blank to skip" />
-        </label>
-        <div class="modal-actions">
-          <button type="button" class="muted-btn" @click="showUpdateModal = false">
-            Cancel
-          </button>
-          <button type="submit">Update Profile</button>
-        </div>
-      </form>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, watch } from "vue";
-import { RouterLink } from "vue-router";
-import StatusBanner from "@/components/StatusBanner.vue";
-import {
-  PublicProfileAPI,
-  ConceptApiError,
-  SemanticSearchAPI,
-  type SemanticConnectionResult,
-  type LinkedInConnectionPreview,
-} from "@/services/conceptClient";
-import { useAuthStore } from "@/stores/useAuthStore";
-
-type Section = "create" | "update" | "inspect";
-
+import { computed, ref } from "vue";
+import StatusBanner from "../components/StatusBanner.vue";
+import { useAuthStore } from "../stores/useAuthStore";
+import { SemanticSearchAPI } from "../services/conceptClient";
 const auth = useAuthStore();
-const activeUserId = computed(() => auth.userId ?? "");
-const activeUsername = computed(() => auth.username ?? "");
 
-const updateForm = reactive({
-  headline: "",
-  attributes: "",
-  links: "",
-});
-
-const createForm = reactive({
-  headline: "",
-  attributes: "",
-  links: "",
-});
-
-const inspectUser = ref("");
-const inspectLoading = ref(false);
-const connectionResults = ref<SemanticConnectionResult[]>([]);
-const inspectResult = ref("");
-const banner = ref<{ section: Section; type: "success" | "error"; message: string } | null>(null);
 const showCreateModal = ref(false);
 const showUpdateModal = ref(false);
 
-function showBanner(section: Section, type: "success" | "error", message: string) {
+const inspectUser = ref("");
+const inspectLoading = ref(false);
+const inspectResult = ref<string | null>(null);
+
+type BannerSection = "inspect" | "profile";
+type BannerType = "info" | "success" | "error";
+
+const banner = ref<{
+  section: BannerSection;
+  type: BannerType;
+  message: string;
+} | null>(null);
+
+interface LinkedInConnectionPreview {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  headline?: string | null;
+  location?: string | null;
+  industry?: string | null;
+  currentPosition?: string | null;
+  currentCompany?: string | null;
+  profileUrl?: string | null;
+  profilePictureUrl?: string | null;
+  summary?: string | null;
+}
+
+interface SemanticConnectionResult {
+  connectionId: string;
+  score: number;
+  text: string;
+  connection?: LinkedInConnectionPreview;
+}
+
+const connectionResults = ref<SemanticConnectionResult[]>([]);
+
+const uniqueConnectionResults = computed(() => {
+  const seen = new Set<string>();
+  const out: SemanticConnectionResult[] = [];
+  for (const r of connectionResults.value) {
+    const id = r.connectionId || r.connection?._id;
+    if (!id) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(r);
+  }
+  return out;
+});
+
+const currentUserId = computed(() => auth.userId || "");
+
+function setBanner(section: BannerSection, type: BannerType, message: string) {
   banner.value = { section, type, message };
 }
 
-function parseList(value: string) {
-  return value
-    .split(",")
-    .map((chunk) => chunk.trim())
-    .filter(Boolean);
-}
-
-function log(_conceptAction: string, _payload: Record<string, unknown>, status: "success" | "error", message: string, section: Section) {
-  showBanner(section, status, message);
-}
-
-async function handleCreateProfile() {
-  const payload = {
-    user: activeUserId.value,
-    headline: createForm.headline,
-    attributes: parseList(createForm.attributes),
-    links: parseList(createForm.links),
-  };
-  try {
-    await PublicProfileAPI.createProfile(payload);
-    log("createProfile", payload, "success", "Profile created.", "create");
-    createForm.headline = "";
-    createForm.attributes = "";
-    createForm.links = "";
-    showCreateModal.value = false;
-  } catch (error) {
-    log("createProfile", payload, "error", formatError(error), "create");
-  }
-}
-
-async function handleUpdateProfile() {
-  const payload: {
-    user: string;
-    headline?: string;
-    attributes?: string[];
-    links?: string[];
-  } = { user: activeUserId.value };
-
-  if (updateForm.headline.trim()) payload.headline = updateForm.headline.trim();
-  if (updateForm.attributes.trim()) payload.attributes = parseList(updateForm.attributes);
-  if (updateForm.links.trim()) payload.links = parseList(updateForm.links);
-
-  try {
-    await PublicProfileAPI.updateProfile(payload);
-    log("updateProfile", payload, "success", "Profile updated.", "update");
-    updateForm.headline = "";
-    updateForm.attributes = "";
-    updateForm.links = "";
-    showUpdateModal.value = false;
-  } catch (error) {
-    log("updateProfile", payload, "error", formatError(error), "update");
+function clearBanner(section: BannerSection) {
+  if (banner.value && banner.value.section === section) {
+    banner.value = null;
   }
 }
 
 function connectionDisplayName(connection?: LinkedInConnectionPreview) {
   if (!connection) return "Unknown connection";
-  const parts = [connection.firstName, connection.lastName]
-    .map((part) => part?.trim())
-    .filter(Boolean);
-  if (parts.length) {
-    return parts.join(" ");
-  }
-  return connection.linkedInConnectionId ?? "LinkedIn connection";
+  const first = connection.firstName?.trim();
+  const last = connection.lastName?.trim();
+  if (first || last) return [first, last].filter(Boolean).join(" ");
+  return "Unknown connection";
 }
 
 async function searchConnections() {
-  const query = inspectUser.value.trim();
-  if (!query) return;
-  if (!activeUserId.value) {
-    log(
-      "searchConnections",
-      {},
-      "error",
-      "You must be signed in to search your network.",
+  clearBanner("inspect");
+  inspectResult.value = null;
+  connectionResults.value = [];
+
+  const owner = currentUserId.value;
+  if (!owner) {
+    setBanner(
       "inspect",
+      "error",
+      "You must be signed in to search your network."
     );
     return;
   }
 
-  inspectLoading.value = true;
-  connectionResults.value = [];
-  inspectResult.value = "";
-  const payload = {
-    owner: activeUserId.value,
-    queryText: query,
-    limit: 10,
-  };
+  const queryText = inspectUser.value.trim();
+  if (!queryText) {
+    setBanner("inspect", "error", "Please enter a description to search.");
+    return;
+  }
 
+  inspectLoading.value = true;
   try {
-    const { results } = await SemanticSearchAPI.searchConnections(payload);
-    connectionResults.value = results;
-    inspectResult.value = results.length === 0
-      ? "No matching connections yet. Try a different description."
-      : `Showing ${results.length} semantic match${results.length === 1 ? "" : "es"}.`;
-    log("searchConnections", payload, "success", "Network search completed.", "inspect");
+    const { results } = await SemanticSearchAPI.searchConnections({
+      owner,
+      queryText,
+      limit: 20,
+    });
+
+    connectionResults.value = results ?? [];
+
+    if (!connectionResults.value.length) {
+      setBanner(
+        "inspect",
+        "info",
+        "No semantic matches found in your network for this description."
+      );
+      inspectResult.value = null;
+    } else {
+      setBanner(
+        "inspect",
+        "success",
+        `Network search completed. Showing ${connectionResults.value.length} semantic matches.`
+      );
+      inspectResult.value = null;
+    }
   } catch (error) {
-    connectionResults.value = [];
-    inspectResult.value = "";
-    log("searchConnections", payload, "error", formatError(error), "inspect");
+    console.error("searchConnections error", error);
+    setBanner(
+      "inspect",
+      "error",
+      "Something went wrong while searching your network."
+    );
   } finally {
     inspectLoading.value = false;
   }
 }
-
-function formatError(error: unknown) {
-  if (error instanceof ConceptApiError) {
-    return error.message;
-  }
-  return "Unexpected error. Check console for details.";
-}
-
-watch(
-  () => auth.username,
-  (next) => {
-    if (next) {
-      inspectUser.value = next;
-    }
-  },
-  { immediate: true },
-);
 </script>
