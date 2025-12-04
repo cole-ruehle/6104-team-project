@@ -42,9 +42,9 @@
         {{ inspectResult }}
       </p>
 
-      <div v-if="connectionResults.length" class="connection-results">
+      <div v-if="uniqueConnectionResults.length" class="connection-results">
         <article
-          v-for="result in connectionResults.filter((r) => r.connection)"
+          v-for="result in uniqueConnectionResults.filter((r) => r.connection)"
           :key="result.connectionId"
           class="connection-card"
         >
@@ -133,6 +133,19 @@ interface SemanticConnectionResult {
 }
 
 const connectionResults = ref<SemanticConnectionResult[]>([]);
+
+const uniqueConnectionResults = computed(() => {
+  const seen = new Set<string>();
+  const out: SemanticConnectionResult[] = [];
+  for (const r of connectionResults.value) {
+    const id = r.connectionId || r.connection?._id;
+    if (!id) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(r);
+  }
+  return out;
+});
 
 const currentUserId = computed(() => auth.userId || "");
 

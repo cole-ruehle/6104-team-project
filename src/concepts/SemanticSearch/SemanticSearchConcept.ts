@@ -364,6 +364,16 @@ export default class SemanticSearchConcept {
 
     // 4. Prefer results that resolve to real connections; hide bare ids.
     const connected = results.filter((r) => r.connection);
-    return { results: connected };
+
+    // 5. De-duplicate by connectionId, keeping the highest score per id.
+    const bestById = new Map<string, (typeof connected)[number]>();
+    for (const r of connected) {
+      const existing = bestById.get(r.connectionId);
+      if (!existing || r.score > existing.score) {
+        bestById.set(r.connectionId, r);
+      }
+    }
+
+    return { results: Array.from(bestById.values()) };
   }
 }
