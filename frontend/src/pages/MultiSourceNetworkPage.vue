@@ -1221,13 +1221,13 @@ async function fetchAdjacency() {
             // ignore metadata fetch errors
         }
 
-    logActivity(
-      "explorer",
-      "_getAdjacencyArray",
-      { owner: auth.userId },
-      "success",
-      "Adjacency data refreshed.",
-    );
+        logActivity(
+            "explorer",
+            "_getAdjacencyArray",
+            { owner: auth.userId },
+            "success",
+            "Adjacency data refreshed."
+        );
 
     // Render network after data is loaded
     await nextTick();
@@ -1237,6 +1237,7 @@ async function fetchAdjacency() {
       console.error("Error rendering network:", renderError);
       console.error("Render error details:", renderError instanceof Error ? renderError.stack : String(renderError));
     }
+
   } catch (error) {
     const errorMsg = formatError(error);
     console.error("Error fetching adjacency:", error);
@@ -1250,7 +1251,7 @@ async function fetchAdjacency() {
       "_getAdjacencyArray",
       { owner: auth.userId },
       "error",
-      errorMsg
+      errorMsg,
     );
     // Reset adjacency on error to prevent stale data
     adjacency.value = null;
