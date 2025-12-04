@@ -94,61 +94,113 @@ export default class LLMDisambiguationConcept {
       ],
     });
 
-    // Use LLM to analyze the nodes
-    const llmResult = await this.analyzeWithLLM(node1Info, node2Info);
-    if ("error" in llmResult) {
-      return { error: llmResult.error };
+    // Check if both nodes have the same LinkedIn profile URL - if so, auto-merge
+    if (node1Info && node2Info) {
+      const profileUrl1 = node1Info.profileUrl as string | undefined;
+      const profileUrl2 = node2Info.profileUrl as string | undefined;
+      
+      if (profileUrl1 && profileUrl2) {
+        const normalizedUrl1 = this.normalizeLinkedInUrl(profileUrl1);
+        const normalizedUrl2 = this.normalizeLinkedInUrl(profileUrl2);
+        
+        if (normalizedUrl1 && normalizedUrl2 && normalizedUrl1 === normalizedUrl2) {
+        // Same LinkedIn profile URL - definitely the same person
+        // Mark as high confidence with perfect similarity score
+        const now = new Date();
+        const normalizedNode1 = node1 < node2 ? node1 : node2;
+        const normalizedNode2 = node1 < node2 ? node2 : node1;
+        const normalizedNode1Info = node1 < node2 ? node1Info : node2Info;
+        const normalizedNode2Info = node1 < node2 ? node2Info : node1Info;
+
+        if (existingComparison) {
+          await this.comparisons.updateOne(
+            { _id: existingComparison._id },
+            {
+              $set: {
+                node1: normalizedNode1,
+                node2: normalizedNode2,
+                llmSimilarityScore: 1.0,
+                llmReasoning: "Both nodes have the same LinkedIn profile URL, confirming they are the same person.",
+                llmConfidence: "high",
+                userDecision: "pending", // Will be auto-confirmed by sync
+                node1Info: normalizedNode1Info,
+                node2Info: normalizedNode2Info,
+              },
+            },
+          );
+          return { comparison: existingComparison._id };
+        } else {
+          const comparisonId = freshID() as Comparison;
+          await this.comparisons.insertOne({
+            _id: comparisonId,
+            node1: normalizedNode1,
+            node2: normalizedNode2,
+            llmSimilarityScore: 1.0,
+            llmReasoning: "Both nodes have the same LinkedIn profile URL, confirming they are the same person.",
+            llmConfidence: "high",
+            userDecision: "pending", // Will be auto-confirmed by sync
+            createdAt: now,
+            node1Info: normalizedNode1Info,
+            node2Info: normalizedNode2Info,
+          });
+          return { comparison: comparisonId };
+        }
+      }
     }
 
+    // Pre-filter: Check string similarity first
+    // If no string similarity, don't create a comparison
+    if (node1Info && node2Info && !this.hasStringSimilarity(node1Info, node2Info)) {
+      // No string similarity - return existing comparison if it exists, otherwise return error
+      if (existingComparison) {
+        return { comparison: existingComparison._id };
+      }
+      // Don't create a comparison if there's no string similarity
+      return {
+        error:
+          "No string similarity detected. Nodes are too different to warrant comparison.",
+      };
+    }
+
+    // Create comparison immediately WITHOUT LLM analysis
+    // LLM analysis will be triggered on-demand via analyzeComparison action
     const now = new Date();
+    const normalizedNode1 = node1 < node2 ? node1 : node2;
+    const normalizedNode2 = node1 < node2 ? node2 : node1;
+    const normalizedNode1Info = node1 < node2 ? node1Info : node2Info;
+    const normalizedNode2Info = node1 < node2 ? node2Info : node1Info;
 
     if (existingComparison) {
-      // Update existing comparison
-      // Normalize node order (always use node1 < node2 for consistency)
-      const normalizedNode1 = node1 < node2 ? node1 : node2;
-      const normalizedNode2 = node1 < node2 ? node2 : node1;
-      const normalizedNode1Info = node1 < node2 ? node1Info : node2Info;
-      const normalizedNode2Info = node1 < node2 ? node2Info : node1Info;
-
+      // Update existing comparison (preserve LLM results if they exist)
       await this.comparisons.updateOne(
         { _id: existingComparison._id },
         {
           $set: {
             node1: normalizedNode1,
             node2: normalizedNode2,
-            llmSimilarityScore: llmResult.similarityScore,
-            llmReasoning: llmResult.reasoning,
-            llmConfidence: llmResult.confidence,
-            userDecision: "pending", // Reset to pending when re-comparing
             node1Info: normalizedNode1Info,
             node2Info: normalizedNode2Info,
+            // Only reset userDecision if it was already decided
+            ...(existingComparison.userDecision && existingComparison.userDecision !== "pending" && {
+              userDecision: "pending",
+            }),
           },
         },
       );
-
       return { comparison: existingComparison._id };
     } else {
-      // Create new comparison
-      // Normalize node order (always use node1 < node2 for consistency)
-      const normalizedNode1 = node1 < node2 ? node1 : node2;
-      const normalizedNode2 = node1 < node2 ? node2 : node1;
-      const normalizedNode1Info = node1 < node2 ? node1Info : node2Info;
-      const normalizedNode2Info = node1 < node2 ? node2Info : node1Info;
-
+      // Create new comparison without LLM analysis (llmSimilarityScore, llmReasoning, llmConfidence will be undefined)
       const comparisonId = freshID() as Comparison;
       await this.comparisons.insertOne({
         _id: comparisonId,
         node1: normalizedNode1,
         node2: normalizedNode2,
-        llmSimilarityScore: llmResult.similarityScore,
-        llmReasoning: llmResult.reasoning,
-        llmConfidence: llmResult.confidence,
         userDecision: "pending",
         createdAt: now,
         node1Info: normalizedNode1Info,
         node2Info: normalizedNode2Info,
+        // LLM fields left undefined - will be populated by analyzeComparison
       });
-
       return { comparison: comparisonId };
     }
   }
@@ -266,6 +318,64 @@ export default class LLMDisambiguationConcept {
   }
 
   /**
+   * Action: Triggers LLM analysis for a comparison that was created without analysis.
+   * analyzeComparison (comparison: Comparison): Empty
+   *
+   * **requires**:
+   *   - A Comparisons entry with the given comparison ID exists.
+   *   - The comparison has node1Info and node2Info available.
+   *
+   * **effects**:
+   *   - Uses LLM to analyze node1Info and node2Info.
+   *   - Updates llmSimilarityScore, llmReasoning, and llmConfidence.
+   *   - Does not change userDecision if it's already set.
+   */
+  async analyzeComparison({
+    comparison,
+  }: {
+    comparison: Comparison;
+  }): Promise<Empty | { error: string }> {
+    const existingComparison = await this.comparisons.findOne({ _id: comparison });
+    if (!existingComparison) {
+      return { error: `Comparison with ID ${comparison} not found.` };
+    }
+
+    // Check if LLM analysis already done
+    if (existingComparison.llmSimilarityScore !== undefined) {
+      return {}; // Already analyzed, no need to re-analyze
+    }
+
+    // Check if we have node info
+    if (!existingComparison.node1Info || !existingComparison.node2Info) {
+      return { error: "Cannot analyze comparison: node information not available." };
+    }
+
+    // Use LLM to analyze the nodes
+    const llmResult = await this.analyzeWithLLM(
+      existingComparison.node1Info,
+      existingComparison.node2Info,
+    );
+    if ("error" in llmResult) {
+      return { error: llmResult.error };
+    }
+
+    // Update comparison with LLM results
+    await this.comparisons.updateOne(
+      { _id: comparison },
+      {
+        $set: {
+          llmSimilarityScore: llmResult.similarityScore,
+          llmReasoning: llmResult.reasoning,
+          llmConfidence: llmResult.confidence,
+          // Don't change userDecision if it's already set
+        },
+      },
+    );
+
+    return {};
+  }
+
+  /**
    * Action: Cancels a pending comparison.
    * cancelComparison (comparison: Comparison): Empty
    *
@@ -337,7 +447,7 @@ export default class LLMDisambiguationConcept {
   /**
    * Query: Retrieves all pending comparisons.
    */
-  async _getPendingComparisons(): Promise<ComparisonDoc[]> {
+  async _getPendingComparisons(_args?: Record<string, unknown>): Promise<ComparisonDoc[]> {
     return await this.comparisons
       .find({ userDecision: "pending" })
       .toArray();
@@ -364,6 +474,101 @@ export default class LLMDisambiguationConcept {
   }): Promise<ComparisonDoc[]> {
     const comparisonDoc = await this.comparisons.findOne({ _id: comparison });
     return comparisonDoc ? [comparisonDoc] : [];
+  }
+
+  /**
+   * Helper: Normalize LinkedIn profile URL for comparison.
+   * Handles variations like https://www.linkedin.com/in/username vs linkedin.com/in/username
+   */
+  private normalizeLinkedInUrl(url: string): string {
+    if (!url) return "";
+    // Remove protocol and www
+    let normalized = url.toLowerCase().trim();
+    normalized = normalized.replace(/^https?:\/\//, "");
+    normalized = normalized.replace(/^www\./, "");
+    // Extract the username part (everything after /in/)
+    const match = normalized.match(/linkedin\.com\/in\/([^\/\?]+)/);
+    if (match) {
+      return match[1]; // Return just the username
+    }
+    return normalized;
+  }
+
+  /**
+   * Helper: Quick string similarity check to pre-filter before LLM analysis.
+   * Returns true if nodes have enough string similarity to warrant LLM comparison.
+   */
+  private hasStringSimilarity(
+    node1Info?: Record<string, unknown>,
+    node2Info?: Record<string, unknown>,
+  ): boolean {
+    if (!node1Info || !node2Info) return false;
+
+    // Helper to calculate simple string similarity
+    const simpleSimilarity = (str1: string, str2: string): number => {
+      if (!str1 || !str2) return 0;
+      const s1 = str1.toLowerCase().trim();
+      const s2 = str2.toLowerCase().trim();
+      if (s1 === s2) return 1;
+      if (s1.includes(s2) || s2.includes(s1)) return 0.7;
+      // Simple substring matching
+      const minLen = Math.min(s1.length, s2.length);
+      let matches = 0;
+      for (let i = 0; i < minLen; i++) {
+        if (s1[i] === s2[i]) matches++;
+      }
+      return matches / Math.max(s1.length, s2.length);
+    };
+
+    // Check name similarity
+    const name1 = [
+      node1Info.firstName,
+      node1Info.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const name2 = [
+      node2Info.firstName,
+      node2Info.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    if (name1 && name2 && simpleSimilarity(name1, name2) > 0.3) {
+      return true;
+    }
+
+    // Check first name
+    const fn1 = String(node1Info.firstName || "").toLowerCase().trim();
+    const fn2 = String(node2Info.firstName || "").toLowerCase().trim();
+    if (fn1 && fn2 && simpleSimilarity(fn1, fn2) > 0.5) {
+      return true;
+    }
+
+    // Check last name
+    const ln1 = String(node1Info.lastName || "").toLowerCase().trim();
+    const ln2 = String(node2Info.lastName || "").toLowerCase().trim();
+    if (ln1 && ln2 && simpleSimilarity(ln1, ln2) > 0.5) {
+      return true;
+    }
+
+    // Check company
+    const comp1 = String(node1Info.currentCompany || "").toLowerCase().trim();
+    const comp2 = String(node2Info.currentCompany || "").toLowerCase().trim();
+    if (comp1 && comp2 && simpleSimilarity(comp1, comp2) > 0.6) {
+      return true;
+    }
+
+    // Check location
+    const loc1 = String(node1Info.location || "").toLowerCase().trim();
+    const loc2 = String(node2Info.location || "").toLowerCase().trim();
+    if (loc1 && loc2 && simpleSimilarity(loc1, loc2) > 0.6) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

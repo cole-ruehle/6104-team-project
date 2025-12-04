@@ -5,6 +5,8 @@ const MultiSourceNetworkPage = () =>
 const PublicProfilePage = () => import("@/pages/PublicProfilePage.vue");
 const LinkedInImportPage = () => import("@/pages/LinkedInImportPage.vue");
 const NetworkSearchPage = () => import("@/pages/NetworkSearchPage.vue");
+const DuplicateConfirmationPage = () =>
+  import("@/pages/DuplicateConfirmationPage.vue");
 
 const router = createRouter({
   history: createWebHistory(),
@@ -32,6 +34,11 @@ const router = createRouter({
       path: "/search",
       name: "search",
       component: NetworkSearchPage,
+    },
+    {
+      path: "/duplicates",
+      name: "duplicates",
+      component: DuplicateConfirmationPage,
     },
   ],
   scrollBehavior() {

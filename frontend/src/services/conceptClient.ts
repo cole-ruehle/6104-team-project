@@ -183,3 +183,57 @@ export const LinkedInImportAPI = {
       payload,
     ),
 };
+
+export interface Comparison {
+  _id: string;
+  node1: string;
+  node2: string;
+  llmSimilarityScore?: number;
+  llmReasoning?: string;
+  llmConfidence?: "high" | "medium" | "low";
+  userDecision?: "same" | "different" | "pending";
+  userConfirmedAt?: string;
+  createdAt: string;
+  node1Info?: Record<string, unknown>;
+  node2Info?: Record<string, unknown>;
+}
+
+export interface Merge {
+  _id: string;
+  node1: string;
+  node2: string;
+  comparison: string;
+  mergedAt: string;
+  mergedBy?: "system" | "user";
+}
+
+      export const LLMDisambiguationAPI = {
+        compareNodes: (payload: {
+          node1: string;
+          node2: string;
+          node1Info?: Record<string, unknown>;
+          node2Info?: Record<string, unknown>;
+        }) => postConcept<{ comparison: string }>("LLMDisambiguation", "compareNodes", payload),
+        analyzeComparison: (payload: { comparison: string }) =>
+          postConcept("LLMDisambiguation", "analyzeComparison", payload),
+        confirmComparison: (payload: {
+          comparison: string;
+          userDecision: "same" | "different";
+        }) => postConcept("LLMDisambiguation", "confirmComparison", payload),
+        mergeNodes: (payload: {
+          comparison: string;
+          keepNode: string;
+        }) => postConcept<{ merge: string }>("LLMDisambiguation", "mergeNodes", payload),
+        cancelComparison: (payload: { comparison: string }) =>
+          postConcept("LLMDisambiguation", "cancelComparison", payload),
+  getComparison: (payload: { node1: string; node2: string }) =>
+    postConcept<Comparison[]>("LLMDisambiguation", "_getComparison", payload),
+  getComparisonsForNode: (payload: { node: string }) =>
+    postConcept<Comparison[]>("LLMDisambiguation", "_getComparisonsForNode", payload),
+  getPendingComparisons: () =>
+    postConcept<Comparison[]>("LLMDisambiguation", "_getPendingComparisons", {}),
+  getMergesForNode: (payload: { node: string }) =>
+    postConcept<Merge[]>("LLMDisambiguation", "_getMergesForNode", payload),
+  getComparisonDetails: (payload: { comparison: string }) =>
+    postConcept<Comparison[]>("LLMDisambiguation", "_getComparisonDetails", payload),
+};

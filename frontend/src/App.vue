@@ -12,6 +12,7 @@
           <RouterLink to="/profiles">Public Profiles</RouterLink>
           <RouterLink to="/import">Import LinkedIn</RouterLink>
           <RouterLink to="/search">Network Search</RouterLink>
+          <RouterLink to="/duplicates">Review Duplicates</RouterLink>
         </nav>
       </div>
       <div class="auth-status" v-if="auth.isAuthenticated">
