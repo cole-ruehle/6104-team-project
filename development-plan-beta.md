@@ -220,7 +220,7 @@ We decided that one of our concepts, GraphExplorer, was no longer needed. This i
 | Alpha 3 (Importing)  | Cole Ruehle    | Jing          | MultiSourceNetwork (import flows)   | ⚠️ Partial (CSV done, JSON/OAuth pending) |
 | Beta (Viz/Polish)    | Cole, Ivy, Jenna | Jing          | UI/UX improvements                  | ⚠️ In progress |
 | Beta (Syncs)         | Cole, Jenna, Ivy | Jing          | Synchronizations                    | ⚠️ 2/7 syncs implemented |
-| Beta (Public Networks) | Ivy          | Jing          | Public network features             | ❌ Not started |
+| Beta (Update MultiiSourceNetwork) | Ivy          | Jing          | Public network features             | ✅ |
 | Beta (Bug Fixing)    | Cole, Jenna, Ivy | Jing          | Bug fixes and improvements          | ⚠️ Ongoing |
 
 ---

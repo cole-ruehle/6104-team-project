@@ -7,12 +7,12 @@ Our domain is social media specifically in the networking sense. It will cross i
 
 ## Problem
 
-Social media apps for networking don't help with the problem of finding who I know. You have to remember or search through your list in hopes of finding the person you want. When it comes to hiring out, trying to learn, you are looking for someone with specific knowledge, skills, and experience. Our app will turn your social network into a tool for connection, hiring, and knowledge.
+Social media apps for networking don’t help with the problem of finding who I know. You have to remember or search through your list in hopes of finding the person you want. When it comes to hiring out, trying to learn, you are looking for someone with specific knowledge, skills, and experience. Our app will turn your social network into a tool for connection, hiring, and knowledge.
 
 ## Evidence
 
-1. **Personal Testimonial:** I've hired multiple engineers at my company, and the biggest challenge is quickly finding strong candidates. The best hires almost always come through introductions from my network because trusted connections act as a filter and respond faster. My boss frequently mentions that he knows he is connected to many great engineers but has no efficient way to find them.
-2. [**The Shortest Path to Better Hires: Best Practices for Employee Referral Programs:**](https://www.oracle.com/us/shortest-path-to-better-hires-1898145.pdf) States that better employees can be found through referred candidates (i.e. those in your network). "The people closest to your best employees are also likely to be good employees."
+1. **Personal Testimonial:** I’ve hired multiple engineers at my company, and the biggest challenge is quickly finding strong candidates. The best hires almost always come through introductions from my network because trusted connections act as a filter and respond faster. My boss frequently mentions that he knows he is connected to many great engineers but has no efficient way to find them.
+2. [**The Shortest Path to Better Hires: Best Practices for Employee Referral Programs:**](https://www.oracle.com/us/shortest-path-to-better-hires-1898145.pdf) States that better employees can be found through referred candidates (i.e. those in your network). “The people closest to your best employees are also likely to be good employees.”
 3. [**Why Posting Jobs Is Not Enough to Get Good Candidates:**](https://thinkingahead.com/resources/hiring-advice/why-posting-jobs-is-not-enough-to-get-good-candidates/) Posting job opportunities online can often be inefficient. As the article states, an average job posting gets a few hundred applications, which can be overwhelming for the recruiters. Job postings also do not attract all talents, and the article recommends that the recruiter actively reach out to potential employees rather than post passively.
 4. [**The Hidden Cost of Hiring: Why Relying on Job Applications for Specialized Roles is Costing You More Than You Think:**](https://www.opsvs.com/2025/03/06/the-hidden-cost-of-hiring-why-relying-on-job-applications-for-specialized-roles-is-costing-you-more-than-you-think) Mentions that searching for candidates the traditional way through online posting lead to higher turnover rates and less productivity. Instead, being able to find an employee within one's network is more cost effective and efficient.
 5. [**Does An Employee Refferal Make A Difference**](https://www.forbes.com/sites/carolinecenizalevine/2023/10/06/does-an-employee-referral-make-a-difference/) Employee referrals acts as a shortcut for the recruiters saving them time with the employee selling your background and skills. The employee would already know what the job culture is like in this company, and knows what way to recommend one in more to help land the job.
@@ -34,47 +34,44 @@ Social media apps for networking don't help with the problem of finding who I kn
 
 ## Features
 
-1. **Account Creation and Management** ✅ **IMPLEMENTED**
+1. **Account Creation and Management**
    - Users can create and manage their accounts.
    - Users control what information is visible, private, or excluded from their profile.
 
-2. **Importing Connections from External Platforms** ⚠️ **PARTIALLY IMPLEMENTED**
-   - ✅ Users can import LinkedIn connections via CSV upload with LLM-powered field mapping.
-   - ❌ OAuth-based LinkedIn API imports not yet implemented.
-   - ❌ Instagram and Handshake imports not yet implemented.
+2. **Importing Connections from External Platforms**
+   - Users can connect external platforms such as LinkedIn, Instagram, or Handshake.
+   - Public information about their connections is imported into a unified in-app network.
 
-3. **LLM-Powered Connection Schema** ✅ **IMPLEMENTED**
-   - The system uses an LLM to automatically interpret imported CSV connections' information.
+3. **LLM-Powered Connection Schema**
+   - The system uses an LLM to automatically interpret imported connections' information.
    - Skills, roles, interests, and relevant attributes are inferred from public data.
 
-4. **Network Querying for Relevant Connections** ✅ **IMPLEMENTED**
-   - Users can query their network for relevant connections using semantic search.
-   - The system semantically searches across the user's entire imported network using txtai service.
+4. **Network Querying for Relevant Connections**
+   - Users can query their network for relevant connections.
+   - The LLM semantically searches across the user’s entire imported network to find these relevant people.
 
-5. **Filtering Query Results** ⚠️ **PARTIALLY IMPLEMENTED**
-   - ✅ Basic filtering by platform origin, company, location available in NetworkSearchPage.
-   - ⚠️ Degree of separation filtering is partially implemented (UI exists but backend support is limited).
-   - ⚠️ Education and mutual connections filtering not yet implemented.
+5. **Filtering Query Results**
+   - After querying, users can apply filters such as:
+     - Platform origin (LinkedIn, Instagram, etc.)
+     - Education, company, location, or mutual connections
+     - Degree of separation
+     - Etc.
 
-6. **Interactive Network Exploration** ✅ **IMPLEMENTED**
-   - Users can visually explore their entire multi-platform network through an interactive graph (vis-network).
-   - Connections are color-coded by degree of separation (Root: red, 1st: yellow, 2nd: green, 3rd: sky blue, 4th: purple, 5+: gray).
-   - Users can see node information on hover/click, drag nodes (with viewport constraints), zoom, pan, and center on root node.
-   - ⚠️ LLM-based clustering not yet implemented.
-   - ⚠️ Path highlighting between nodes not yet implemented.
+6. **Interactive Network Exploration**
+   - Users can visually explore their entire multi-platform network or any post-query subset through an interactive graph.
+   - Connections are clustered and color-coded using LLM inference.
+   - Users can see how any person is connected to them through intermediaries.
 
 
 ## Ethical Analysis
 
 1. **Values (Chosen Desired Values: Privacy and Consent):**
    - An important question is consent to be on the site. What permissions and consent do we need from someone to be able to use their information in our application?
-   - We decided that importing only public profiles and that public information should be shared. We are aligning with the goal of those platforms and only sharing public employment information so it should be fair. Secondly, we will not disambiguate using personal info like phone numbers. Finally, we will have a set of push notifications saying something like "X manually added you to their network. Would you like to join the platform or dispute that you know this person, allowing someone to intervene.
-   - ⚠️ **STATUS:** Notification system for non-users not yet implemented.
+   - We decided that importing only public profiles and that public information should be shared. We are aligning with the goal of those platforms and only sharing public employment information so it should be fair. Secondly, we will not disambiguate using personal info like phone numbers. Finally, we will have a set of push notifications saying something like “X manually added you to their network. Would you like to join the platform or dispute that you know this person, allowing someone to intervene.
 
 2. **Time (Reappropriation)**
    - Although the app is mostly aiming to help recruiters find candidates faster, users might use the search tool in other ways. For example, they can use the app to find peers with similar interests or classmates who have taken a class they wish to learn more about.
    - We can expand the app to not only store professional data from LinkedIn. Rather, we can also have the users input their own data if they wish. This would allow others to find them more easily in the network.
-   - ✅ **STATUS:** Users can manually add nodes and edges to their network.
 
 3. **Time (Choosing Not to Use)**
    - If some users choose not to use the app or choose not to consent to having their data on the app (keep everything private), then we might have some holes in the network.
@@ -83,10 +80,9 @@ Social media apps for networking don't help with the problem of finding who I kn
 4. **Values (Value Tensions)**
    - A user might want to keep some of their information private, but because they want to be visible to recruiters on the app, they feel pressured to have more of their information visible and public on their profile.
    - We can introduce a visibility system, where some information is only visible to certain users (for instance, limiting it to only be visible to those in your direct network).
-   - ⚠️ **STATUS:** Visibility system not yet implemented.
 
 5. **Stakeholders (Indirect Stakeholders)**
-   - People who do not use the app might find themselves appearing in searches because they were in someone else's network. This might create concerns about privacy.
+   - People who do not use the app might find themselves appearing in searches because they were in someone else’s network. This might create concerns about privacy.
    - We will only be using public data, so if someone prefers to remain private, their information will not show up in our application.
 
 <br>
@@ -95,11 +91,11 @@ Social media apps for networking don't help with the problem of finding who I kn
 
 ## Concept Specifications
 
-### concept: PublicProfile ✅ **IMPLEMENTED**
+### concept: PublicProfile
 
 * **concept**: PublicProfile [User]
 * **purpose**: Provide a concise, public-facing description of a user that others can quickly scan and interpret.
-* **principle**: When a user creates a public profile with a headline, attributes, and links, anyone can later view that user's profile and consistently see the same information; if the user updates their profile, viewers will see the updated information the next time it is accessed.
+* **principle**: When a user creates a public profile with a headline, attributes, and links, anyone can later view that user’s profile and consistently see the same information; if the user updates their profile, viewers will see the updated information the next time it is accessed.
 
 * **state**:
     * a set of `Profiles` with
@@ -109,16 +105,35 @@ Social media apps for networking don't help with the problem of finding who I kn
         * `links` set of String
 
 * **actions**:
-    * ✅ `createProfile (user: User, headline: String, attributes: set of String, links: set of String): Empty` - **IMPLEMENTED**
-    * ✅ `updateProfile (user: User, headline: String?, attributes: set of String?, links: set of String?): Empty` - **IMPLEMENTED**
-    * ✅ `deleteProfile (user: User): Empty` - **IMPLEMENTED**
+    * `createProfile (user: User, headline: String, attributes: set of String, links: set of String): Empty`
+        * **requires**:
+            * No `Profiles` entry exists for `user`.
+            * `user` exists.
+            * `headline` is not empty.
+        * **effects**:
+            * Creates a new profile for `user` with the provided headline, attributes, and links.
+
+    * `updateProfile (user: User, headline: String?, attributes: set of String?, links: set of String?): Empty`
+        * **requires**:
+            * A `Profiles` entry exists for `user`.
+            * If `headline` is provided, it is not empty.
+        * **effects**:
+            * Updates each provided field on the profile.
+            * Leaves unprovided fields unchanged.
+            * Overwrites fields if explicitly provided as empty.
+
+    * `deleteProfile (user: User): Empty`
+        * **requires**:
+            * A `Profiles` entry exists for `user`.
+        * **effects**:
+            * Removes the profile for `user`.
 
 * **notes**:
     * `attributes` can instead be represented as just a set of Strings if that fits better later on in the design process.
 
 ---
 
-### concept: UserAuthentication ✅ **IMPLEMENTED**
+### concept: UserAuthentication
 
 * **concept**: UserAuthentication [User]
 * **purpose**: Provide username/password based registration and authentication.
@@ -131,19 +146,32 @@ Social media apps for networking don't help with the problem of finding who I kn
 		* `passwordHash` String (stored as `salt:hash`)
 
 * **actions**:
-	* ✅ `register(username: String, password: String): { user }` - **IMPLEMENTED**
-	* ✅ `authenticate(username: String, password: String): { user }` - **IMPLEMENTED**
-	* ✅ `searchUsers(query: String, limit?: Number): { users }` - **IMPLEMENTED**
-	* ✅ `hashPassword(password: String) -> String` - **IMPLEMENTED**
-	* ✅ `verifyPassword(password: String, stored: String) -> Boolean` - **IMPLEMENTED**
+	* `register(username: String, password: String): { user }`
+		* **requires**: `username` does not already exist
+		* **effects**: creates a new user with a salted+hashed password and returns the new user id
+
+	* `authenticate(username: String, password: String): { user }`
+		* **requires**: `username` exists and `password` matches stored hash
+		* **effects**: returns the authenticated user's id
+
+	* `searchUsers(query: String, limit?: Number): { users }`
+		* **requires**: none
+		* **effects**: performs a case-insensitive search of usernames and returns up to `limit` matches (default 10)
+
+	* `hashPassword(password: String) -> String`
+		* **effects**: returns a salted hash string in the format `salt:hash`
+
+	* `verifyPassword(password: String, stored: String) -> Boolean`
+		* **effects**: verifies a plaintext password against the stored salted hash using a timing-safe comparison
+
 
 ---
 
-### concept: MultiSourceNetwork ✅ **IMPLEMENTED**
+### concept: MultiSourceNetwork
 
 * **concept**: MultiSourceNetwork [Owner, Node, Source]
 * **purpose**: Allow an owner to maintain and explore a single unified network of nodes and connections that may originate from multiple independent sources.
-* **principle**: Each canonical Node is stored once globally. An owner's unified graph is the combination of `Memberships` (which record which source(s) brought a node into the owner's network) and owner-scoped `Edges` (each attributed to a Source). When a contributing Source removes its data, the owner's network reflects those removals automatically.
+* **principle**: Each canonical Node is stored once globally. An owner’s unified graph is the combination of `Memberships` (which record which source(s) brought a node into the owner’s network) and owner-scoped `Edges` (each attributed to a Source). When a contributing Source removes its data, the owner’s network reflects those removals automatically.
 
 * **state**:
     * a set of `Networks` with
@@ -175,30 +203,91 @@ Social media apps for networking don't help with the problem of finding who I kn
 
 * **actions**:
 
-    * ✅ `createNetwork (owner: Owner, root: Node?): Empty` - **IMPLEMENTED**
-    * ✅ `setRootNode (owner: Owner, root: Node): Empty` - **IMPLEMENTED**
-    * ✅ `addNodeToNetwork (owner: Owner, node: Node, source: Source): Empty` - **IMPLEMENTED**
-    * ✅ `createNodeForUser ({ owner, metaData?, ..., sourceIds? }): { node } | { error }` - **IMPLEMENTED**
-    * ✅ `addOrMigrateNodeFromSource ({ owner, legacyNodeId?, source, nodeMeta?, externalId? }): { node }` - **IMPLEMENTED**
-    * ✅ `removeNodeFromNetwork (owner: Owner, node: Node, source: Source?): Empty` - **IMPLEMENTED**
-    * ✅ `searchNodes (owner: Owner, query?: String, limit?: Number, offset?: Number): { results }` - **IMPLEMENTED**
-    * ✅ `getNodes ( ids: String[], owner: Owner ): Node[]` - **IMPLEMENTED**
-    * ✅ `addEdge (owner: Owner, from: Node, to: Node, source: Source, weight: Number?): Empty` - **IMPLEMENTED**
-    * ✅ `removeEdge (owner: Owner, from: Node, to: Node, source: Source): Empty` - **IMPLEMENTED**
-    * ✅ `getAdjacencyArray (owner: Owner): { adjacency, nodeLabels }` - **IMPLEMENTED** (returns adjacency map for graph visualization)
+    * `createNetwork (owner: Owner, root: Node?): Empty`
+        * **requires**:
+            * No `Networks` entry exists for `owner`.
+        * **effects**:
+            * Creates a new `Networks` entry for the owner with optional `root`.
+            * If `root` is omitted, defaults to `owner`.
+            * Ensures the owner has a `Memberships` entry for `(owner, owner)` and adds the `self` source to that membership. This guarantees the owner appears as a node in their network.
+
+    * `setRootNode (owner: Owner, root: Node): Empty`
+        * **requires**:
+            * A `Networks` entry exists for `owner`.
+            * A `Memberships` entry exists for `(owner, root)`.
+        * **effects**:
+            * Sets the `root` field for the owner’s network.
+
+    * `addNodeToNetwork (owner: Owner, node: Node, source: Source): Empty`
+        * **requires**: none.
+        * **effects**:
+            * Upserts a `Memberships` entry for `(owner, node)`; adds the `source` to the membership's `sources` map. Ensures canonical `Node` exists (create or reuse via `sourceIds`).
+            * Supports creating a canonical node by passing `nodeMeta` instead of `node`. When `nodeMeta` is supplied, a canonical node is created (via `createNodeForUser`) and the returned node id is added to membership.
+
+    * `updateNode (updater: Owner, node: Node, meta: Node): Empty`
+        * **requires**: `node` to exist, `updater` to be the owner of the node
+        * **effects**:
+            * Updates given `node` based on new `meta` data.
+
+    * `removeNodeFromNetwork (owner: Owner, node: Node, source: Source?): Empty`
+        * **requires**:
+            * A `Memberships` entry exists for `(owner, node)`.
+        * **effects**:
+            * If `source` provided: remove `source` from membership `sources`. If `sources` becomes empty: delete the `Memberships` entry and delete all `Edges` for the owner where `from==node OR to==node`.
+            * If `source` omitted: delete the `Memberships` entry and delete all owner `Edges` touching the node.
+
+    * `updateNode (owner: Owner, query?: String, limit?: Number, offset?: Number): Empty`
+        * **requires**: `owner` to exist
+        * **effects**:
+            * Returns nodes that match query, limited to `limit` results, with offset `offset` (how many "pages").
+
+    * `getNodes ( ids: String[] ): Node[]`
+        * **requires**: `id` to exist as a node id
+        * **effects**:
+            * Returns array of node information based on ids provided.
+
+    * `addEdge (owner: Owner, from: Node, to: Node, source: Source, weight: Number?): Empty`
+        * **requires**:
+            * `from != to`.
+        * **effects**:
+            * Upserts an `Edges` entry for `(owner, from, to, source)` and sets/updates `weight`.
+
+    * `removeEdge (owner: Owner, from: Node, to: Node, source: Source): Empty`
+        * **requires**:
+            * An `Edges` entry exists for `(owner, from, to, source)`.
+        * **effects**:
+            * Removes the specified edge.
+
+    * `removeEdge (owner: Owner, from: Node, to: Node, source: Source): Empty`
+        * **requires**:
+            * An `Edges` entry exists for `(owner, from, to, source)`.
+        * **effects**:
+            * Removes the specified edge.
+
+    * `setRootNode` and `addEdge` assume the caller enforces authorization (owner or sync acting on behalf of owner); `updateNode` operations should require membership-based authorization.
+
+    * `createNodeForUser ({ owner, metaData?, ..., sourceIds? }): { node } | { error }`
+        * **requires**: either `firstName+lastName` or `label` (a display name) so a canonical label can be derived.
+        * **effects**:
+            * Inserts a `Nodes` document (with `sourceIds` if provided) and a `Memberships` entry for `(owner, node)` with the source set to `user` (or the internal caller tag). Returns the new canonical node id.
+
+    * `addOrMigrateNodeFromSource ({ owner, legacyNodeId?, source, nodeMeta?, externalId? }): { node }`
+        * **requires**: `owner` to exist and be provided, `source` to be provided
+        * **effects**: creates `{ node }` with the canonical node id.
 
 * **notes**:
     * metadata for nodes vary from implementation to implementation, depending on what the network represents.
     * The concept is multi-source because each node or edge may be contributed by one or more independent sources (e.g., multiple platforms).
     * This supports combining, removing, and updating source-specific network data without affecting other sources.
-    * `Networks` represents the owner's unified network workspace and stores per-owner configuration such as the chosen `root` node.
-    * `Memberships` records which nodes appear in the owner's unified network and tracks which sources contributed each node.
+    * `Networks` represents the owner’s unified network workspace and stores per-owner configuration such as the chosen `root` node.
+    * `Memberships` records which nodes appear in the owner’s unified network and tracks which sources contributed each node.
     * `searchNodes` is scoped to nodes that the owner has a membership for and (by implementation) only performs substring searches on `firstName` and `lastName` (case-insensitive). The UI should rely on the membership filter to control visibility.
     * Edge creation from imports is best-effort: the flow ensures membership exists and upserts the owner->node edge, but a failure to create the edge should not fail the overall import/sync operation.
 
+
 ---
 
-### concept: LinkedInImport ⚠️ **PARTIALLY IMPLEMENTED**
+### concept: LinkedInImport
 
 * **concept**: LinkedInImport [User]
 * **purpose**: Enable users to import their LinkedIn connections and associated profile information into the system, making this data available for network exploration and semantic search.
@@ -244,24 +333,79 @@ Social media apps for networking don't help with the problem of finding who I kn
 
 * **actions**:
 
-    * ✅ `connectLinkedInAccount (user: User, accessToken: String, refreshToken: String?, expiresAt: Date?, linkedInUserId: String, linkedInEmail: String?, linkedInName: String?): (account: LinkedInAccount)` - **IMPLEMENTED** (but OAuth flow not yet integrated in frontend)
-    * ✅ `updateLinkedInAccount (account: LinkedInAccount, accessToken: String, refreshToken: String?, expiresAt: Date?): Empty` - **IMPLEMENTED**
-    * ✅ `disconnectLinkedInAccount (account: LinkedInAccount): Empty` - **IMPLEMENTED**
-    * ✅ `importConnectionsFromCSV (account: LinkedInAccount, csvContent: String): (importJob: ImportJob, connectionsImported: Number, connections: ConnectionDoc[])` - **IMPLEMENTED** (with LLM-powered field mapping via Gemini API)
-    * ❌ `importConnectionsFromJSON (account: LinkedInAccount, jsonContent: String): (importJob: ImportJob, connectionsImported: Number)` - **NOT IMPLEMENTED**
-    * ✅ `addConnection (account: LinkedInAccount, linkedInConnectionId: String, ...): (connection: Connection)` - **IMPLEMENTED**
-    * ✅ `updateImportJobStatus (importJob: ImportJob, status: String, connectionsImported: Number, connectionsTotal: Number?, errorMessage: String?): Empty` - **IMPLEMENTED**
-    * ❌ `startImport (account: LinkedInAccount): (importJob: ImportJob)` - **NOT IMPLEMENTED** (OAuth-based API import not yet implemented)
+    * `connectLinkedInAccount (user: User, accessToken: String, refreshToken: String?, expiresAt: Date?, linkedInUserId: String, linkedInEmail: String?, linkedInName: String?): (account: LinkedInAccount)`
+        * **requires**:
+            * No `LinkedInAccounts` entry exists for `user`.
+            * `accessToken` is not empty.
+            * `linkedInUserId` is not empty.
+        * **effects**:
+            * Creates a new `LinkedInAccounts` entry for the user with the provided OAuth tokens and profile information.
+            * Returns the account ID.
+
+    * `updateLinkedInAccount (account: LinkedInAccount, accessToken: String, refreshToken: String?, expiresAt: Date?): Empty`
+        * **requires**:
+            * A `LinkedInAccounts` entry with the given `account` ID exists.
+            * `accessToken` is not empty.
+        * **effects**:
+            * Updates the `accessToken`, `refreshToken`, and `expiresAt` fields for the account.
+
+    * `disconnectLinkedInAccount (account: LinkedInAccount): Empty`
+        * **requires**:
+            * A `LinkedInAccounts` entry with the given `account` ID exists.
+        * **effects**:
+            * Removes the `LinkedInAccounts` entry and all associated `Connections` and `ImportJobs`.
+
+    * `importConnectionsFromCSV (account: LinkedInAccount, csvContent: String): (importJob: ImportJob, connectionsImported: Number)`
+        * **requires**:
+            * A `LinkedInAccounts` entry with the given `account` ID exists.
+            * `csvContent` is not empty.
+        * **effects**:
+            * Parses the CSV content.
+            * Uses LLM to map CSV columns to ConnectionDoc fields.
+            * Creates an `ImportJobs` entry with status "in_progress".
+            * Processes each CSV row and calls `addConnection` for each.
+            * Updates `ImportJobs` status to "completed" or "failed".
+            * Returns the importJob ID and number of connections imported.
+
+    * `importConnectionsFromJSON (account: LinkedInAccount, jsonContent: String): (importJob: ImportJob, connectionsImported: Number)`
+        * **requires**:
+            * A `LinkedInAccounts` entry with the given `account` ID exists.
+            * `jsonContent` is not empty and is valid JSON.
+        * **effects**:
+            * Parses the JSON content (expects an array of connection objects or a single object).
+            * Uses LLM to map JSON keys to ConnectionDoc fields.
+            * Creates an `ImportJobs` entry with status "in_progress".
+            * Processes each JSON object and calls `addConnection` for each.
+            * Updates `ImportJobs` status to "completed" or "failed".
+            * Returns the importJob ID and number of connections imported.
+
+    * `addConnection (account: LinkedInAccount, linkedInConnectionId: String, firstName: String?, lastName: String?, headline: String?, location: String?, industry: String?, currentPosition: String?, currentCompany: String?, profileUrl: String?, profilePictureUrl: String?, summary: String?, skills: set of String?, education: JSON?, experience: JSON?, rawData: JSON?): (connection: Connection)`
+        * **requires**:
+            * A `LinkedInAccounts` entry with the given `account` ID exists.
+            * `linkedInConnectionId` is not empty.
+        * **effects**:
+            * Creates or updates a `Connections` entry with the provided information.
+            * If a connection with the same `account` and `linkedInConnectionId` exists, updates it.
+            * Returns the connection ID.
+
+    * `updateImportJobStatus (importJob: ImportJob, status: String, connectionsImported: Number, connectionsTotal: Number?, errorMessage: String?): Empty`
+        * **requires**:
+            * An `ImportJobs` entry with the given `importJob` ID exists.
+            * `status` is one of: "pending", "in_progress", "completed", "failed".
+        * **effects**:
+            * Updates the import job's status, progress, and optional error message.
+            * Sets `completedAt` if status is "completed" or "failed".
+            * Updates `lastImportedAt` on the account if status is "completed".
 
 * **notes**:
     * The first version uses manual CSV/JSON import from LinkedIn's export feature rather than API scraping, ensuring ethical data handling and avoiding API limitations.
     * LLM-powered field mapping allows the system to intelligently interpret various CSV/JSON formats that users may export from LinkedIn.
-    * Connections are automatically added to MultiSourceNetwork via synchronization when `importConnectionsFromCSV` is called.
+    * Connections are automatically added to MultiSourceNetwork via synchronization when `addConnection` is called.
     * The concept supports future expansion to OAuth-based API imports once proper permissions and ethical considerations are addressed.
 
 ---
 
-### concept: SemanticSearch ✅ **IMPLEMENTED**
+### concept: SemanticSearch
 
 * **concept**: SemanticSearch [Owner, Item]
 * **purpose**:
@@ -285,10 +429,32 @@ Social media apps for networking don't help with the problem of finding who I kn
 
 * **actions**:
 
-    * ✅ `indexItem (owner: Owner, item: Item, text: String, vector: JSON?): Empty` - **IMPLEMENTED** (uses txtai service)
-    * ✅ `removeIndexedItem (owner: Owner, item: Item): Empty` - **IMPLEMENTED**
-    * ✅ `queryItems (owner: Owner, queryText: String, filters: JSON?): (queryID: String, results: Array<{item: Item, score: number, text: string}>)` - **IMPLEMENTED** (uses txtai service)
-    * ⚠️ `refineQuery (queryID: String, filters: JSON): Empty` - **PARTIALLY IMPLEMENTED** (action exists but not fully integrated with frontend)
+    * `indexItem (owner: Owner, item: Item, text: String, vector: JSON?): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Creates or updates an `IndexedItems` entry for `(owner, item)` with the provided text and optional vector.
+
+    * `removeIndexedItem (owner: Owner, item: Item): Empty`
+        * **requires**:
+            * None
+        * **effects**:
+            * Deletes any `IndexedItems` entry for `(owner, item)`.
+
+    * `queryItems (owner: Owner, queryText: String, filters: JSON?): (queryID: String)`
+        * **requires**:
+            * `queryText` is not empty.
+        * **effects**:
+            * Creates a new `SearchQueries` entry with
+              `queryText`, `filters`, and a ranked sequence `resultItems`.
+            * Returns the new `queryID`.
+
+    * `refineQuery (queryID: String, filters: JSON): Empty`
+        * **requires**:
+            * A `SearchQueries` entry with `queryID` exists.
+        * **effects**:
+            * Updates the filters for the query.
+            * Recomputes and replaces `resultItems` based on new filters.
 
 * **invariants**:
     * All `resultItems` in any query belong to the same owner's indexed items.
@@ -296,53 +462,13 @@ Social media apps for networking don't help with the problem of finding who I kn
 * **notes**:
     * `vector` is part of the state to consider support for vector-based semantic similarity.
     * The concept does not assume anything about how semantic similarity is computed.
-    * Currently uses txtai service running on localhost:8001 for semantic search.
 
----
-
-### concept: GraphExplorer ⚠️ **NOT IMPLEMENTED AS BACKEND CONCEPT**
-
-* **concept**: GraphExplorer [Viewer, Node]
-* **purpose**: Let a viewer open and adjust an explorable graph view of nodes, including visible nodes, grouping, layout, filters, and optional highlighted paths.
-* **principle**: When a viewer opens a graph view over a set of nodes, they see those nodes laid out, can adjust filters and groupings, and optionally highlight a path.
-
-* **status**: ⚠️ **Graph visualization is implemented in frontend only (MultiSourceNetworkPage.vue using vis-network), but GraphExplorer as a backend concept with persistent state is NOT implemented and NOT needed.**
-
-* **concept specification**: See [GraphExplorer Concept Design](design/concepts/GraphExplorer/GraphExplorer.md) for detailed implementation status.
-
-* **Frontend Implementation** (MultiSourceNetworkPage.vue):
-    * ✅ Interactive graph visualization with vis-network
-    * ✅ Node color-coding by degree of separation
-    * ✅ Node dragging (with viewport constraints)
-    * ✅ Graph panning and zooming
-    * ✅ Center on root node functionality
-    * ✅ Node hover/click tooltips with detailed information
-    * ✅ Degree-based node sizing and edge styling
-    * ✅ Bidirectional edge rendering
-    * ❌ Layout persistence (not stored in backend)
-    * ❌ Highlighted paths between nodes
-    * ❌ Backend-stored filters and groupings
-    * ❌ Multiple graph views per user
-
-* **Backend State** (NOT IMPLEMENTED):
-    * ❌ a set of `GraphViews` with `viewID`, `viewer`, `visibleNodes`, `anchorNode`, `filters`
-    * ❌ a set of `Layouts` with `viewID`, `node`, `x`, `y`, `groupID`
-    * ❌ a set of `HighlightedPaths` with `viewID`, `nodes`
-
-* **Backend Actions** (NOT IMPLEMENTED):
-    * ❌ `createGraphView (viewer: Viewer, visibleNodes: set of Node, anchorNode: Node?, filters: JSON?): (viewID: String)`
-    * ❌ `updateVisibleNodes (viewID: String, visibleNodes: set of Node): Empty`
-    * ❌ `updateLayouts (viewID: String, layouts: seq of { node: Node, x: Number, y: Number, groupID: String? }): Empty`
-    * ❌ `setFilters (viewID: String, filters: JSON): Empty`
-    * ❌ `setAnchorNode (viewID: String, anchorNode: Node): Empty`
-    * ❌ `setHighlightedPath (viewID: String, nodes: seq of Node): Empty`
-    * ❌ `clearHighlightedPath (viewID: String): Empty`
 
 ---
 
 ## Syncs
 
-**sync** createNetworkForNewProfile ❌ **NOT IMPLEMENTED**
+**sync** createNetworkForNewProfile
 
 **when**
 -   PublicProfile.createProfile(user)
@@ -357,7 +483,7 @@ Social media apps for networking don't help with the problem of finding who I kn
 
 ---
 
-**sync** addProfileLinksToNetwork ❌ **NOT IMPLEMENTED**
+**sync** addProfileLinksToNetwork
 
 **when**
 - PublicProfile.updateProfile (user, links)
@@ -368,8 +494,8 @@ Social media apps for networking don't help with the problem of finding who I kn
    - MultiSourceNetwork.addEdge (owner: user, from: user, to: link, source: "profile_links")
 
 ---
-
-**sync** reindexProfileForSemanticSearch ❌ **NOT IMPLEMENTED**
+<!--when the user updates his profile, it's necessary to update every indexItem so when others search, it will be ranked correctly with the new version-->
+**sync** reindexProfileForSemanticSearch
 
 **when**
 - PublicProfile.updateProfile (user, headline?, attributes?, links?)
@@ -379,256 +505,182 @@ Social media apps for networking don't help with the problem of finding who I kn
 
 ---
 
-**sync** searchCreatesGraphView ❌ **NOT IMPLEMENTED**
-
-**when**
-- SemanticSearch.queryItems (owner, queryText, filters) : (queryID)
-
-**then**
-- GraphExplorer.createGraphView (viewer: owner, visibleNodes: resultItems)
-
----
-
-**sync** refinedSearchUpdatesGraphView ❌ **NOT IMPLEMENTED**
-
-**when**
-- SemanticSearch.refineQuery (queryID, filters)
-
-**where**
-- in SemanticSearch: get updated resultItems for queryID
-- in SearchMapping: find GraphView associated with queryID
-
-**then**
-- GraphExplorer.updateVisibleNodes (viewID, resultItems)
-
----
-
-**sync** CreateCanonicalNodeFromLinkedInConnection ✅ **IMPLEMENTED**
-
-**when**
-- LinkedInImport.importConnectionsFromCSV (account, csvContent) : (connections)
-
-**where**
-- in LinkedInImport: get user (owner) from account
-- expand frames for each connection in the returned connections array
-
-**then**
-- MultiSourceNetwork.addOrMigrateNodeFromSource (owner: user, source: "linkedin", nodeMeta: connectionDoc, externalId, legacyNodeId)
-
----
-
-**sync** AddLinkedInConnectionToNetwork ✅ **IMPLEMENTED**
+**sync** addLinkedInConnectionToNetwork
 
 **when**
 - LinkedInImport.addConnection (account, linkedInConnectionId, ...) : (connection)
 
 **where**
 - in LinkedInImport: get user (owner) from account
-- in LinkedInImport: get connection document (firstName, lastName, label)
 
 **then**
-- MultiSourceNetwork.createNetwork (owner: user, root: user) [idempotent]
-- MultiSourceNetwork.addNodeToNetwork (owner: user, node: connection, source: "linkedin", label: label)
-- MultiSourceNetwork.addEdge (owner: user, from: user, to: connection, source: "linkedin")
-
----
+- MultiSourceNetwork.addNodeToNetwork (owner: user, node: connection, source: "linkedin")
 
 <br>
 
-# Current Implementation Status
+# User Journey
 
-## ✅ Fully Implemented Features
+### Hiring
+A user is trying to start a company in the finance sector. They need to hire a compliance expert to ensure their product is legally compliant. This is a position where specific experience is both highly relevant and in high demand; those with that experience are often drawn to larger companies. After asking around without success, the user believes someone in their network could at least introduce them to a qualified candidate. They search for "securities compliance experience, consumer loans, reserve ratios." The app uses vector search to find people whose profiles match this description, surfacing an individual who is recently retired with experience as a consumer banking analyst, but who described this experience in the form of a story about leading a task force. This person has linked their website so people can reach out via their Handshake profile. The user emails them about their project, and they agree to join as a part-time advisor.
 
-1. **User Authentication & Account Management**
-   - User registration and login
-   - Password hashing with salt
-   - User search functionality
+### Job Search
+A recently unemployed computer scientist is having a difficult time finding a new job. They are being screened out by resume reviews, despite having significant experience in geospatial projects—a valuable and specialized skill set. They use the app to pull up their network, looking for friends who might know of open positions or could introduce them to people who are hiring. They bring up the visual network, filtering by proximity to keywords such as "geospatial analysis," "mapping," and "navigation." As they navigate through their network and a few degrees out, they discover that their friend Jeff is connected to a nexus of people heavily involved in these areas. Since they have Jeff’s phone number, they reach out to ask about his experience in geospatial engineering and are subsequently invited to a conference for mapping software companies taking place in town in one month.
 
-2. **Public Profile Management**
-   - Create, update, and delete profiles
-   - Headline, attributes, and links management
-   - Profile viewing
+### Learning
 
-3. **Multi-Source Network Core**
-   - Network creation with root node
-   - Node and edge management (add/remove)
-   - Source tracking per node and edge
-   - Node search functionality
-   - Adjacency array retrieval for graph visualization
-   - Manual node/edge creation with rich metadata (firstName, lastName, headline, location, industry, position, company, skills, education, experience, etc.)
+A user is looking to get into sports analytics. It's often best to get a starting point from an expert, but they can't think of anyone in their network with that experience. They log into the app, create an account, and sync it with their LinkedIn network. Once the network is imported, the user searches for "sports analytics professional." After seeing there are several within one connection, they refine their search to "senior basketball analytics professional," seeing a smaller, ranked list that includes a short blurb from each profile. They find someone based in Boston, click to view the full imported profile, and then follow the link to LinkedIn to send a direct connection request with a message.
 
-4. **LinkedIn Import (CSV)**
-   - CSV file upload and parsing
-   - LLM-powered field mapping (Gemini API)
-   - Automatic connection creation
-   - Import job tracking
-   - Automatic network node creation via syncs
+<br>
 
-5. **Semantic Search**
-   - Item indexing with txtai service
-   - Natural language querying
-   - Ranked search results
-   - Connection search integration in PublicProfilePage
+# UI Sketches
+![Network Page UI Sketch](/images/networkPage.png)
+*Figure: Main network visualization and navigation page.*
 
-6. **Graph Visualization (Frontend)**
-   - Interactive network graph using vis-network
-   - Degree-based color coding (Root: red, 1st: yellow, 2nd: green, 3rd: sky blue, 4th: purple, 5+: gray)
-   - Node dragging with viewport constraints
-   - Graph panning and zooming
-   - Center on root node functionality
-   - Node information tooltips (hover/click persistence)
-   - Bidirectional edge rendering
-   - Degree-based node sizing and edge styling
+![Search Results UI Sketch](/images/resultsPage.png)
+*Figure: Search results view after running a query across the imported network.*
 
-7. **Network Search & Filtering (Frontend)**
-   - Basic node search by name
-   - Filtering by platform/source
-   - Filtering by company and location
-   - Profile modal with detailed connection information
-   - Connection editing capabilities
+![Search Interface UI Sketch](/images/searchPage.png)
+*Figure: Semantic search and filter interface for exploring connections.*
 
-## ⚠️ Partially Implemented Features
+<br>
 
-1. **LinkedIn Import**
-   - ✅ CSV import fully working
-   - ❌ JSON import not implemented
-   - ❌ OAuth-based API import not implemented (backend actions exist but frontend flow not integrated)
+# Visual Design Study
 
-2. **Semantic Search**
-   - ✅ Basic querying implemented
-   - ⚠️ Query refinement partially implemented (backend action exists but not fully integrated)
+![Visual Design Study 1](/images/VDS1.png)
+*Figure: Visual Design Study #1*
 
-3. **Graph Visualization**
-   - ✅ Frontend visualization fully functional
-   - ❌ Backend GraphExplorer concept not implemented (no persistent layouts, views, or highlighted paths) and not needed since it can be integrated into Multi-Source Network concept.
+![Visual Design Study 2](/images/VDS2.png)
+*Figure: Visual Design Study #2*
 
-4. **Filtering**
-   - ✅ Basic filtering by source, company, location
-   - ⚠️ Degree filtering UI exists but backend support is limited
-   - ❌ Education and mutual connections filtering not implemented
-
-## ❌ Not Implemented Features
-
-1. **GraphExplorer Backend Concept**
-   - No persistent graph views
-   - No layout persistence
-   - No highlighted paths storage
-   - No backend-managed filters and groupings
-
-2. **Synchronizations**
-   - `createNetworkForNewProfile` - Network not auto-created when profile is created
-   - `addProfileLinksToNetwork` - Profile links not automatically added as network nodes
-   - `reindexProfileForSemanticSearch` - Profile updates don't trigger semantic search reindexing
-   - `searchCreatesGraphView` - Search results don't automatically create graph views
-   - `refinedSearchUpdatesGraphView` - Query refinement doesn't update graph views
-
-3. **LinkedIn Import Extensions**
-   - JSON import format support
-   - OAuth-based API import (frontend integration)
-
-4. **Multi-Platform Import**
-   - Instagram import
-   - Handshake import
-   - Other platform integrations
-
-5. **Privacy & Consent Features**
-   - Notification system for non-users
-   - Visibility system (selective information disclosure)
-   - Opt-out mechanism for indirect stakeholders
-
-6. **Advanced Graph Features**
-   - LLM-based clustering
-   - Path highlighting between nodes
-   - Multiple saved graph views per user
-   - Backend-stored layout persistence
-
-7. **Advanced Filtering**
-   - Education-based filtering
-   - Mutual connections filtering
-   - Full degree-of-separation filtering with backend support
-
----
-
-# Missing Features Summary
-
-## High Priority (Core Functionality Gaps)
-
-1. **GraphExplorer Backend Concept** - The graph visualization exists only in the frontend. To fully realize the design, we need:
-   - Backend storage for graph views, layouts, and highlighted paths
-   - Actions to create, update, and manage graph views
-   - Integration with search results to automatically create graph views
-
-2. **Critical Synchronizations** - Several syncs that connect concepts are missing:
-   - `createNetworkForNewProfile` - Auto-create network when profile is created
-   - `reindexProfileForSemanticSearch` - Keep search index updated when profiles change
-   - `searchCreatesGraphView` - Automatically visualize search results
-   - `refinedSearchUpdatesGraphView` - Update graph when search is refined
-
-3. **LinkedIn JSON Import** - Currently only CSV import is supported
-
-## Medium Priority (Feature Completeness)
-
-4. **OAuth-Based LinkedIn Import** - Backend actions exist but frontend OAuth flow not integrated
-
-5. **Path Highlighting** - Users can't visually see connection paths between nodes
-
-6. **Layout Persistence** - Graph layouts reset on page refresh (no backend storage)
-
-7. **Advanced Filtering** - Education and mutual connections filtering not implemented
-
-## Lower Priority (Nice-to-Have)
-
-8. **Multi-Platform Imports** - Instagram, Handshake, and other platforms
-
-9. **Privacy Features** - Notification system for non-users, visibility controls, opt-out mechanisms
-
-10. **LLM-Based Clustering** - Automatic node grouping based on semantic similarity
-
-11. **Multiple Graph Views** - Save and switch between different graph visualizations
-
----
-
-# UI/UX Polish Status
-
-## ✅ Polished Features
-- Graph visualization with smooth interactions
-- Node tooltips with comprehensive information
-- Responsive design for network management
-- Status banners for user feedback
-- Search autocomplete and filtering UI
-
-## ⚠️ Needs Polish
-- Graph layout could be more stable (physics simulation sometimes causes jitter)
-- Network search page could have better empty states
-- Import page could show better progress indicators
-- Some forms could have better validation feedback
-
-## ❌ Not Yet Polished
-- Overall visual design consistency
-- Mobile responsiveness (partially implemented)
-- Accessibility features (keyboard navigation, screen readers)
-- Loading states and error handling could be more comprehensive
-- Onboarding flow for new users
-
----
+<br>
 
 # Design Summary
 
-The application currently implements **four of the five core concepts** (PublicProfile, UserAuthentication, MultiSourceNetwork, LinkedInImport, and SemanticSearch), with **GraphExplorer existing only as a frontend visualization** rather than a full backend concept. The system successfully enables users to:
+The four core concepts—PublicProfile, MultiSourceNetwork, and SemanticSearch—work together and turns disparate social connections into a unified, queryable, explorable knowledge graph. PublicProfile establishes the user’s identity and structured information. MultiSourceNetwork merges imported connections from multiple platforms into a single source-aware graph, protecting privacy, preserving origin of the imported connections, and enabling flexible updates. It would allow for visualization of search results or the full network, allowing rich exploration, filtering, and understanding of how each connection relates to the user. SemanticSearch indexes profile and network data so that algorithm queries can surface relevant people across all imported platforms.  The provided syncs coordinate these concepts so that profile updates reindex automatically, refinements dynamically update the visualization, and altogether keeps every update made by different users visible another. This ecosystem enables users to discover who in their network is relevant for hiring, learning, or introductions without manually browsing lists or remembering names.
 
-1. ✅ Create accounts and manage public profiles
-2. ✅ Import LinkedIn connections via CSV with LLM-powered field mapping
-3. ✅ Build and manage a unified multi-source network graph
-4. ✅ Perform semantic searches over their network
-5. ✅ Visually explore their network with an interactive graph
-6. ✅ Search and filter connections by various criteria
-
-However, several **synchronizations that connect these concepts** are missing, which means some automatic workflows (like auto-creating networks when profiles are created, or auto-updating search indexes when profiles change) are not yet implemented. Additionally, the **GraphExplorer backend concept** is not implemented, meaning graph views, layouts, and highlighted paths are not persisted or managed by the backend.
-
-The design directly incorporates privacy, consent, visibility control, and data provenance into its conceptual structure. PublicProfile gives users explicit control over what information is displayed publicly, while MultiSourceNetwork only imports public data and keeps track of which platform each piece of information came from. However, the **visibility system and notification system for non-users** mentioned in the ethics assessment are not yet implemented.
+The design directly incorporates privacy, consent, visibility control, and data provenance into its conceptual structure. PublicProfile gives users explicit control over what information is displayed publicly, while MultiSourceNetwork only imports public data and keeps track of which platform each piece of information came from. This ensures users can dispute or restrict how they appear in others’ networks without exposing private data. The semantic search operate exclusively on indexed items that users have chosen to make public or have explicitly imported, reducing coercive pressure to overshare. The visibility system proposed in the ethics assessment fits naturally into the PublicProfile attributes, allowing selective disclosure. Additionally, MultiSourceNetwork supports automatic removal of nodes when their source data disappears, respecting non-users’ desire not to participate. Together, these mechanisms address privacy/consent concerns while still enabling meaningful network discovery.
 
 **Remaining Issues:**
 
-1. The application is handling indirect stakeholders—people who appear in another user's imported network without using the platform. Although we are only sharing their public data which can be accessed by anyone, the indirect stakeholders might find it discomforting. **We are not yet sending notifications to non-users of our platform** which was mentioned in the ethics assessment.
+1. The application is handling indirect stakeholders—people who appear in another user’s imported network without using the platform. Although we are only sharing their public data which can be accessed by anyone, the indirect stakeholders might find it discomforting. We are sending notifications to non-users of our platform which can seems like privacy issues.
 
 2. The system assumes that semantic inference from public profiles is accurate enough for sensitive tasks like hiring, but if the user choose to use LLM for ranking other users or our developed ranking algorithm is biased, it would require mitigation strategies.
+
+<br>
+
+# Development Plan
+
+The development plan is structured to align directly with the milestone phases and team assignment table that follows, ensuring complete correspondence in leads and concept focus. Each phase below matches the roles and technical responsibilities as listed in the summary table.
+
+---
+
+### Alpha 1 (Network): PublicProfile & MultiSourceNetwork
+
+**Backend Lead:** Ivy
+**Frontend Lead:** Jing
+
+**Goals:**
+- Build backend APIs for user account creation, profile management, and network graph storage following `PublicProfile` and `MultiSourceNetwork`.
+- Create a frontend that lets users interact with their accounts and view/edit their imported network.
+
+**Key Features:**
+- CRUD APIs for account data and public profile (headlines, skills, visibility, links).
+- Network storage: Graph structure for user connections across platforms, tracking provenance/source per node and edge.
+- Add/remove connections, accommodate multiple sources, and manage platform-origin tracking.
+
+---
+
+### Alpha 2 (Search): SemanticSearch
+
+**Backend Lead:** Jenna
+**Frontend Lead:** Jing
+
+**Goals:**
+- Implement LLM/vector-powered semantic search over the network and profiles.
+- Allow users to discover relevant connections using natural language queries.
+
+**Key Features:**
+- Indexing APIs that update per profile/network mutation.
+- Endpoint for executing semantic search and returning ranked, filterable results.
+- Frontend displays search interface and search results view, supporting query refinement.
+
+---
+
+### Alpha 3 (Importing): MultiSourceNetwork (import flows)
+
+**Backend Lead:** Cole Ruehle
+**Frontend Lead:** Jing
+
+**Goals:**
+- Integrate importing from third-party platforms (LinkedIn, Instagram, Handshake) using OAuth or public APIs.
+- Merge external data into the core network, preserving platform-of-origin, enforcing privacy/consent.
+
+**Key Features:**
+- Authentication/authorization flows for third-party data.
+- Server-side import logic, profile deduplication, and privacy rule enforcement.
+- UI for connecting platforms and verifying/importing data.
+
+---
+
+### Summary Table of Team Responsibilities
+
+
+| Phase                | Backend Lead    | Frontend Lead | Focused Concept(s)                 
+|----------------------|----------------|---------------|-------------------------------------
+| Alpha 1 (Network)    | Ivy            | Jing          | PublicProfile, MultiSourceNetwork    
+| Alpha 2 (Search)     | Jenna          | Jing          | SemanticSearch                      
+| Alpha 3 (Importing)  | Cole Ruehle    | Jing          | MultiSourceNetwork (import flows)   
+| Beta (Viz/Polish)    | Cole, Ivy, Jenna | Jing          | UI/UX improvements                 
+| Beta (Syncs)         | Cole, Jenna, Ivy | Jing          | Synchronizations                    
+| Beta (Update MultiiSourceNetwork) | Ivy          | Jing          | Public network features      
+| Beta (Bug Fixing)    | Cole, Jenna, Ivy | Jing          | Bug fixes and improvements          
+
+---
+
+### **Key Integration Points with Concepts:**
+- Each API and backend implementation ties directly to the corresponding concept’s actions/state (e.g., profile CRUD reflects `PublicProfile` actions, all network mutations support dynamic sources per `MultiSourceNetwork`).
+- Semantic search and indexing are coupled tightly with network/profile updates: profile changes re-index, importing triggers new indexing, search results automatically link to visualization (as described in syncs).
+
+---
+
+### **Risks/Mitigation:**
+- **Time Management**
+  - **Risk:** Debugging or testing features is very time consuming, and cramming doesn’t deliver workable on time for helpful feedback.
+  - **Mitigation:** Assigning a start date for oneself in our backlog google sheet and sending reminders to each other to start on the code
+  - **Fallback:** Ask help from other members and simplify down the task for the upcoming deadline so something can be delivered and get some partial feedback.
+
+- **Bad UI/UX Design**
+  - **Risk:** Bad UI/UX design for new users since we are the creators and coming in with creator knowledge.
+  - **Mitigation:** Find someone not in our group to test out the frontend to get feedback on how to improve
+  - **Fallback:** If we can’t fix the frontend experience, we would add buttons or text as instructions to guide the user with the cost of looking less minimalistic.
+
+- **Limited Public Data**
+  - **Risk:** Limited amount of public data that is scrapable for us from the platforms, leading to poor ranking/filtering of other user’s abilities and skills
+  - **Mitigation:** Require a set amount of tags about a connection entered manually from the user, so we won’t mis-rank anyone. (if the user inputs false information, that’s up to them)
+  - **Fallback:** Give a warning to the user that the ranking list given from the application might be unfair due to lack of tags (indexItem) from at least one of their connections
+
+- **Privacy Concerns**
+  - **Risk:** Although all information saved to the app is from public sources, some people may still think that it is invasive, especially involving indirect stakeholders who are not users of the platform.
+  - **Mitigation:** Be as transparent as possible, notifying non-users when their public profiles have been added to the app’s database. Ensure users know that the information used is not private. People who are not comfortable with their information on the app will have an option to opt out.
+  - **Fallback:** Only use information that users upload about themselves and not from scraped information from online sources.
+
+- **Onboarding Friction**
+  - **Risk:** Users might find it tedious or time consuming having to provide links to source platforms and manually input information. This may deter people from using the app.
+  - **Mitigation:** When users enter their name, email, or other identifiers during sign up, search the database for any profile (that was uploaded from an existing user’s network) that might match the new user. This would give the new user an option to fill out their profile immediately.
+  - **Fallback:** Provide some sort of “trial mode” that uses sample data and allows users to have a quick demo of what using the app is like. This can convince people who are hesitant to sign up to use the app if they like the trial.
+
+- **Multi-Source Integration Complexity**
+  - **Risk:** The application merges data from multiple platforms each with different structure, reliability, completeness, and consent. Some platforms may not provide the public APIs necessary to support network importing.
+  - **Mitigation:** Follow the conceptual model’s rules strictly for source provenance and deletion. Do early research into which platforms provide a public API or other export tool.
+  - **Fallback:** Start with integrating one initial source only, such as Linked-In which we know has a public API, and add others only after one source works correctly.
+
+- **Semantic Search Accuracy and Bias**
+  - **Risk:** LLMs may misinterpret connections and inaccurately rank people for certain queries, and there may be underlying biases from either the LLM model itself or from our prompt engineering.
+  - **Mitigation:** Do adequate user testing and ask for their feedback. Track LLM prompt versions to review and improve upon.
+  - **Fallback:** Use a basic keyword-based search mode that uses no LLMs if semantic scoring ends up being unreliable or unsafe.
+
+- **Nice Looking Graph Integrations:** Creating an attractive, dynamically calculated graph is challenging, especially with many nodes. Even with modern tools, making the graph both visually appealing and genuinely useful may be difficult.
+  - **Mitigation:** Use existing visualization libraries and follow clear visual design principles for spacing, color, grouping, and interactivity. Test graph usability early with real network data.
+  - **Fallback:** Simplify the graph: reduce visible nodes, use a list-first interface with optional mini-map–style visuals, or provide a static layout instead of a fully dynamic one.
+
+---
