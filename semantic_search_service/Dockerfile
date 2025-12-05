@@ -19,4 +19,4 @@ ENV CONFIG=/app/app.yml \
 
 EXPOSE 8001
 
-CMD ["uvicorn", "txtai.api.application:app", "--host", "0.0.0.0", "--port", "${PORT:-8001}"]
+CMD sh -c 'uvicorn txtai.api.application:app --host 0.0.0.0 --port ${PORT:-8001}'
