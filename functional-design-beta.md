@@ -44,7 +44,7 @@ Social media apps for networking don't help with the problem of finding who I kn
    - ❌ Instagram and Handshake imports not yet implemented.
 
 3. **LLM-Powered Connection Schema** ✅ **IMPLEMENTED**
-   - The system uses an LLM (Gemini API) to automatically interpret imported CSV connections' information.
+   - The system uses an LLM to automatically interpret imported CSV connections' information.
    - Skills, roles, interests, and relevant attributes are inferred from public data.
 
 4. **Network Querying for Relevant Connections** ✅ **IMPLEMENTED**
@@ -306,7 +306,7 @@ Social media apps for networking don't help with the problem of finding who I kn
 * **purpose**: Let a viewer open and adjust an explorable graph view of nodes, including visible nodes, grouping, layout, filters, and optional highlighted paths.
 * **principle**: When a viewer opens a graph view over a set of nodes, they see those nodes laid out, can adjust filters and groupings, and optionally highlight a path.
 
-* **status**: ⚠️ **Graph visualization is implemented in frontend only (MultiSourceNetworkPage.vue using vis-network), but GraphExplorer as a backend concept with persistent state is NOT implemented.**
+* **status**: ⚠️ **Graph visualization is implemented in frontend only (MultiSourceNetworkPage.vue using vis-network), but GraphExplorer as a backend concept with persistent state is NOT implemented and NOT needed.**
 
 * **concept specification**: See [GraphExplorer Concept Design](design/concepts/GraphExplorer/GraphExplorer.md) for detailed implementation status.
 
@@ -500,7 +500,7 @@ Social media apps for networking don't help with the problem of finding who I kn
 
 3. **Graph Visualization**
    - ✅ Frontend visualization fully functional
-   - ❌ Backend GraphExplorer concept not implemented (no persistent layouts, views, or highlighted paths)
+   - ❌ Backend GraphExplorer concept not implemented (no persistent layouts, views, or highlighted paths) and not needed since it can be integrated into Multi-Source Network concept.
 
 4. **Filtering**
    - ✅ Basic filtering by source, company, location

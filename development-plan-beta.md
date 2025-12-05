@@ -2,11 +2,11 @@
 
 ## Progress Summary
 
-We have successfully implemented the core backend concepts (UserAuthentication, PublicProfile, MultiSourceNetwork, LinkedInImport, and SemanticSearch) and built a functional frontend that supports most of these features. The graph visualization is working, CSV import with LLM-powered field mapping is functional, and semantic search is integrated. 
+We have successfully implemented the core backend concepts (UserAuthentication, PublicProfile, MultiSourceNetwork, LinkedInImport, and SemanticSearch) and built a functional frontend that supports most of these features. The graph visualization is working, CSV import with LLM-powered field mapping is functional, and semantic search is integrated.
 
 ## Design Changes
 
-We decided that one of our concepts, GraphExplorer, was no longer needed. This is because it was extremely similar to our MultiSourceNetwork concept, where both of them provide ways to view a graph/network. 
+We decided that one of our concepts, GraphExplorer, was no longer needed. This is because it was extremely similar to our MultiSourceNetwork concept, where both of them provide ways to view a graph/network.
 
 ---
 
@@ -225,7 +225,7 @@ We decided that one of our concepts, GraphExplorer, was no longer needed. This i
 
 ---
 
-## Next Steps (Recommended Priority Order)
+## Next Steps (Priority Order)
 
 1. **Implement Missing Synchronizations** (High Priority)
    - `createNetworkForNewProfile` - Auto-create network when profile is created

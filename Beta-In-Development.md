@@ -1,4 +1,4 @@
-# Things In Development (Beta)
+# Features In Development (Beta Checkpoint)
 
 ## Active Development Areas
 
@@ -22,3 +22,6 @@ Switching between user accounts in the same browser tab does not automatically c
 
 ### LinkedIn Export Limitations
 The application is subject to limitations based on the data available from LinkedIn's export feature. Not all profile information may be available depending on what LinkedIn includes in their export files.
+
+### Graph Visualization Missing Position Field
+CSV files have "position" fields for every connection, but that is currently not populating correctly in the graph visualization. 
