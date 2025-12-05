@@ -223,7 +223,7 @@ Social media apps for networking don’t help with the problem of finding who I 
         * **effects**:
             * Upserts a `Memberships` entry for `(owner, node)`; adds the `source` to the membership's `sources` map. Ensures canonical `Node` exists (create or reuse via `sourceIds`).
             * Supports creating a canonical node by passing `nodeMeta` instead of `node`. When `nodeMeta` is supplied, a canonical node is created (via `createNodeForUser`) and the returned node id is added to membership.
-        
+
     * `updateNode (updater: Owner, node: Node, meta: Node): Empty`
         * **requires**: `node` to exist, `updater` to be the owner of the node
         * **effects**:
@@ -235,7 +235,7 @@ Social media apps for networking don’t help with the problem of finding who I 
         * **effects**:
             * If `source` provided: remove `source` from membership `sources`. If `sources` becomes empty: delete the `Memberships` entry and delete all `Edges` for the owner where `from==node OR to==node`.
             * If `source` omitted: delete the `Memberships` entry and delete all owner `Edges` touching the node.
-    
+
     * `updateNode (owner: Owner, query?: String, limit?: Number, offset?: Number): Empty`
         * **requires**: `owner` to exist
         * **effects**:
@@ -743,7 +743,7 @@ The development plan is structured to align directly with the milestone phases a
 **Frontend Lead:** TBD
 
 **Goals:**
-- Polish UI/UX, finalize visual clustering and filtering.
+- Polish graph UI/UX, finalize visual clustering and filtering.
 - Refine all syncs: ensure backend/frontend consistency, optimize performance.
 - Incorporate user feedback and ready the product for broader testing.
 
@@ -762,7 +762,7 @@ The development plan is structured to align directly with the milestone phases a
 | Alpha 2 (Search)     | Jenna          | Jing          | SemanticSearch                      |
 | Alpha 3 (Importing)  | Cole Ruehle    | Jing          | MultiSourceNetwork (import flows)   |
 | Beta (Graph display)    | Cole Ruehle          | Jing          | GraphExplorer, Final Integration    |
-| Beta (Viz/Polish)    | TBD          | TBD          | GraphExplorer, Final Integration    |
+| Beta (Viz/Polish)    | Everybody          | Jing         | GraphExplorer, Final Integration    |
 
 ---
 

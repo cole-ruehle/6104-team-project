@@ -48,8 +48,8 @@ export interface AdjacencyMap {
 }
 
 export interface AdjacencyResponse {
-  adjacency: AdjacencyMap;
-  nodeLabels: Record<string, string | undefined>;
+  adjacency?: AdjacencyMap;
+  nodeLabels?: Record<string, string | undefined>;
 }
 
 export const MultiSourceNetworkAPI = {
@@ -107,7 +107,7 @@ export const MultiSourceNetworkAPI = {
     source: string;
   }) => postConcept("MultiSourceNetwork", "removeEdge", payload),
   getAdjacencyArray: (payload: { owner: string }) =>
-    postConcept<AdjacencyResponse>(
+    postConcept<AdjacencyResponse | AdjacencyMap>(
       "MultiSourceNetwork",
       "_getAdjacencyArray",
       payload,
@@ -252,6 +252,28 @@ export const LinkedInImportAPI = {
     postConcept<LinkedInConnection[]>(
       "LinkedInImport",
       "_getConnections",
+      payload,
+    ),
+  addConnection: (payload: {
+    account: string;
+    linkedInConnectionId: string;
+    firstName?: string;
+    lastName?: string;
+    headline?: string;
+    location?: string;
+    industry?: string;
+    currentPosition?: string;
+    currentCompany?: string;
+    profileUrl?: string;
+    profilePictureUrl?: string;
+    summary?: string;
+    skills?: string[];
+    education?: Array<Record<string, unknown>>;
+    experience?: Array<Record<string, unknown>>;
+  }) =>
+    postConcept<{ connection: string }>(
+      "LinkedInImport",
+      "addConnection",
       payload,
     ),
   importConnectionsFromCSV: (

@@ -3,20 +3,16 @@
         <div class="card" style="grid-column: 1 / -1; margin-bottom: 1rem">
             <p class="muted" style="margin: 0">
                 <strong>⚠️ Warning:</strong> Assuming all usernames are unique
-                for now. You can add nodes and edges using usernames instead of
-                user IDs.
+                for now. You can add nodes and edges using names, when typing in
+                names of people in create edge form, there should be popups.
             </p>
             <p class="muted" style="margin: 0.5rem 0 0 0">
-                <strong>Note:</strong> Nodes and edges can be added using
-                usernames. The system will automatically resolve usernames to
-                user IDs.
+                <strong>Note:</strong> UI/UX is still in progress of polishing.
             </p>
         </div>
         <section class="card">
             <h2>Bootstrap a Network</h2>
-            <p class="muted">
-                Create a network shell for your account.
-            </p>
+            <p class="muted">Create a network shell for your account.</p>
             <StatusBanner
                 v-if="banner && banner.section === 'create'"
                 :type="banner.type"
@@ -361,16 +357,27 @@
                 connections.
             </p>
             <div class="banner info" style="margin-bottom: 1rem">
-                ⚠️ Network visualization is still under implementation. The
-                "Refresh View" button will show debug information.
+                ⚠️ If the graph is not displaying, click "Create Network" to
+                refresh the visualization. Refresh View is a little bit buggy.
             </div>
             <StatusBanner
                 v-if="banner && banner.section === 'explorer'"
                 :type="banner.type"
                 :message="banner.message"
             />
-            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                <form class="form-grid" @submit.prevent="fetchAdjacency" style="margin: 0; flex: 1;">
+            <div
+                style="
+                    display: flex;
+                    gap: 0.5rem;
+                    align-items: center;
+                    flex-wrap: wrap;
+                "
+            >
+                <form
+                    class="form-grid"
+                    @submit.prevent="fetchAdjacency"
+                    style="margin: 0; flex: 1"
+                >
                     <button
                         type="submit"
                         :disabled="adjacencyLoading || !auth.userId"
@@ -379,11 +386,15 @@
                     </button>
                 </form>
                 <button
-                    v-if="adjacency && Object.keys(adjacency).length > 0 && networkInstance"
+                    v-if="
+                        adjacency &&
+                        Object.keys(adjacency).length > 0 &&
+                        networkInstance
+                    "
                     @click="centerOnRootNode"
                     type="button"
                     :disabled="!auth.userId"
-                    style="padding: 0.5rem 1rem;"
+                    style="padding: 0.5rem 1rem"
                 >
                     Center on Root
                 </button>
@@ -394,31 +405,108 @@
             </div>
 
             <!-- Degree Legend -->
-            <div v-if="adjacency && Object.keys(adjacency).length > 0" class="degree-legend" style="margin: 1rem 0; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
-                <div style="font-weight: 600; color: #475569; font-size: 0.9rem;">Connection Levels (by shortest path):</div>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #dc2626;"></div>
-                    <span style="font-size: 0.85rem; color: #64748b;">Root (Self)</span>
+            <div
+                v-if="adjacency && Object.keys(adjacency).length > 0"
+                class="degree-legend"
+                style="
+                    margin: 1rem 0;
+                    padding: 0.75rem;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    display: flex;
+                    gap: 1.5rem;
+                    flex-wrap: wrap;
+                    align-items: center;
+                "
+            >
+                <div
+                    style="font-weight: 600; color: #475569; font-size: 0.9rem"
+                >
+                    Connection Levels (by shortest path):
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #facc15;"></div>
-                    <span style="font-size: 0.85rem; color: #64748b;">1st Degree</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                    <div
+                        style="
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background: #fff;
+                            border: 4px solid #dc2626;
+                        "
+                    ></div>
+                    <span style="font-size: 0.85rem; color: #64748b"
+                        >Root (Self)</span
+                    >
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #22c55e;"></div>
-                    <span style="font-size: 0.85rem; color: #64748b;">2nd Degree</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                    <div
+                        style="
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background: #fff;
+                            border: 4px solid #facc15;
+                        "
+                    ></div>
+                    <span style="font-size: 0.85rem; color: #64748b"
+                        >1st Degree</span
+                    >
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #38bdf8;"></div>
-                    <span style="font-size: 0.85rem; color: #64748b;">3rd Degree</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                    <div
+                        style="
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background: #fff;
+                            border: 4px solid #22c55e;
+                        "
+                    ></div>
+                    <span style="font-size: 0.85rem; color: #64748b"
+                        >2nd Degree</span
+                    >
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #a855f7;"></div>
-                    <span style="font-size: 0.85rem; color: #64748b;">4th Degree</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                    <div
+                        style="
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background: #fff;
+                            border: 4px solid #38bdf8;
+                        "
+                    ></div>
+                    <span style="font-size: 0.85rem; color: #64748b"
+                        >3rd Degree</span
+                    >
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #6b7280;"></div>
-                    <span style="font-size: 0.85rem; color: #64748b;">5th+ Degree</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                    <div
+                        style="
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background: #fff;
+                            border: 4px solid #a855f7;
+                        "
+                    ></div>
+                    <span style="font-size: 0.85rem; color: #64748b"
+                        >4th Degree</span
+                    >
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                    <div
+                        style="
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background: #fff;
+                            border: 4px solid #6b7280;
+                        "
+                    ></div>
+                    <span style="font-size: 0.85rem; color: #64748b"
+                        >5th+ Degree</span
+                    >
                 </div>
             </div>
 
@@ -434,34 +522,71 @@
                 >
                     <div class="tooltip-header">
                         <strong>{{ hoveredNodeInfo.name }}</strong>
-                        <span v-if="hoveredNodeInfo.degree !== undefined" class="degree-badge" :style="{ backgroundColor: getDegreeColorForTooltip(hoveredNodeInfo.degree) }">
-                            {{ hoveredNodeInfo.degree === 0 ? 'Root' : `${hoveredNodeInfo.degree}${getOrdinalSuffix(hoveredNodeInfo.degree)} Degree` }}
+                        <span
+                            v-if="hoveredNodeInfo.degree !== undefined"
+                            class="degree-badge"
+                            :style="{
+                                backgroundColor: getDegreeColorForTooltip(
+                                    hoveredNodeInfo.degree
+                                ),
+                            }"
+                        >
+                            {{
+                                hoveredNodeInfo.degree === 0
+                                    ? "Root"
+                                    : `${
+                                          hoveredNodeInfo.degree
+                                      }${getOrdinalSuffix(
+                                          hoveredNodeInfo.degree
+                                      )} Degree`
+                            }}
                         </span>
                     </div>
                     <div v-if="hoveredNodeInfo.label" class="tooltip-field">
                         <strong>Label:</strong> {{ hoveredNodeInfo.label }}
                     </div>
                     <div class="tooltip-field">
-                        <strong>Headline:</strong> {{ hoveredNodeInfo.headline || 'Not available' }}
+                        <strong>Headline:</strong>
+                        {{ hoveredNodeInfo.headline || "Not available" }}
                     </div>
                     <div class="tooltip-field">
                         <strong>Position:</strong>
-                        <span v-if="hoveredNodeInfo.currentPosition">{{ hoveredNodeInfo.currentPosition }}</span>
+                        <span v-if="hoveredNodeInfo.currentPosition">{{
+                            hoveredNodeInfo.currentPosition
+                        }}</span>
                         <span v-if="hoveredNodeInfo.currentCompany">
-                            <span v-if="hoveredNodeInfo.currentPosition"> at </span>{{ hoveredNodeInfo.currentCompany }}
+                            <span v-if="hoveredNodeInfo.currentPosition">
+                                at </span
+                            >{{ hoveredNodeInfo.currentCompany }}
                         </span>
-                        <span v-if="!hoveredNodeInfo.currentPosition && !hoveredNodeInfo.currentCompany">Not available</span>
+                        <span
+                            v-if="
+                                !hoveredNodeInfo.currentPosition &&
+                                !hoveredNodeInfo.currentCompany
+                            "
+                            >Not available</span
+                        >
                     </div>
                     <div class="tooltip-field">
-                        <strong>Location:</strong> {{ hoveredNodeInfo.location || 'Not available' }}
+                        <strong>Location:</strong>
+                        {{ hoveredNodeInfo.location || "Not available" }}
                     </div>
                     <div class="tooltip-field">
-                        <strong>Industry:</strong> {{ hoveredNodeInfo.industry || 'Not available' }}
+                        <strong>Industry:</strong>
+                        {{ hoveredNodeInfo.industry || "Not available" }}
                     </div>
                     <div class="tooltip-field">
                         <strong>Profile URL:</strong>
                         <span v-if="hoveredNodeInfo.profileUrl">
-                            <a :href="hoveredNodeInfo.profileUrl" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
+                            <a
+                                :href="hoveredNodeInfo.profileUrl"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="
+                                    color: #2563eb;
+                                    text-decoration: underline;
+                                "
+                            >
                                 {{ hoveredNodeInfo.profileUrl }}
                             </a>
                         </span>
@@ -469,29 +594,67 @@
                     </div>
                     <div class="tooltip-field">
                         <strong>Avatar URL:</strong>
-                        <span v-if="hoveredNodeInfo.avatarUrl || hoveredNodeInfo.profilePictureUrl">
-                            <a :href="(hoveredNodeInfo.avatarUrl || hoveredNodeInfo.profilePictureUrl) || '#'" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
-                                {{ hoveredNodeInfo.avatarUrl || hoveredNodeInfo.profilePictureUrl }}
+                        <span
+                            v-if="
+                                hoveredNodeInfo.avatarUrl ||
+                                hoveredNodeInfo.profilePictureUrl
+                            "
+                        >
+                            <a
+                                :href="
+                                    hoveredNodeInfo.avatarUrl ||
+                                    hoveredNodeInfo.profilePictureUrl ||
+                                    '#'
+                                "
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="
+                                    color: #2563eb;
+                                    text-decoration: underline;
+                                "
+                            >
+                                {{
+                                    hoveredNodeInfo.avatarUrl ||
+                                    hoveredNodeInfo.profilePictureUrl
+                                }}
                             </a>
                         </span>
                         <span v-else>Not available</span>
                     </div>
                     <div class="tooltip-field">
-                        <strong>Summary:</strong> {{ hoveredNodeInfo.summary || 'Not available' }}
+                        <strong>Summary:</strong>
+                        {{ hoveredNodeInfo.summary || "Not available" }}
                     </div>
                     <div class="tooltip-field">
                         <strong>Skills:</strong>
-                        <span v-if="hoveredNodeInfo.skills && hoveredNodeInfo.skills.length > 0">
-                            {{ hoveredNodeInfo.skills.join(', ') }}
+                        <span
+                            v-if="
+                                hoveredNodeInfo.skills &&
+                                hoveredNodeInfo.skills.length > 0
+                            "
+                        >
+                            {{ hoveredNodeInfo.skills.join(", ") }}
                         </span>
                         <span v-else>Not available</span>
                     </div>
                     <div class="tooltip-field">
                         <strong>Education:</strong>
-                        <span v-if="hoveredNodeInfo.education && hoveredNodeInfo.education.length > 0">
-                            <ul style="margin: 0.25rem 0 0 1.25rem; padding: 0;">
-                                <li v-for="(edu, idx) in hoveredNodeInfo.education" :key="idx" style="margin: 0.25rem 0;">
-                                    {{ edu.school || 'Unknown' }}{{ edu.degree ? ` - ${edu.degree}` : '' }}
+                        <span
+                            v-if="
+                                hoveredNodeInfo.education &&
+                                hoveredNodeInfo.education.length > 0
+                            "
+                        >
+                            <ul style="margin: 0.25rem 0 0 1.25rem; padding: 0">
+                                <li
+                                    v-for="(
+                                        edu, idx
+                                    ) in hoveredNodeInfo.education"
+                                    :key="idx"
+                                    style="margin: 0.25rem 0"
+                                >
+                                    {{ edu.school || "Unknown"
+                                    }}{{ edu.degree ? ` - ${edu.degree}` : "" }}
                                 </li>
                             </ul>
                         </span>
@@ -499,10 +662,30 @@
                     </div>
                     <div class="tooltip-field">
                         <strong>Experience:</strong>
-                        <span v-if="hoveredNodeInfo.experience && hoveredNodeInfo.experience.length > 0">
-                            <ul style="margin: 0.25rem 0 0 1.25rem; padding: 0;">
-                                <li v-for="(exp, idx) in hoveredNodeInfo.experience" :key="idx" style="margin: 0.25rem 0;">
-                                    {{ exp.title || 'Unknown' }}{{ exp.company ? ` at ${exp.company}` : '' }}{{ exp.startDate || exp.endDate ? ` (${exp.startDate || '?'} - ${exp.endDate || 'Present'})` : '' }}
+                        <span
+                            v-if="
+                                hoveredNodeInfo.experience &&
+                                hoveredNodeInfo.experience.length > 0
+                            "
+                        >
+                            <ul style="margin: 0.25rem 0 0 1.25rem; padding: 0">
+                                <li
+                                    v-for="(
+                                        exp, idx
+                                    ) in hoveredNodeInfo.experience"
+                                    :key="idx"
+                                    style="margin: 0.25rem 0"
+                                >
+                                    {{ exp.title || "Unknown"
+                                    }}{{
+                                        exp.company ? ` at ${exp.company}` : ""
+                                    }}{{
+                                        exp.startDate || exp.endDate
+                                            ? ` (${exp.startDate || "?"} - ${
+                                                  exp.endDate || "Present"
+                                              })`
+                                            : ""
+                                    }}
                                 </li>
                             </ul>
                         </span>
@@ -510,43 +693,95 @@
                     </div>
                     <div class="tooltip-field">
                         <strong>Tags:</strong>
-                        <span v-if="hoveredNodeInfo.tags && hoveredNodeInfo.tags.length > 0">
-                            {{ hoveredNodeInfo.tags.join(', ') }}
+                        <span
+                            v-if="
+                                hoveredNodeInfo.tags &&
+                                hoveredNodeInfo.tags.length > 0
+                            "
+                        >
+                            {{ hoveredNodeInfo.tags.join(", ") }}
                         </span>
                         <span v-else>Not available</span>
                     </div>
-                    <div v-if="hoveredNodeInfo.sourceIds && Object.keys(hoveredNodeInfo.sourceIds).length > 0" class="tooltip-field">
+                    <div
+                        v-if="
+                            hoveredNodeInfo.sourceIds &&
+                            Object.keys(hoveredNodeInfo.sourceIds).length > 0
+                        "
+                        class="tooltip-field"
+                    >
                         <strong>Source IDs:</strong>
-                        <ul style="margin: 0.25rem 0 0 1.25rem; padding: 0;">
-                            <li v-for="(sourceId, source) in hoveredNodeInfo.sourceIds" :key="source" style="margin: 0.25rem 0;">
+                        <ul style="margin: 0.25rem 0 0 1.25rem; padding: 0">
+                            <li
+                                v-for="(
+                                    sourceId, source
+                                ) in hoveredNodeInfo.sourceIds"
+                                :key="source"
+                                style="margin: 0.25rem 0"
+                            >
                                 <strong>{{ source }}:</strong> {{ sourceId }}
                             </li>
                         </ul>
                     </div>
-                    <div v-if="hoveredNodeInfo.createdAt || hoveredNodeInfo.updatedAt" class="tooltip-field" style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; border-top: 1px solid rgba(0, 0, 0, 0.1); padding-top: 0.5rem;">
+                    <div
+                        v-if="
+                            hoveredNodeInfo.createdAt ||
+                            hoveredNodeInfo.updatedAt
+                        "
+                        class="tooltip-field"
+                        style="
+                            font-size: 0.75rem;
+                            color: #64748b;
+                            margin-top: 0.5rem;
+                            border-top: 1px solid rgba(0, 0, 0, 0.1);
+                            padding-top: 0.5rem;
+                        "
+                    >
                         <div v-if="hoveredNodeInfo.createdAt">
-                            <strong>Created:</strong> {{ new Date(hoveredNodeInfo.createdAt).toLocaleString() }}
+                            <strong>Created:</strong>
+                            {{
+                                new Date(
+                                    hoveredNodeInfo.createdAt
+                                ).toLocaleString()
+                            }}
                         </div>
                         <div v-if="hoveredNodeInfo.updatedAt">
-                            <strong>Updated:</strong> {{ new Date(hoveredNodeInfo.updatedAt).toLocaleString() }}
+                            <strong>Updated:</strong>
+                            {{
+                                new Date(
+                                    hoveredNodeInfo.updatedAt
+                                ).toLocaleString()
+                            }}
                         </div>
                     </div>
                 </div>
                 <div
-                    v-if="!networkInstance && adjacency && Object.keys(adjacency).length > 0"
+                    v-if="
+                        !networkInstance &&
+                        adjacency &&
+                        Object.keys(adjacency).length > 0
+                    "
                     class="muted"
                     style="padding: 1rem; text-align: center"
                 >
                     Loading visualization...
                 </div>
                 <div
-                    v-if="adjacency && Object.keys(adjacency).length > 0 && networkInstance"
+                    v-if="
+                        adjacency &&
+                        Object.keys(adjacency).length > 0 &&
+                        networkInstance
+                    "
                     class="zoom-indicator"
                 >
                     {{ Math.round(currentZoom * 100) }}%
                 </div>
             </div>
-            <p v-if="!adjacency || Object.keys(adjacency).length === 0" class="muted" style="margin-top: 1rem">
+            <p
+                v-if="!adjacency || Object.keys(adjacency).length === 0"
+                class="muted"
+                style="margin-top: 1rem"
+            >
                 No network data found for this owner yet. Create a network and
                 add nodes to see the visualization.
             </p>
@@ -641,7 +876,6 @@ const createNodeForm = reactive({
     educationInput: "",
     experienceInput: "",
 });
-const nodeForm = reactive({ node: "", source: "" });
 const removeNodeForm = reactive({ nodeId: "", nodeDisplay: "", source: "" });
 const removeNodeSearchQuery = ref("");
 const removeNodeSearchResults = ref<Array<Record<string, any>>>([]);
@@ -653,9 +887,7 @@ const edgeForm = reactive({
     source: "",
     weight: undefined as number | undefined,
 });
-const fromSearchQuery = ref("");
 const fromSearchResults = ref<Array<Record<string, any>>>([]);
-const toSearchQuery = ref("");
 const toSearchResults = ref<Array<Record<string, any>>>([]);
 // Separate search result lists for the remove-edge form so the add/remove inputs don't share UI state
 const fromSearchResultsRemove = ref<Array<Record<string, any>>>([]);
@@ -689,27 +921,30 @@ const nodeProfiles = ref<
     >
 >({});
 const nodeMetaMap = ref<
-    Record<string, {
-        firstName?: string;
-        lastName?: string;
-        label?: string;
-        headline?: string | null;
-        profileUrl?: string | null;
-        avatarUrl?: string | null;
-        location?: string | null;
-        industry?: string | null;
-        currentPosition?: string | null;
-        currentCompany?: string | null;
-        profilePictureUrl?: string | null;
-        summary?: string | null;
-        skills?: string[];
-        education?: any[];
-        experience?: any[];
-        tags?: string[] | null;
-        sourceIds?: Record<string, string>;
-        createdAt?: string;
-        updatedAt?: string;
-    }>
+    Record<
+        string,
+        {
+            firstName?: string;
+            lastName?: string;
+            label?: string;
+            headline?: string | null;
+            profileUrl?: string | null;
+            avatarUrl?: string | null;
+            location?: string | null;
+            industry?: string | null;
+            currentPosition?: string | null;
+            currentCompany?: string | null;
+            profilePictureUrl?: string | null;
+            summary?: string | null;
+            skills?: string[];
+            education?: any[];
+            experience?: any[];
+            tags?: string[] | null;
+            sourceIds?: Record<string, string>;
+            createdAt?: string;
+            updatedAt?: string;
+        }
+    >
 >({});
 // Zoom display
 const currentZoom = ref<number>(1.0);
@@ -736,7 +971,10 @@ const hoveredNodeInfo = ref<{
     updatedAt?: string;
     degree?: number;
 } | null>(null);
-const tooltipStyle = ref<{ left: string; top: string }>({ left: '0px', top: '0px' });
+const tooltipStyle = ref<{ left: string; top: string }>({
+    left: "0px",
+    top: "0px",
+});
 const clickedNodeId = ref<string | null>(null);
 const tooltipPosition = ref<{ x: number; y: number } | null>(null);
 
@@ -824,7 +1062,6 @@ async function handleCreateNetwork() {
         );
     }
 }
-
 
 async function handleAddNode() {
     if (!auth.userId) return;
@@ -1220,7 +1457,11 @@ async function handleAddEdge() {
             ? await resolveToUserId(edgeForm.toDisplay)
             : undefined);
     if (!resolvedFrom || !resolvedTo) {
-        showBanner("edges", "error", "Both 'from' and 'to' nodes are required.");
+        showBanner(
+            "edges",
+            "error",
+            "Both 'from' and 'to' nodes are required."
+        );
         return;
     }
     const payload = {
@@ -1260,7 +1501,11 @@ async function handleRemoveEdge() {
             ? await resolveToUserId(removeEdgeForm.toDisplay)
             : undefined);
     if (!resolvedFrom || !resolvedTo) {
-        showBanner("edges", "error", "Both 'from' and 'to' nodes are required.");
+        showBanner(
+            "edges",
+            "error",
+            "Both 'from' and 'to' nodes are required."
+        );
         return;
     }
     const payload = {
@@ -1300,44 +1545,67 @@ async function fetchAdjacency() {
             owner: auth.userId,
         });
 
-    // Handle both old format (just adjacency) and new format ({ adjacency, nodeLabels })
-    // IMPORTANT: Always create a new object reference to ensure Vue reactivity detects the change
-    if (!data) {
-      console.error("getAdjacencyArray returned null or undefined");
-      adjacency.value = null;
-      nodeLabels.value = {};
-    } else if (data && typeof data === 'object' && 'adjacency' in data) {
-      // New format: { adjacency, nodeLabels }
-      // Create new object references to ensure Vue reactivity
-      adjacency.value = { ...(data.adjacency || {}) };
-      nodeLabels.value = { ...(data.nodeLabels || {}) };
-      console.log("Loaded adjacency data (new format):", Object.keys(adjacency.value).length, "nodes");
-    } else {
-      // Fallback for old format (just adjacency object)
-      // Create new object reference to ensure Vue reactivity
-      adjacency.value = { ...(data as AdjacencyMap) };
-      nodeLabels.value = {};
-      console.log("Loaded adjacency data (old format):", Object.keys(adjacency.value).length, "nodes");
-    }
+        // Handle both old format (just adjacency) and new format ({ adjacency, nodeLabels })
+        // IMPORTANT: Always create a new object reference to ensure Vue reactivity detects the change
+        if (!data) {
+            console.error("getAdjacencyArray returned null or undefined");
+            adjacency.value = null;
+            nodeLabels.value = {};
+        } else if (data && typeof data === "object") {
+            // Handle either new format: { adjacency, nodeLabels } or the old adjacency map directly.
+            const rawAdj: any = (data as any).adjacency ?? (data as any);
+            const rawLabels: any = (data as any).nodeLabels ?? {};
 
-    // Check if root node is set (it might be the owner or we need to track it)
-    // For now, we'll use the first node or owner as root if not explicitly set
-    if (!rootNodeId.value && adjacency.value && Object.keys(adjacency.value).length > 0) {
-      rootNodeId.value = auth.userId;
-    }
+            // Ensure we don't accidentally copy array-like values (which would create numeric keys and a length property)
+            if (
+                rawAdj &&
+                typeof rawAdj === "object" &&
+                !Array.isArray(rawAdj)
+            ) {
+                adjacency.value = { ...rawAdj } as AdjacencyMap;
+            } else {
+                adjacency.value = {};
+            }
 
-    // Collect all node IDs (sources and targets)
-    if (!adjacency.value) {
-      console.error("Adjacency data is null after processing");
-      return;
-    }
-    const allNodeIds = new Set<string>(Object.keys(adjacency.value));
-    for (const nodeId of Object.keys(adjacency.value)) {
-      const edges = adjacency.value[nodeId] || [];
-      for (const edge of edges) {
-        allNodeIds.add(edge.to);
-      }
-    }
+            if (
+                rawLabels &&
+                typeof rawLabels === "object" &&
+                !Array.isArray(rawLabels)
+            ) {
+                nodeLabels.value = { ...rawLabels };
+            } else {
+                nodeLabels.value = {};
+            }
+
+            console.log(
+                "Loaded adjacency data:",
+                Object.keys(adjacency.value ?? {}).length,
+                "nodes"
+            );
+        }
+
+        // Check if root node is set (it might be the owner or we need to track it)
+        // For now, we'll use the first node or owner as root if not explicitly set
+        if (
+            !rootNodeId.value &&
+            adjacency.value &&
+            Object.keys(adjacency.value).length > 0
+        ) {
+            rootNodeId.value = auth.userId;
+        }
+
+        // Collect all node IDs (sources and targets)
+        if (!adjacency.value) {
+            console.error("Adjacency data is null after processing");
+            return;
+        }
+        const allNodeIds = new Set<string>(Object.keys(adjacency.value));
+        for (const nodeId of Object.keys(adjacency.value)) {
+            const edges = adjacency.value[nodeId] || [];
+            for (const edge of edges) {
+                allNodeIds.add(edge.to);
+            }
+        }
 
         // Fetch profile data for all nodes
         await fetchNodeProfiles(Array.from(allNodeIds));
@@ -1390,54 +1658,48 @@ async function fetchAdjacency() {
             "Adjacency data refreshed."
         );
 
-    // Render network after data is loaded
-    // Use a small delay to ensure DOM is ready and reactivity has processed
-    await nextTick();
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    try {
-      await renderNetwork();
-    } catch (renderError) {
-      console.error("Error rendering network:", renderError);
-      console.error("Render error details:", renderError instanceof Error ? renderError.stack : String(renderError));
+        // Render network after data is loaded
+        // Use a small delay to ensure DOM is ready and reactivity has processed
+        await nextTick();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        try {
+            await renderNetwork();
+        } catch (renderError) {
+            console.error("Error rendering network:", renderError);
+            console.error(
+                "Render error details:",
+                renderError instanceof Error
+                    ? renderError.stack
+                    : String(renderError)
+            );
+        }
+    } catch (error) {
+        const errorMsg = formatError(error);
+        console.error("Error fetching adjacency:", error);
+        console.error(
+            "Error details:",
+            error instanceof Error ? error.stack : String(error)
+        );
+        console.error(
+            "Error type:",
+            error instanceof Error ? error.constructor.name : typeof error
+        );
+        if (error && typeof error === "object" && "message" in error) {
+            console.error("Error message:", (error as any).message);
+        }
+        logActivity(
+            "explorer",
+            "_getAdjacencyArray",
+            { owner: auth.userId },
+            "error",
+            errorMsg
+        );
+        // Reset adjacency on error to prevent stale data
+        adjacency.value = null;
+        nodeLabels.value = {};
+    } finally {
+        adjacencyLoading.value = false;
     }
-
-  } catch (error) {
-    const errorMsg = formatError(error);
-    console.error("Error fetching adjacency:", error);
-    console.error("Error details:", error instanceof Error ? error.stack : String(error));
-    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
-    if (error && typeof error === 'object' && 'message' in error) {
-      console.error("Error message:", (error as any).message);
-    }
-    logActivity(
-      "explorer",
-      "_getAdjacencyArray",
-      { owner: auth.userId },
-      "error",
-      errorMsg,
-    );
-    // Reset adjacency on error to prevent stale data
-    adjacency.value = null;
-    nodeLabels.value = {};
-  } finally {
-    adjacencyLoading.value = false;
-  }
-}
-
-// Generate a bright random color for node borders
-function generateBrightColor(seed: string): string {
-    // Use seed to generate consistent colors for the same node
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-        hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    // Generate bright colors (high saturation and brightness)
-    const hue = Math.abs(hash) % 360;
-    const saturation = 70 + (Math.abs(hash) % 30); // 70-100%
-    const lightness = 50 + (Math.abs(hash) % 20); // 50-70%
-
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
 // Fetch profile data for nodes
@@ -1514,13 +1776,13 @@ async function renderNetwork() {
         return;
     }
 
-  const nodeCount = Object.keys(adjacency.value).length;
-  if (nodeCount === 0) {
-    console.log("No nodes in adjacency data");
-    return;
-  }
+    const nodeCount = Object.keys(adjacency.value).length;
+    if (nodeCount === 0) {
+        console.log("No nodes in adjacency data");
+        return;
+    }
 
-  console.log("Node labels available:", nodeLabels.value);
+    console.log("Node labels available:", nodeLabels.value);
 
     console.log(`Rendering network with ${nodeCount} node(s)`);
 
@@ -1582,7 +1844,9 @@ async function renderNetwork() {
 
     if (rootId && (nodeIds.includes(rootId) || bidirectionalAdj[rootId])) {
         // BFS to calculate shortest distances from root (treating edges as bidirectional)
-        const queue: Array<{ id: string; degree: number }> = [{ id: rootId, degree: 0 }];
+        const queue: Array<{ id: string; degree: number }> = [
+            { id: rootId, degree: 0 },
+        ];
         nodeDegrees.set(rootId, 0);
         const visited = new Set<string>([rootId]);
 
@@ -1722,7 +1986,10 @@ async function renderNetwork() {
 
         for (const edge of nodeEdges) {
             // Create a canonical edge ID (smaller ID first to avoid duplicates)
-            const edgeId = nodeId < edge.to ? `${nodeId}-${edge.to}` : `${edge.to}-${nodeId}`;
+            const edgeId =
+                nodeId < edge.to
+                    ? `${nodeId}-${edge.to}`
+                    : `${edge.to}-${nodeId}`;
 
             if (addedEdges.has(edgeId)) {
                 continue; // Skip if we've already added this edge
@@ -1735,38 +2002,52 @@ async function renderNetwork() {
 
             // Make edges match node colors with distinct rainbow colors
             let edgeOpacity = 1.0;
-            let edgeWidth = edge.weight ? Math.max(1, Math.min(5, edge.weight)) : 2;
+            let edgeWidth = edge.weight
+                ? Math.max(1, Math.min(5, edge.weight))
+                : 2;
             let edgeColor = "#dc2626"; // Red base color
 
             if (maxDegree === 0) {
                 // Root to root (shouldn't happen, but just in case)
                 edgeOpacity = 1.0;
-                edgeWidth = edge.weight ? Math.max(2, Math.min(5, edge.weight)) : 3;
+                edgeWidth = edge.weight
+                    ? Math.max(2, Math.min(5, edge.weight))
+                    : 3;
                 edgeColor = "#dc2626"; // Red
             } else if (maxDegree === 1) {
                 // 1st degree edge
                 edgeOpacity = 0.8;
-                edgeWidth = edge.weight ? Math.max(2, Math.min(5, edge.weight)) : 2.5;
+                edgeWidth = edge.weight
+                    ? Math.max(2, Math.min(5, edge.weight))
+                    : 2.5;
                 edgeColor = "#facc15"; // Yellow
             } else if (maxDegree === 2) {
                 // 2nd degree edge
                 edgeOpacity = 0.7;
-                edgeWidth = edge.weight ? Math.max(1.5, Math.min(4, edge.weight)) : 2;
+                edgeWidth = edge.weight
+                    ? Math.max(1.5, Math.min(4, edge.weight))
+                    : 2;
                 edgeColor = "#22c55e"; // Green
             } else if (maxDegree === 3) {
                 // 3rd degree edge
                 edgeOpacity = 0.6;
-                edgeWidth = edge.weight ? Math.max(1, Math.min(3, edge.weight)) : 1.5;
+                edgeWidth = edge.weight
+                    ? Math.max(1, Math.min(3, edge.weight))
+                    : 1.5;
                 edgeColor = "#38bdf8"; // Sky blue
             } else if (maxDegree === 4) {
                 // 4th degree edge
                 edgeOpacity = 0.5;
-                edgeWidth = edge.weight ? Math.max(1, Math.min(3, edge.weight)) : 1.5;
+                edgeWidth = edge.weight
+                    ? Math.max(1, Math.min(3, edge.weight))
+                    : 1.5;
                 edgeColor = "#a855f7"; // Purple
             } else {
                 // 5+ degree edge
                 edgeOpacity = 0.4;
-                edgeWidth = edge.weight ? Math.max(1, Math.min(2, edge.weight)) : 1;
+                edgeWidth = edge.weight
+                    ? Math.max(1, Math.min(2, edge.weight))
+                    : 1;
                 edgeColor = "#6b7280"; // Gray
             }
 
@@ -1784,12 +2065,18 @@ async function renderNetwork() {
                 color: {
                     color: edgeColor,
                     opacity: edgeOpacity,
-                    highlight: maxDegree === 0 ? "#dc2626" :
-                               maxDegree === 1 ? "#facc15" :
-                               maxDegree === 2 ? "#22c55e" :
-                               maxDegree === 3 ? "#38bdf8" :
-                               maxDegree === 4 ? "#a855f7" :
-                               "#6b7280",
+                    highlight:
+                        maxDegree === 0
+                            ? "#dc2626"
+                            : maxDegree === 1
+                            ? "#facc15"
+                            : maxDegree === 2
+                            ? "#22c55e"
+                            : maxDegree === 3
+                            ? "#38bdf8"
+                            : maxDegree === 4
+                            ? "#a855f7"
+                            : "#6b7280",
                 },
             });
         }
@@ -1856,19 +2143,19 @@ async function renderNetwork() {
                 size: 14,
                 face: "Inter",
             },
-      margin: {
-        top: 20,
-        right: 20,
-        bottom: 20,
-        left: 20,
-      },
-      borderWidth: 4,
-      chosen: {
-        node: (values: any) => {
-          values.borderWidth = 6;
-        },
-        label: false,
-      },
+            margin: {
+                top: 20,
+                right: 20,
+                bottom: 20,
+                left: 20,
+            },
+            borderWidth: 4,
+            chosen: {
+                node: (values: any) => {
+                    values.borderWidth = 6;
+                },
+                label: false,
+            },
         },
         edges: {
             arrows: {
@@ -1881,8 +2168,8 @@ async function renderNetwork() {
                 type: "curvedCW", // Curved edges that better avoid nodes
                 roundness: 0.6,
             },
-      length: 350, // Increased edge length for better spacing
-      width: 2,
+            length: 350, // Increased edge length for better spacing
+            width: 2,
         },
         physics: {
             enabled: true,
@@ -1891,21 +2178,24 @@ async function renderNetwork() {
                 iterations: 200,
             },
             // Adjust physics for single node (centered) or multiple nodes
-            barnesHut: nodes.length > 1 ? {
-                gravitationalConstant: -4000, // More repulsion for better spacing
-                centralGravity: 0.04, // Less central gravity
-                springLength: 400, // Longer spring length for more spacing
-                springConstant: 0.02, // Less spring constant for looser connections
-                damping: 0.1, // Slightly more damping
-                avoidOverlap: 1.5, // Increased overlap avoidance to prevent edge-node crossing
-            } : {
-                gravitationalConstant: -500,
-                centralGravity: 0.1,
-                springLength: 350,
-                springConstant: 0.001,
-                damping: 0.09,
-                avoidOverlap: 0,
-            },
+            barnesHut:
+                nodes.length > 1
+                    ? {
+                          gravitationalConstant: -4000, // More repulsion for better spacing
+                          centralGravity: 0.04, // Less central gravity
+                          springLength: 400, // Longer spring length for more spacing
+                          springConstant: 0.02, // Less spring constant for looser connections
+                          damping: 0.1, // Slightly more damping
+                          avoidOverlap: 1.5, // Increased overlap avoidance to prevent edge-node crossing
+                      }
+                    : {
+                          gravitationalConstant: -500,
+                          centralGravity: 0.1,
+                          springLength: 350,
+                          springConstant: 0.001,
+                          damping: 0.09,
+                          avoidOverlap: 0,
+                      },
         },
         interaction: {
             hover: true,
@@ -1920,13 +2210,15 @@ async function renderNetwork() {
         },
     };
 
-
     // Destroy existing network if it exists
     if (networkInstance.value) {
         try {
             networkInstance.value.destroy();
         } catch (destroyError) {
-            console.warn("Error destroying existing network instance:", destroyError);
+            console.warn(
+                "Error destroying existing network instance:",
+                destroyError
+            );
         }
         networkInstance.value = null;
     }
@@ -1944,7 +2236,9 @@ async function renderNetwork() {
             "edges"
         );
         if (!networkContainer.value) {
-            console.error("Network container is null, cannot create visualization");
+            console.error(
+                "Network container is null, cannot create visualization"
+            );
             return;
         }
         networkInstance.value = new Network(
@@ -1969,14 +2263,17 @@ async function renderNetwork() {
                     networkInstance.value?.fit({
                         animation: {
                             duration: 500,
-                            easingFunction: 'easeInOutQuad'
-                        }
+                            easingFunction: "easeInOutQuad",
+                        },
                     });
 
                     // Get the current scale after fitting and set minimum zoom
                     setTimeout(() => {
                         const currentScale = networkInstance.value?.getScale();
-                        if (currentScale !== undefined && networkInstance.value) {
+                        if (
+                            currentScale !== undefined &&
+                            networkInstance.value
+                        ) {
                             // Set initial zoom display
                             currentZoom.value = currentScale;
 
@@ -1988,11 +2285,14 @@ async function renderNetwork() {
                                         scale: currentScale,
                                         animation: {
                                             duration: 300,
-                                            easingFunction: 'easeInOutQuad'
-                                        }
+                                            easingFunction: "easeInOutQuad",
+                                        },
                                     });
                                 } catch (error) {
-                                    console.warn("Error focusing on root node:", error);
+                                    console.warn(
+                                        "Error focusing on root node:",
+                                        error
+                                    );
                                 }
                             }
 
@@ -2015,7 +2315,10 @@ async function renderNetwork() {
         }
     } catch (error) {
         console.error("Error creating network visualization:", error);
-        console.error("Error details:", error instanceof Error ? error.stack : String(error));
+        console.error(
+            "Error details:",
+            error instanceof Error ? error.stack : String(error)
+        );
     }
 }
 
@@ -2031,13 +2334,14 @@ function centerOnRootNode() {
     if (!networkInstance.value || !auth.userId) return;
     const rootId = rootNodeId.value || auth.userId;
     try {
-        const currentScale = networkInstance.value.getScale() || currentZoom.value;
+        const currentScale =
+            networkInstance.value.getScale() || currentZoom.value;
         networkInstance.value.focus(rootId, {
             scale: currentScale,
             animation: {
                 duration: 400,
-                easingFunction: 'easeInOutQuad'
-            }
+                easingFunction: "easeInOutQuad",
+            },
         });
     } catch (error) {
         console.warn("Error centering on root node:", error);
@@ -2072,7 +2376,9 @@ function setupNodeHoverTooltip() {
         }
 
         // BFS to calculate degrees
-        const queue: Array<{ id: string; degree: number }> = [{ id: rootId, degree: 0 }];
+        const queue: Array<{ id: string; degree: number }> = [
+            { id: rootId, degree: 0 },
+        ];
         tooltipNodeDegrees.set(rootId, 0);
         const visited = new Set<string>([rootId]);
 
@@ -2109,8 +2415,13 @@ function setupNodeHoverTooltip() {
         const profile = profileData?.profile as any;
 
         // Build node name - prefer label, then firstName+lastName, then username
-        const nodeName = nodeData.label ||
-            ((nodeData.firstName || "") + " " + (nodeData.lastName || "")).trim() ||
+        const nodeName =
+            nodeData.label ||
+            (
+                (nodeData.firstName || "") +
+                " " +
+                (nodeData.lastName || "")
+            ).trim() ||
             (nodeId === auth.userId
                 ? auth.username || profileData?.username || nodeId
                 : profileData?.username || nodeId);
@@ -2120,7 +2431,8 @@ function setupNodeHoverTooltip() {
             name: nodeName,
             label: nodeData.label,
             headline: nodeData.headline ?? profile?.headline,
-            currentPosition: nodeData.currentPosition ?? profile?.currentPosition,
+            currentPosition:
+                nodeData.currentPosition ?? profile?.currentPosition,
             currentCompany: nodeData.currentCompany ?? profile?.currentCompany,
             location: nodeData.location ?? profile?.location,
             industry: nodeData.industry ?? profile?.industry,
@@ -2140,7 +2452,8 @@ function setupNodeHoverTooltip() {
 
         // Position tooltip near the cursor or use stored position
         if (event && networkContainer.value) {
-            const containerRect = networkContainer.value.getBoundingClientRect();
+            const containerRect =
+                networkContainer.value.getBoundingClientRect();
             const x = event.clientX - containerRect.left + 15;
             const y = event.clientY - containerRect.top + 15;
             tooltipPosition.value = { x, y };
@@ -2249,10 +2562,10 @@ function setupNodeConstraints() {
 
         // Calculate viewport bounds in canvas coordinates
         // The viewport center is at viewPosition
-        const viewportLeft = viewPosition.x - (containerWidth / 2) / scale;
-        const viewportRight = viewPosition.x + (containerWidth / 2) / scale;
-        const viewportTop = viewPosition.y - (containerHeight / 2) / scale;
-        const viewportBottom = viewPosition.y + (containerHeight / 2) / scale;
+        const viewportLeft = viewPosition.x - containerWidth / 2 / scale;
+        const viewportRight = viewPosition.x + containerWidth / 2 / scale;
+        const viewportTop = viewPosition.y - containerHeight / 2 / scale;
+        const viewportBottom = viewPosition.y + containerHeight / 2 / scale;
 
         // Get the node's current position
         const nodePositions = networkInstance.value?.getPositions(params.nodes);
@@ -2293,7 +2606,11 @@ function setupNodeConstraints() {
 
             // Update position if constrained
             if (needsUpdate) {
-                networkInstance.value?.moveNode(nodeId, constrainedX, constrainedY);
+                networkInstance.value?.moveNode(
+                    nodeId,
+                    constrainedX,
+                    constrainedY
+                );
             }
         }
     });
@@ -2315,10 +2632,10 @@ function setupNodeConstraints() {
         if (!viewPosition) return;
 
         // Calculate viewport bounds
-        const viewportLeft = viewPosition.x - (containerWidth / 2) / scale;
-        const viewportRight = viewPosition.x + (containerWidth / 2) / scale;
-        const viewportTop = viewPosition.y - (containerHeight / 2) / scale;
-        const viewportBottom = viewPosition.y + (containerHeight / 2) / scale;
+        const viewportLeft = viewPosition.x - containerWidth / 2 / scale;
+        const viewportRight = viewPosition.x + containerWidth / 2 / scale;
+        const viewportTop = viewPosition.y - containerHeight / 2 / scale;
+        const viewportBottom = viewPosition.y + containerHeight / 2 / scale;
 
         // Get the node's current position
         const nodePositions = networkInstance.value?.getPositions(params.nodes);
@@ -2359,24 +2676,37 @@ function setupNodeConstraints() {
 
             // Update position if constrained
             if (needsUpdate) {
-                networkInstance.value?.moveNode(nodeId, constrainedX, constrainedY);
+                networkInstance.value?.moveNode(
+                    nodeId,
+                    constrainedX,
+                    constrainedY
+                );
             }
         }
     });
 }
 
-
 // Watch for adjacency changes to update visualization
 watch(
     () => adjacency.value,
-    async (newAdjacency: AdjacencyMap | null, oldAdjacency: AdjacencyMap | null) => {
+    async (
+        newAdjacency: AdjacencyMap | null,
+        oldAdjacency: AdjacencyMap | null
+    ) => {
         // Only trigger if adjacency actually changed (not just reference equality)
-        const newKeys = newAdjacency ? Object.keys(newAdjacency).sort().join(',') : '';
-        const oldKeys = oldAdjacency ? Object.keys(oldAdjacency).sort().join(',') : '';
-        if (newKeys !== oldKeys || (newAdjacency && Object.keys(newAdjacency).length > 0)) {
+        const newKeys = newAdjacency
+            ? Object.keys(newAdjacency).sort().join(",")
+            : "";
+        const oldKeys = oldAdjacency
+            ? Object.keys(oldAdjacency).sort().join(",")
+            : "";
+        if (
+            newKeys !== oldKeys ||
+            (newAdjacency && Object.keys(newAdjacency).length > 0)
+        ) {
             console.log("Adjacency data changed, triggering render", {
                 newCount: newAdjacency ? Object.keys(newAdjacency).length : 0,
-                oldCount: oldAdjacency ? Object.keys(oldAdjacency).length : 0
+                oldCount: oldAdjacency ? Object.keys(oldAdjacency).length : 0,
             });
             // Wait for DOM to update and container to be available
             await nextTick();
@@ -2396,7 +2726,6 @@ onBeforeUnmount(() => {
         networkInstance.value.destroy();
     }
 });
-
 
 // Clear all network data when user changes to prevent data leakage
 function clearNetworkData() {
@@ -2527,7 +2856,7 @@ input[type="hidden"] {
     font-size: 0.875rem;
     font-weight: 500;
     color: #475569;
-    font-family: 'Inter', sans-serif;
+    font-family: "Inter", sans-serif;
 }
 
 /* Node info tooltip */
@@ -2580,5 +2909,4 @@ input[type="hidden"] {
     color: #0f172a;
     margin-right: 0.5rem;
 }
-
 </style>
