@@ -25,11 +25,11 @@ The application is subject to limitations based on the data available from Linke
 ### Graph Visualization Missing Position Field
 CSV files have "position" fields for every connection, but that is currently not populating correctly in the graph visualization.
 
-### Graph Visualization Not Appearing
+### Graph Visualization Sometimes Not Appearing
 If the graph is not displaying or appears broken, try clicking the "Create Network" button to refresh the visualization. And note that the "Refresh View" button currently does not work as expected.
 
 ### Update Profile Button Broken
 The "Update Profile" button in "Public Profiles" tab broke during our merging process.
 
 ### "View My Network" Button Not Set Up
-The "View My Network" for semantic search results is not wired up yet. When it does get wired up, it will show a network of the search results. 
+The "View My Network" for semantic search results is not wired up yet. When it does get wired up, it will show a network of the search results.
