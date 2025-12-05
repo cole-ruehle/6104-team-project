@@ -403,33 +403,64 @@
                 :type="banner.type"
                 :message="banner.message"
             />
-            <form class="form-grid" @submit.prevent="fetchAdjacency">
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <form class="form-grid" @submit.prevent="fetchAdjacency" style="margin: 0; flex: 1;">
+                    <button
+                        type="submit"
+                        :disabled="adjacencyLoading || !auth.userId"
+                    >
+                        {{ adjacencyLoading ? "Loading…" : "Refresh View" }}
+                    </button>
+                </form>
                 <button
-                    type="submit"
-                    :disabled="adjacencyLoading || !auth.userId"
+                    v-if="adjacency && Object.keys(adjacency).length > 0 && networkInstance"
+                    @click="centerOnRootNode"
+                    type="button"
+                    :disabled="!auth.userId"
+                    style="padding: 0.5rem 1rem;"
                 >
-                    {{ adjacencyLoading ? "Loading…" : "Refresh View" }}
+                    Center on Root
                 </button>
-            </form>
+            </div>
 
             <div v-if="adjacencyLoading" class="muted" style="margin-top: 1rem">
                 Pulling adjacency data…
             </div>
 
-            <div
-                v-else-if="adjacency && Object.keys(adjacency).length > 0"
-                class="network-visualization-container"
-            >
+            <!-- Degree Legend -->
+            <div v-if="adjacency && Object.keys(adjacency).length > 0" class="degree-legend" style="margin: 1rem 0; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
+                <div style="font-weight: 600; color: #475569; font-size: 0.9rem;">Connection Levels:</div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #4a90e2;"></div>
+                    <span style="font-size: 0.85rem; color: #64748b;">1st Degree</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #7b8a8b;"></div>
+                    <span style="font-size: 0.85rem; color: #64748b;">2nd Degree</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #95a5a6;"></div>
+                    <span style="font-size: 0.85rem; color: #64748b;">3rd+ Degree</span>
+                </div>
+            </div>
+
+            <div class="network-visualization-container">
                 <div ref="networkContainer" class="network-graph"></div>
                 <div
-                    v-if="!networkInstance"
+                    v-if="!networkInstance && adjacency && Object.keys(adjacency).length > 0"
                     class="muted"
                     style="padding: 1rem; text-align: center"
                 >
                     Loading visualization...
                 </div>
+                <div
+                    v-if="adjacency && Object.keys(adjacency).length > 0 && networkInstance"
+                    class="zoom-indicator"
+                >
+                    {{ Math.round(currentZoom * 100) }}%
+                </div>
             </div>
-            <p v-else class="muted" style="margin-top: 1rem">
+            <p v-if="!adjacency || Object.keys(adjacency).length === 0" class="muted" style="margin-top: 1rem">
                 No network data found for this owner yet. Create a network and
                 add nodes to see the visualization.
             </p>
@@ -576,6 +607,8 @@ const nodeProfiles = ref<
 const nodeMetaMap = ref<
     Record<string, { firstName?: string; lastName?: string; label?: string }>
 >({});
+// Zoom display
+const currentZoom = ref<number>(1.0);
 
 function showBanner(
     section: BannerSection,
@@ -877,6 +910,10 @@ async function handleRemoveNode() {
         (removeNodeForm.nodeDisplay
             ? await resolveToUserId(removeNodeForm.nodeDisplay)
             : undefined);
+    if (!nodeIdentifier) {
+        showBanner("nodes", "error", "Node identifier is required.");
+        return;
+    }
     const payload = {
         owner: auth.userId,
         node: nodeIdentifier,
@@ -1085,6 +1122,10 @@ async function handleAddEdge() {
         (edgeForm.toDisplay
             ? await resolveToUserId(edgeForm.toDisplay)
             : undefined);
+    if (!resolvedFrom || !resolvedTo) {
+        showBanner("edges", "error", "Both 'from' and 'to' nodes are required.");
+        return;
+    }
     const payload = {
         owner: auth.userId,
         from: resolvedFrom,
@@ -1121,6 +1162,10 @@ async function handleRemoveEdge() {
         (removeEdgeForm.toDisplay
             ? await resolveToUserId(removeEdgeForm.toDisplay)
             : undefined);
+    if (!resolvedFrom || !resolvedTo) {
+        showBanner("edges", "error", "Both 'from' and 'to' nodes are required.");
+        return;
+    }
     const payload = {
         owner: auth.userId,
         from: resolvedFrom,
@@ -1159,18 +1204,21 @@ async function fetchAdjacency() {
         });
 
     // Handle both old format (just adjacency) and new format ({ adjacency, nodeLabels })
+    // IMPORTANT: Always create a new object reference to ensure Vue reactivity detects the change
     if (!data) {
       console.error("getAdjacencyArray returned null or undefined");
       adjacency.value = null;
       nodeLabels.value = {};
     } else if (data && typeof data === 'object' && 'adjacency' in data) {
       // New format: { adjacency, nodeLabels }
-      adjacency.value = data.adjacency || {};
-      nodeLabels.value = data.nodeLabels || {};
+      // Create new object references to ensure Vue reactivity
+      adjacency.value = { ...(data.adjacency || {}) };
+      nodeLabels.value = { ...(data.nodeLabels || {}) };
       console.log("Loaded adjacency data (new format):", Object.keys(adjacency.value).length, "nodes");
     } else {
       // Fallback for old format (just adjacency object)
-      adjacency.value = data as AdjacencyMap;
+      // Create new object reference to ensure Vue reactivity
+      adjacency.value = { ...(data as AdjacencyMap) };
       nodeLabels.value = {};
       console.log("Loaded adjacency data (old format):", Object.keys(adjacency.value).length, "nodes");
     }
@@ -1230,7 +1278,9 @@ async function fetchAdjacency() {
         );
 
     // Render network after data is loaded
+    // Use a small delay to ensure DOM is ready and reactivity has processed
     await nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 100));
     try {
       await renderNetwork();
     } catch (renderError) {
@@ -1388,6 +1438,73 @@ async function renderNetwork() {
     const isRoot = (nodeId: string) =>
         rootNodeId.value === nodeId || nodeId === auth.userId;
 
+    // Calculate node degrees (distance from root) using BFS
+    const rootId = rootNodeId.value || auth.userId;
+    const nodeDegrees = new Map<string, number>(); // nodeId -> degree (0 = root, 1 = 1st degree, 2 = 2nd degree, etc.)
+
+    if (rootId && nodeIds.includes(rootId)) {
+        // BFS to calculate distances from root
+        const queue: Array<{ id: string; degree: number }> = [{ id: rootId, degree: 0 }];
+        nodeDegrees.set(rootId, 0);
+        const visited = new Set<string>([rootId]);
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            const currentEdges = adjacency.value[current.id] || [];
+
+            for (const edge of currentEdges) {
+                if (!visited.has(edge.to)) {
+                    visited.add(edge.to);
+                    const nextDegree = current.degree + 1;
+                    nodeDegrees.set(edge.to, nextDegree);
+                    queue.push({ id: edge.to, degree: nextDegree });
+                }
+            }
+        }
+
+        // Set degree for any unvisited nodes (disconnected components) to a high value
+        for (const nodeId of nodeIds) {
+            if (!nodeDegrees.has(nodeId)) {
+                nodeDegrees.set(nodeId, 999); // Disconnected
+            }
+        }
+    } else {
+        // No root found, set all to unknown degree
+        for (const nodeId of nodeIds) {
+            nodeDegrees.set(nodeId, 999);
+        }
+    }
+
+    // Helper function to get degree color
+    const getDegreeColor = (nodeId: string): string => {
+        const degree = nodeDegrees.get(nodeId) ?? 999;
+        if (isRoot(nodeId)) {
+            return generateBrightColor(nodeId); // Root gets special color
+        } else if (degree === 1) {
+            return "#4a90e2"; // Bright blue for 1st degree
+        } else if (degree === 2) {
+            return "#7b8a8b"; // Medium gray-blue for 2nd degree
+        } else if (degree === 3) {
+            return "#95a5a6"; // Lighter gray for 3rd degree
+        } else {
+            return "#bdc3c7"; // Very light gray for 4+ degree or disconnected
+        }
+    };
+
+    // Helper function to get node size based on degree
+    const getNodeSize = (nodeId: string): number => {
+        const degree = nodeDegrees.get(nodeId) ?? 999;
+        if (isRoot(nodeId)) {
+            return 70; // Largest for root
+        } else if (degree === 1) {
+            return 50; // Large for 1st degree
+        } else if (degree === 2) {
+            return 40; // Medium for 2nd degree
+        } else {
+            return 35; // Smaller for 3+ degree
+        }
+    };
+
     for (const nodeId of nodeIds) {
         // For owner node, use authenticated user's username if available
         let profileData = nodeProfiles.value[nodeId];
@@ -1406,9 +1523,7 @@ async function renderNetwork() {
             }
         }
 
-        const nodeColor = isRoot(nodeId)
-            ? generateBrightColor(nodeId)
-            : "#778da9";
+        const nodeColor = getDegreeColor(nodeId);
 
         // Prefer canonical node metadata firstName+lastName if available (from searchNodes),
         // then fall back to username/profile, then nodeId.
@@ -1430,7 +1545,7 @@ async function renderNetwork() {
             shape: "circularImage",
             image: profileData.avatarUrl,
             brokenImage: avatarStore.DEFAULT_AVATAR,
-            borderWidth: isRoot(nodeId) ? 4 : 2,
+            borderWidth: isRoot(nodeId) ? 6 : 4,
             borderColor: nodeColor,
             color: {
                 border: nodeColor,
@@ -1445,7 +1560,9 @@ async function renderNetwork() {
                 face: "Inter",
                 bold: isRoot(nodeId),
             },
-            size: isRoot(nodeId) ? 60 : 45,
+            size: getNodeSize(nodeId),
+            // Pin the root/self node in place - it cannot be dragged
+            fixed: isRoot(nodeId) ? { x: true, y: true } : false,
         };
 
         nodes.add(node);
@@ -1453,15 +1570,42 @@ async function renderNetwork() {
         // Create edges
         const nodeEdges = adjacency.value[nodeId] || [];
         for (const edge of nodeEdges) {
+            const fromDegree = nodeDegrees.get(nodeId) ?? 999;
+            const toDegree = nodeDegrees.get(edge.to) ?? 999;
+            const maxDegree = Math.max(fromDegree, toDegree);
+
+            // Make edges more transparent for 2nd+ degree connections
+            let edgeOpacity = 1.0;
+            let edgeWidth = edge.weight ? Math.max(1, Math.min(5, edge.weight)) : 2;
+            let edgeColor = "#415a77";
+
+            if (maxDegree === 1) {
+                // 1st degree edge (root to 1st, or 1st to 1st)
+                edgeOpacity = 0.9;
+                edgeWidth = edge.weight ? Math.max(2, Math.min(5, edge.weight)) : 2.5;
+                edgeColor = "#4a90e2";
+            } else if (maxDegree === 2) {
+                // 2nd degree edge
+                edgeOpacity = 0.5;
+                edgeWidth = edge.weight ? Math.max(1, Math.min(4, edge.weight)) : 1.5;
+                edgeColor = "#7b8a8b";
+            } else {
+                // 3+ degree edge
+                edgeOpacity = 0.3;
+                edgeWidth = edge.weight ? Math.max(1, Math.min(3, edge.weight)) : 1;
+                edgeColor = "#95a5a6";
+            }
+
             edges.add({
                 id: `${nodeId}-${edge.to}`,
                 from: nodeId,
                 to: edge.to,
                 label: edge.weight ? String(edge.weight) : "",
-                width: edge.weight ? Math.max(1, Math.min(5, edge.weight)) : 1,
+                width: edgeWidth,
                 color: {
-                    color: "#415a77",
-                    highlight: "#6699cc",
+                    color: edgeColor,
+                    opacity: edgeOpacity,
+                    highlight: maxDegree <= 1 ? "#6699cc" : "#95a5a6",
                 },
             });
         }
@@ -1488,23 +1632,33 @@ async function renderNetwork() {
                 const nodeLabel =
                     nameFromMetaTarget || profileData.username || edge.to;
 
+                // Check if this target node is the root node
+                const isTargetRoot = isRoot(edge.to);
+                const targetNodeColor = getDegreeColor(edge.to);
                 nodes.add({
                     id: edge.to,
                     label: nodeLabel,
                     shape: "circularImage",
                     image: profileData.avatarUrl,
                     brokenImage: avatarStore.DEFAULT_AVATAR,
-                    borderWidth: 2,
-                    borderColor: "#778da9",
+                    borderWidth: isTargetRoot ? 6 : 4,
+                    borderColor: targetNodeColor,
                     color: {
-                        border: "#778da9",
+                        border: targetNodeColor,
                         background: "#ffffff",
+                        highlight: {
+                            border: targetNodeColor,
+                            background: "#f0f0f0",
+                        },
                     },
                     font: {
-                        size: 14,
+                        size: isTargetRoot ? 16 : 14,
                         face: "Inter",
+                        bold: isTargetRoot,
                     },
-                    size: 40,
+                    size: getNodeSize(edge.to),
+                    // Pin the root/self node in place - it cannot be dragged
+                    fixed: isTargetRoot ? { x: true, y: true } : false,
                 });
             }
         }
@@ -1524,10 +1678,10 @@ async function renderNetwork() {
         bottom: 20,
         left: 20,
       },
-      borderWidth: 2,
+      borderWidth: 4,
       chosen: {
         node: (values: any) => {
-          values.borderWidth = 4;
+          values.borderWidth = 6;
         },
         label: false,
       },
@@ -1541,43 +1695,59 @@ async function renderNetwork() {
             },
             smooth: {
                 enabled: true,
-                type: "continuous",
-                roundness: 0.5,
+                type: "curvedCW", // Curved edges that better avoid nodes
+                roundness: 0.6,
             },
-      length: 200, // Increase edge length for better spacing
+      length: 350, // Increased edge length for better spacing
       width: 2,
         },
         physics: {
-            enabled: true,
+            // For hierarchical layout, we can use physics for stabilization
+            // but it will be overridden by the hierarchical positioning
+            enabled: false, // Disable physics when using hierarchical layout for cleaner organization
             stabilization: {
-                enabled: true,
-                iterations: 200,
-            },
-            // Adjust physics for single node (centered) or multiple nodes
-            barnesHut: {
-                gravitationalConstant: nodes.length === 1 ? -500 : -3000, // More repulsion for better spacing
-                centralGravity: nodes.length === 1 ? 0.1 : 0.05, // Less central gravity
-                springLength: nodes.length === 1 ? 200 : 250, // Longer spring length for more spacing
-                springConstant: nodes.length === 1 ? 0.001 : 0.03, // Slightly less spring constant
-                damping: nodes.length === 1 ? 0.09 : 0.1, // Slightly more damping
-        avoidOverlap: nodes.length === 1 ? 0 : 1.2, // More overlap avoidance
+                enabled: false,
+                iterations: 0,
             },
         },
         interaction: {
             hover: true,
             tooltipDelay: 200,
+            zoomView: true, // Allow mouse wheel zoom
+            dragView: true, // Allow panning the graph view
+            dragNodes: true, // Allow dragging individual nodes (except root node which is fixed)
         },
         layout: {
-            // Center single node
-            improvedLayout: nodes.length > 1,
+            // Use hierarchical layout for better organization by degree
+            hierarchical: nodes.length > 1 ? {
+                enabled: true,
+                direction: "UD", // Up-Down layout (root at top)
+                sortMethod: "directed", // Use directed graph structure
+                levelSeparation: 250, // Vertical spacing between levels (degrees)
+                nodeSpacing: 300, // Horizontal spacing between nodes at same level
+                treeSpacing: 350, // Spacing between different branches
+                blockShifting: true, // Allow nodes to shift to avoid overlap
+                edgeMinimization: true, // Minimize edge crossings
+                parentCentralization: true, // Center parent nodes
+            } : false,
+            improvedLayout: false, // Don't use improvedLayout when hierarchical is enabled
         },
     };
 
+
     // Destroy existing network if it exists
     if (networkInstance.value) {
-        networkInstance.value.destroy();
+        try {
+            networkInstance.value.destroy();
+        } catch (destroyError) {
+            console.warn("Error destroying existing network instance:", destroyError);
+        }
         networkInstance.value = null;
     }
+
+    // Wait a bit to ensure cleanup is complete (don't clear innerHTML - it causes flicker)
+    await nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     try {
         console.log(
@@ -1587,14 +1757,76 @@ async function renderNetwork() {
             edges.length,
             "edges"
         );
+        if (!networkContainer.value) {
+            console.error("Network container is null, cannot create visualization");
+            return;
+        }
         networkInstance.value = new Network(
             networkContainer.value,
             data,
             options
         );
         console.log("Network visualization created successfully");
+
+        // Add constraints to prevent nodes from being dragged outside the viewport
+        setupNodeConstraints();
+
+        // Frame the graph to show all nodes after a short delay to allow stabilization
+        if (nodes.length > 0) {
+            // Wait a bit for the network to start rendering
+            setTimeout(() => {
+                try {
+                    // Use fit() to show all nodes - it automatically calculates the best view
+                    networkInstance.value?.fit({
+                        animation: {
+                            duration: 500,
+                            easingFunction: 'easeInOutQuad'
+                        }
+                    });
+
+                    // Get the current scale after fitting and set minimum zoom
+                    setTimeout(() => {
+                        const currentScale = networkInstance.value?.getScale();
+                        if (currentScale !== undefined && networkInstance.value) {
+                            // Set initial zoom display
+                            currentZoom.value = currentScale;
+
+                            // Center the view on the root node if it exists
+                            const rootId = rootNodeId.value || auth.userId;
+                            if (rootId && nodes.get(rootId)) {
+                                try {
+                                    networkInstance.value.focus(rootId, {
+                                        scale: currentScale,
+                                        animation: {
+                                            duration: 300,
+                                            easingFunction: 'easeInOutQuad'
+                                        }
+                                    });
+                                } catch (error) {
+                                    console.warn("Error focusing on root node:", error);
+                                }
+                            }
+
+                            // Listen for zoom events to update zoom percentage display
+                            networkInstance.value.on("zoom", () => {
+                                const scale = networkInstance.value?.getScale();
+                                if (scale !== undefined) {
+                                    currentZoom.value = scale;
+                                }
+                            });
+                        }
+                    }, 600); // Wait for fit animation to complete
+                } catch (error) {
+                    console.warn("Error fitting network:", error);
+                }
+            }, 500); // Wait for initial render
+        } else {
+            // No nodes, set default zoom
+            currentZoom.value = 1.0;
+        }
     } catch (error) {
         console.error("Error creating network visualization:", error);
+        console.error("Error details:", error instanceof Error ? error.stack : String(error));
     }
 }
 
@@ -1605,21 +1837,190 @@ function formatError(error: unknown) {
     return "Unexpected error. Check console for details.";
 }
 
+// Center the view on the root node
+function centerOnRootNode() {
+    if (!networkInstance.value || !auth.userId) return;
+    const rootId = rootNodeId.value || auth.userId;
+    try {
+        const currentScale = networkInstance.value.getScale() || currentZoom.value;
+        networkInstance.value.focus(rootId, {
+            scale: currentScale,
+            animation: {
+                duration: 400,
+                easingFunction: 'easeInOutQuad'
+            }
+        });
+    } catch (error) {
+        console.warn("Error centering on root node:", error);
+    }
+}
+
+// Setup constraints to prevent nodes from being dragged outside the viewport
+function setupNodeConstraints() {
+    if (!networkInstance.value || !networkContainer.value) return;
+
+    // Helper to check if a node is the root node
+    const isRootNode = (nodeId: string) => {
+        return rootNodeId.value === nodeId || nodeId === auth.userId;
+    };
+
+    // Listen during dragging for real-time constraint
+    networkInstance.value.on("dragging", (params: any) => {
+        if (!params.nodes || params.nodes.length === 0) return;
+        if (!networkContainer.value) return;
+
+        // Get container dimensions
+        const containerRect = networkContainer.value.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
+
+        // Get current view position and scale
+        const viewPosition = networkInstance.value?.getViewPosition();
+        const scale = networkInstance.value?.getScale() || 1;
+
+        if (!viewPosition) return;
+
+        // Calculate viewport bounds in canvas coordinates
+        // The viewport center is at viewPosition
+        const viewportLeft = viewPosition.x - (containerWidth / 2) / scale;
+        const viewportRight = viewPosition.x + (containerWidth / 2) / scale;
+        const viewportTop = viewPosition.y - (containerHeight / 2) / scale;
+        const viewportBottom = viewPosition.y + (containerHeight / 2) / scale;
+
+        // Get the node's current position
+        const nodePositions = networkInstance.value?.getPositions(params.nodes);
+        if (!nodePositions) return;
+
+        const nodeSize = 60; // Maximum node size
+        const padding = nodeSize / scale; // Add padding to keep node fully visible
+
+        // Constrain each dragged node
+        for (const nodeId of params.nodes) {
+            // Skip root node - it's already fixed
+            if (isRootNode(nodeId)) continue;
+
+            const pos = nodePositions[nodeId];
+            if (!pos) continue;
+
+            let constrainedX = pos.x;
+            let constrainedY = pos.y;
+            let needsUpdate = false;
+
+            // Constrain X position
+            if (constrainedX < viewportLeft + padding) {
+                constrainedX = viewportLeft + padding;
+                needsUpdate = true;
+            } else if (constrainedX > viewportRight - padding) {
+                constrainedX = viewportRight - padding;
+                needsUpdate = true;
+            }
+
+            // Constrain Y position
+            if (constrainedY < viewportTop + padding) {
+                constrainedY = viewportTop + padding;
+                needsUpdate = true;
+            } else if (constrainedY > viewportBottom - padding) {
+                constrainedY = viewportBottom - padding;
+                needsUpdate = true;
+            }
+
+            // Update position if constrained
+            if (needsUpdate) {
+                networkInstance.value?.moveNode(nodeId, constrainedX, constrainedY);
+            }
+        }
+    });
+
+    // Also check on drag end to ensure final position is within bounds
+    networkInstance.value.on("dragEnd", (params: any) => {
+        if (!params.nodes || params.nodes.length === 0) return;
+        if (!networkContainer.value) return;
+
+        // Get container dimensions
+        const containerRect = networkContainer.value.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
+
+        // Get current view position and scale
+        const viewPosition = networkInstance.value?.getViewPosition();
+        const scale = networkInstance.value?.getScale() || 1;
+
+        if (!viewPosition) return;
+
+        // Calculate viewport bounds
+        const viewportLeft = viewPosition.x - (containerWidth / 2) / scale;
+        const viewportRight = viewPosition.x + (containerWidth / 2) / scale;
+        const viewportTop = viewPosition.y - (containerHeight / 2) / scale;
+        const viewportBottom = viewPosition.y + (containerHeight / 2) / scale;
+
+        // Get the node's current position
+        const nodePositions = networkInstance.value?.getPositions(params.nodes);
+        if (!nodePositions) return;
+
+        const nodeSize = 60;
+        const padding = nodeSize / scale;
+
+        // Constrain each dragged node
+        for (const nodeId of params.nodes) {
+            // Skip root node - it's already fixed
+            if (isRootNode(nodeId)) continue;
+
+            const pos = nodePositions[nodeId];
+            if (!pos) continue;
+
+            let constrainedX = pos.x;
+            let constrainedY = pos.y;
+            let needsUpdate = false;
+
+            // Constrain X position
+            if (constrainedX < viewportLeft + padding) {
+                constrainedX = viewportLeft + padding;
+                needsUpdate = true;
+            } else if (constrainedX > viewportRight - padding) {
+                constrainedX = viewportRight - padding;
+                needsUpdate = true;
+            }
+
+            // Constrain Y position
+            if (constrainedY < viewportTop + padding) {
+                constrainedY = viewportTop + padding;
+                needsUpdate = true;
+            } else if (constrainedY > viewportBottom - padding) {
+                constrainedY = viewportBottom - padding;
+                needsUpdate = true;
+            }
+
+            // Update position if constrained
+            if (needsUpdate) {
+                networkInstance.value?.moveNode(nodeId, constrainedX, constrainedY);
+            }
+        }
+    });
+}
+
+
 // Watch for adjacency changes to update visualization
 watch(
     () => adjacency.value,
-    async (newAdjacency: AdjacencyMap | null) => {
-        if (newAdjacency && Object.keys(newAdjacency).length > 0) {
-            console.log("Adjacency data changed, triggering render");
+    async (newAdjacency: AdjacencyMap | null, oldAdjacency: AdjacencyMap | null) => {
+        // Only trigger if adjacency actually changed (not just reference equality)
+        const newKeys = newAdjacency ? Object.keys(newAdjacency).sort().join(',') : '';
+        const oldKeys = oldAdjacency ? Object.keys(oldAdjacency).sort().join(',') : '';
+        if (newKeys !== oldKeys || (newAdjacency && Object.keys(newAdjacency).length > 0)) {
+            console.log("Adjacency data changed, triggering render", {
+                newCount: newAdjacency ? Object.keys(newAdjacency).length : 0,
+                oldCount: oldAdjacency ? Object.keys(oldAdjacency).length : 0
+            });
             // Wait for DOM to update and container to be available
             await nextTick();
             // Give a small delay to ensure container is rendered
             await new Promise((resolve) => setTimeout(resolve, 200));
             await renderNetwork();
         } else {
-            console.log("Adjacency data is empty or null");
+            console.log("Adjacency data is empty or null, skipping render");
         }
-    }
+    },
+    { deep: true } // Enable deep watching to catch nested changes
 );
 
 // Cleanup on unmount
@@ -1706,4 +2107,38 @@ label {
 input[type="hidden"] {
     display: none;
 }
+
+/* Network visualization container */
+.network-visualization-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.network-graph {
+    width: 100%;
+    height: 100%;
+}
+
+/* Zoom indicator */
+.zoom-indicator {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    font-family: 'Inter', sans-serif;
+}
+
 </style>

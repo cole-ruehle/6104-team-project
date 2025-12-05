@@ -370,13 +370,20 @@ export default class MultiSourceNetworkConcept {
     }
 
     const membership = await this.memberships.findOne({ owner, node: nodeId });
+    const label = nodeMeta && typeof nodeMeta === 'object' && 'label' in nodeMeta ? nodeMeta.label : undefined;
+
     if (!membership) {
+      // Create membership if it doesn't exist
       const membershipData: any = {
         _id: freshID(),
         owner,
         node: nodeId,
         sources: { [source]: true },
       };
+      if (label) {
+        membershipData.label = label;
+      }
+      await this.memberships.insertOne(membershipData);
       return { node: nodeId };
     }
 
@@ -388,7 +395,7 @@ export default class MultiSourceNetworkConcept {
     }
     await this.memberships.updateOne(
       { owner, node: nodeId },
-      { $set: { [`sources.${source}`]: true } },
+      { $set: updateData },
     );
 
     return { node: nodeId };
