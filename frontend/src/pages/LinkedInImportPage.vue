@@ -6,11 +6,6 @@
                 Upload a CSV or JSON file containing your LinkedIn connections
                 to import them into your network.
             </p>
-            <div class="banner info" style="margin-bottom: 1rem">
-                🚧 You can still upload files, but nodes won't be automatically
-                populated. Synchronization of reading the import and
-                automatically adding nodes is still needed.
-            </div>
 
             <StatusBanner
                 v-if="banner"

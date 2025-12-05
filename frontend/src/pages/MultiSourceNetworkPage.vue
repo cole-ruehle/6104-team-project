@@ -1612,15 +1612,17 @@ async function fetchAdjacency() {
 
         // Attempt to load node metadata (firstName/lastName/label) via searchNodes so we can
         // display human-friendly names in the graph. This is a best-effort call and will
-        // silently fail if not available.
+        // log errors but not block the visualization.
         try {
+            // Fetch all nodes - use a high limit to get all node metadata
             const metaRes = await MultiSourceNetworkAPI.searchNodes({
                 owner: auth.userId,
                 query: "",
-                limit: 1000,
+                limit: 10000, // Increased limit to ensure we get all nodes
             });
             const results =
                 (metaRes.results as Array<Record<string, any>>) || [];
+            console.log(`Loaded metadata for ${results.length} nodes`);
             for (const r of results) {
                 if (r._id) {
                     nodeMetaMap.value[String(r._id)] = {
@@ -1646,8 +1648,10 @@ async function fetchAdjacency() {
                     };
                 }
             }
+            console.log(`Node metadata map now has ${Object.keys(nodeMetaMap.value).length} entries`);
         } catch (err) {
-            // ignore metadata fetch errors
+            // Log error but don't block visualization
+            console.error("Failed to load node metadata:", err);
         }
 
         logActivity(
@@ -2426,27 +2430,53 @@ function setupNodeHoverTooltip() {
                 ? auth.username || profileData?.username || nodeId
                 : profileData?.username || nodeId);
 
+        // Helper function to normalize values: return value if it exists and is non-empty, otherwise null
+        const normalizeValue = (value: any): string | null => {
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed.length > 0 ? trimmed : null;
+            }
+            return value;
+        };
+
         // Use node data from MultiSourceNetwork.nodes, fallback to profile data
+        // All fields should show the value from nodeData if available, otherwise from profile, otherwise null
         hoveredNodeInfo.value = {
             name: nodeName,
-            label: nodeData.label,
-            headline: nodeData.headline ?? profile?.headline,
-            currentPosition:
-                nodeData.currentPosition ?? profile?.currentPosition,
-            currentCompany: nodeData.currentCompany ?? profile?.currentCompany,
-            location: nodeData.location ?? profile?.location,
-            industry: nodeData.industry ?? profile?.industry,
-            profileUrl: nodeData.profileUrl ?? profile?.profileUrl,
-            avatarUrl: nodeData.avatarUrl ?? nodeData.profilePictureUrl,
-            profilePictureUrl: nodeData.profilePictureUrl,
-            summary: nodeData.summary ?? profile?.summary,
-            skills: nodeData.skills ?? profile?.skills,
-            education: nodeData.education ?? profile?.education,
-            experience: nodeData.experience ?? profile?.experience,
-            tags: nodeData.tags,
-            sourceIds: nodeData.sourceIds,
-            createdAt: nodeData.createdAt,
-            updatedAt: nodeData.updatedAt,
+            label: normalizeValue(nodeData.label) ?? normalizeValue(profile?.label),
+            headline: normalizeValue(nodeData.headline) ?? normalizeValue(profile?.headline),
+            currentPosition: normalizeValue(nodeData.currentPosition) ?? normalizeValue(profile?.currentPosition),
+            currentCompany: normalizeValue(nodeData.currentCompany) ?? normalizeValue(profile?.currentCompany),
+            location: normalizeValue(nodeData.location) ?? normalizeValue(profile?.location),
+            industry: normalizeValue(nodeData.industry) ?? normalizeValue(profile?.industry),
+            profileUrl: normalizeValue(nodeData.profileUrl) ?? normalizeValue(profile?.profileUrl),
+            avatarUrl: normalizeValue(nodeData.avatarUrl) ?? normalizeValue(nodeData.profilePictureUrl) ?? normalizeValue(profile?.avatarUrl) ?? normalizeValue(profile?.profilePictureUrl),
+            profilePictureUrl: normalizeValue(nodeData.profilePictureUrl) ?? normalizeValue(profile?.profilePictureUrl),
+            summary: normalizeValue(nodeData.summary) ?? normalizeValue(profile?.summary),
+            skills: nodeData.skills && Array.isArray(nodeData.skills) && nodeData.skills.length > 0
+                ? nodeData.skills
+                : (profile?.skills && Array.isArray(profile.skills) && profile.skills.length > 0
+                    ? profile.skills
+                    : null),
+            education: nodeData.education && Array.isArray(nodeData.education) && nodeData.education.length > 0
+                ? nodeData.education
+                : (profile?.education && Array.isArray(profile.education) && profile.education.length > 0
+                    ? profile.education
+                    : null),
+            experience: nodeData.experience && Array.isArray(nodeData.experience) && nodeData.experience.length > 0
+                ? nodeData.experience
+                : (profile?.experience && Array.isArray(profile.experience) && profile.experience.length > 0
+                    ? profile.experience
+                    : null),
+            tags: nodeData.tags && Array.isArray(nodeData.tags) && nodeData.tags.length > 0
+                ? nodeData.tags
+                : null,
+            sourceIds: nodeData.sourceIds && typeof nodeData.sourceIds === 'object' && Object.keys(nodeData.sourceIds).length > 0
+                ? nodeData.sourceIds
+                : undefined,
+            createdAt: nodeData.createdAt ?? profile?.createdAt ?? null,
+            updatedAt: nodeData.updatedAt ?? profile?.updatedAt ?? null,
             degree: degree === 999 ? undefined : degree,
         };
 
