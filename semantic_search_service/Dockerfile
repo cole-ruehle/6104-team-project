@@ -12,9 +12,11 @@ RUN pip install --upgrade pip \
 
 COPY . .
 
+# Point to config file  
 ENV CONFIG=/app/app.yml \
     KMP_DUPLICATE_LIB_OK=TRUE
 
 EXPOSE 8001
 
-CMD ["uvicorn", "txtai.api.application:app", "--host", "0.0.0.0", "--port", "8001"]
+# Start txtai properly
+CMD ["txtai", "start", "--config", "/app/app.yml"]
