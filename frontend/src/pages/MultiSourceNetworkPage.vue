@@ -429,18 +429,30 @@
 
             <!-- Degree Legend -->
             <div v-if="adjacency && Object.keys(adjacency).length > 0" class="degree-legend" style="margin: 1rem 0; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
-                <div style="font-weight: 600; color: #475569; font-size: 0.9rem;">Connection Levels:</div>
+                <div style="font-weight: 600; color: #475569; font-size: 0.9rem;">Connection Levels (by shortest path):</div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #4a90e2;"></div>
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #dc2626;"></div>
+                    <span style="font-size: 0.85rem; color: #64748b;">Root (Self)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #facc15;"></div>
                     <span style="font-size: 0.85rem; color: #64748b;">1st Degree</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #7b8a8b;"></div>
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #22c55e;"></div>
                     <span style="font-size: 0.85rem; color: #64748b;">2nd Degree</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #95a5a6;"></div>
-                    <span style="font-size: 0.85rem; color: #64748b;">3rd+ Degree</span>
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #38bdf8;"></div>
+                    <span style="font-size: 0.85rem; color: #64748b;">3rd Degree</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #a855f7;"></div>
+                    <span style="font-size: 0.85rem; color: #64748b;">4th Degree</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #6b7280;"></div>
+                    <span style="font-size: 0.85rem; color: #64748b;">5th+ Degree</span>
                 </div>
             </div>
 
@@ -1438,26 +1450,51 @@ async function renderNetwork() {
     const isRoot = (nodeId: string) =>
         rootNodeId.value === nodeId || nodeId === auth.userId;
 
-    // Calculate node degrees (distance from root) using BFS
+    // Build bidirectional adjacency map (treat all edges as bidirectional)
+    const bidirectionalAdj: Record<string, Set<string>> = {};
+    for (const nodeId of nodeIds) {
+        bidirectionalAdj[nodeId] = new Set<string>();
+    }
+
+    // Add all edges bidirectionally
+    for (const nodeId of nodeIds) {
+        const nodeEdges = adjacency.value[nodeId] || [];
+        for (const edge of nodeEdges) {
+            // Add forward edge
+            if (!bidirectionalAdj[nodeId]) {
+                bidirectionalAdj[nodeId] = new Set<string>();
+            }
+            bidirectionalAdj[nodeId].add(edge.to);
+
+            // Add reverse edge (bidirectional)
+            if (!bidirectionalAdj[edge.to]) {
+                bidirectionalAdj[edge.to] = new Set<string>();
+            }
+            bidirectionalAdj[edge.to].add(nodeId);
+        }
+    }
+
+    // Calculate node degrees (distance from root) using BFS on bidirectional graph
+    // This finds the shortest path, prioritizing lowest degree
     const rootId = rootNodeId.value || auth.userId;
     const nodeDegrees = new Map<string, number>(); // nodeId -> degree (0 = root, 1 = 1st degree, 2 = 2nd degree, etc.)
 
-    if (rootId && nodeIds.includes(rootId)) {
-        // BFS to calculate distances from root
+    if (rootId && (nodeIds.includes(rootId) || bidirectionalAdj[rootId])) {
+        // BFS to calculate shortest distances from root (treating edges as bidirectional)
         const queue: Array<{ id: string; degree: number }> = [{ id: rootId, degree: 0 }];
         nodeDegrees.set(rootId, 0);
         const visited = new Set<string>([rootId]);
 
         while (queue.length > 0) {
             const current = queue.shift()!;
-            const currentEdges = adjacency.value[current.id] || [];
+            const neighbors = bidirectionalAdj[current.id] || new Set<string>();
 
-            for (const edge of currentEdges) {
-                if (!visited.has(edge.to)) {
-                    visited.add(edge.to);
+            for (const neighborId of neighbors) {
+                if (!visited.has(neighborId)) {
+                    visited.add(neighborId);
                     const nextDegree = current.degree + 1;
-                    nodeDegrees.set(edge.to, nextDegree);
-                    queue.push({ id: edge.to, degree: nextDegree });
+                    nodeDegrees.set(neighborId, nextDegree);
+                    queue.push({ id: neighborId, degree: nextDegree });
                 }
             }
         }
@@ -1468,6 +1505,13 @@ async function renderNetwork() {
                 nodeDegrees.set(nodeId, 999); // Disconnected
             }
         }
+
+        // Also check for nodes that are targets but not in nodeIds
+        for (const nodeId in bidirectionalAdj) {
+            if (!nodeDegrees.has(nodeId)) {
+                nodeDegrees.set(nodeId, 999);
+            }
+        }
     } else {
         // No root found, set all to unknown degree
         for (const nodeId of nodeIds) {
@@ -1475,19 +1519,21 @@ async function renderNetwork() {
         }
     }
 
-    // Helper function to get degree color
+    // Helper function to get degree color (distinct rainbow colors)
     const getDegreeColor = (nodeId: string): string => {
         const degree = nodeDegrees.get(nodeId) ?? 999;
         if (isRoot(nodeId)) {
-            return generateBrightColor(nodeId); // Root gets special color
+            return "#dc2626"; // Red for root/self node
         } else if (degree === 1) {
-            return "#4a90e2"; // Bright blue for 1st degree
+            return "#facc15"; // Yellow for 1st degree
         } else if (degree === 2) {
-            return "#7b8a8b"; // Medium gray-blue for 2nd degree
+            return "#22c55e"; // Green for 2nd degree
         } else if (degree === 3) {
-            return "#95a5a6"; // Lighter gray for 3rd degree
+            return "#38bdf8"; // Sky blue for 3rd degree
+        } else if (degree === 4) {
+            return "#a855f7"; // Purple for 4th degree
         } else {
-            return "#bdc3c7"; // Very light gray for 4+ degree or disconnected
+            return "#6b7280"; // Gray for 5+ degree or disconnected
         }
     };
 
@@ -1504,6 +1550,9 @@ async function renderNetwork() {
             return 35; // Smaller for 3+ degree
         }
     };
+
+    // Track edges we've already added (shared across all nodes to prevent duplicates)
+    const addedEdges = new Set<string>();
 
     for (const nodeId of nodeIds) {
         // For owner node, use authenticated user's username if available
@@ -1567,45 +1616,79 @@ async function renderNetwork() {
 
         nodes.add(node);
 
-        // Create edges
+        // Create edges (bidirectional - only add once per pair to avoid duplicates)
         const nodeEdges = adjacency.value[nodeId] || [];
+
         for (const edge of nodeEdges) {
+            // Create a canonical edge ID (smaller ID first to avoid duplicates)
+            const edgeId = nodeId < edge.to ? `${nodeId}-${edge.to}` : `${edge.to}-${nodeId}`;
+
+            if (addedEdges.has(edgeId)) {
+                continue; // Skip if we've already added this edge
+            }
+            addedEdges.add(edgeId);
+
             const fromDegree = nodeDegrees.get(nodeId) ?? 999;
             const toDegree = nodeDegrees.get(edge.to) ?? 999;
             const maxDegree = Math.max(fromDegree, toDegree);
 
-            // Make edges more transparent for 2nd+ degree connections
+            // Make edges match node colors with distinct rainbow colors
             let edgeOpacity = 1.0;
             let edgeWidth = edge.weight ? Math.max(1, Math.min(5, edge.weight)) : 2;
-            let edgeColor = "#415a77";
+            let edgeColor = "#dc2626"; // Red base color
 
-            if (maxDegree === 1) {
-                // 1st degree edge (root to 1st, or 1st to 1st)
-                edgeOpacity = 0.9;
+            if (maxDegree === 0) {
+                // Root to root (shouldn't happen, but just in case)
+                edgeOpacity = 1.0;
+                edgeWidth = edge.weight ? Math.max(2, Math.min(5, edge.weight)) : 3;
+                edgeColor = "#dc2626"; // Red
+            } else if (maxDegree === 1) {
+                // 1st degree edge
+                edgeOpacity = 0.8;
                 edgeWidth = edge.weight ? Math.max(2, Math.min(5, edge.weight)) : 2.5;
-                edgeColor = "#4a90e2";
+                edgeColor = "#facc15"; // Yellow
             } else if (maxDegree === 2) {
                 // 2nd degree edge
+                edgeOpacity = 0.7;
+                edgeWidth = edge.weight ? Math.max(1.5, Math.min(4, edge.weight)) : 2;
+                edgeColor = "#22c55e"; // Green
+            } else if (maxDegree === 3) {
+                // 3rd degree edge
+                edgeOpacity = 0.6;
+                edgeWidth = edge.weight ? Math.max(1, Math.min(3, edge.weight)) : 1.5;
+                edgeColor = "#38bdf8"; // Sky blue
+            } else if (maxDegree === 4) {
+                // 4th degree edge
                 edgeOpacity = 0.5;
-                edgeWidth = edge.weight ? Math.max(1, Math.min(4, edge.weight)) : 1.5;
-                edgeColor = "#7b8a8b";
+                edgeWidth = edge.weight ? Math.max(1, Math.min(3, edge.weight)) : 1.5;
+                edgeColor = "#a855f7"; // Purple
             } else {
-                // 3+ degree edge
-                edgeOpacity = 0.3;
-                edgeWidth = edge.weight ? Math.max(1, Math.min(3, edge.weight)) : 1;
-                edgeColor = "#95a5a6";
+                // 5+ degree edge
+                edgeOpacity = 0.4;
+                edgeWidth = edge.weight ? Math.max(1, Math.min(2, edge.weight)) : 1;
+                edgeColor = "#6b7280"; // Gray
             }
 
             edges.add({
-                id: `${nodeId}-${edge.to}`,
+                id: edgeId,
                 from: nodeId,
                 to: edge.to,
                 label: edge.weight ? String(edge.weight) : "",
                 width: edgeWidth,
+                arrows: {
+                    to: {
+                        enabled: false, // No arrows for bidirectional edges
+                    },
+                },
                 color: {
                     color: edgeColor,
                     opacity: edgeOpacity,
-                    highlight: maxDegree <= 1 ? "#6699cc" : "#95a5a6",
+                    highlight: maxDegree === 0 ? "#dc2626" :
+                               maxDegree === 1 ? "#facc15" :
+                               maxDegree === 2 ? "#22c55e" :
+                               maxDegree === 3 ? "#38bdf8" :
+                               maxDegree === 4 ? "#a855f7" :
+                               "#6b7280",
                 },
             });
         }
@@ -1689,8 +1772,7 @@ async function renderNetwork() {
         edges: {
             arrows: {
                 to: {
-                    enabled: true,
-                    scaleFactor: 0.8,
+                    enabled: false, // No arrows for bidirectional edges
                 },
             },
             smooth: {
