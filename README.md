@@ -46,5 +46,5 @@ You can download the sample LinkedIn CSV file below to test importing. You can a
 
 - [Sample LinkedIn CSV File to Download](sample_linkedin_connections.csv)
 
-### Features Still in Development for Beta
-- [Features still in development — Beta](Beta-In-Development.md)
+### Features Still in Development and Known Issues
+- [Features Still in Development and Known Issues — Beta](Beta-In-Development-Known-Issues.md)
