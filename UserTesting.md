@@ -21,7 +21,7 @@ Populate the app with data from cole's linked in and give the user that informat
 
 ## User 1 - Feedback, Notes
 
-User feedback & flow (live while watching — refer to video):
+### Live notes summarized
 
 - First, before even logging in: “What if I forget my password?” — didn’t have any option for that. (We don’t have password reset or recovery at all.)
 - Logs in with username, no issue there.
@@ -40,22 +40,15 @@ User feedback & flow (live while watching — refer to video):
 - “Why isn’t everything just one tab with logical groupings? How does filtering work?”
 - One more: “If you have 500 dots you will not find anyone. Visualization is not useful unless it helps you navigate.”
 
-tl;dr — Import is good and works/makes sense. Everything else: the user is confused, names are bad, flows are unclear, too much technical stuff (nodes/edges/JSON are not user-facing), and visualizations/search aren’t clear or useful. Needs a lot more help text and less dev-jargon everywhere.
 
-
-
-
-# Improvement Opportunities
+### Improvement Opportunities
 
 The biggest thing is that the front end dsign is poor. It should be simpler wiht buttons that prompt quick adn clear user floiws. "Add connection" pops up and takes a simple path to start and end with completeion. Same thing with linked in, accoutn creation and everywhere. A major theme with front end is to think about how the user will use the product and focus on that. NO decisions should be made on back end concepts or technical implemetaiton waht matters is the user flow not what the backend is expecting or what concept it is going to. The final thing is that the design colors were offputting and it made them less confident to navigate than websites and services that seemingly push you to exactly where you need to go. 
 
-## Changes List
-- Design overhaul
-  - Change colors and make sharper look les lie the same buttons everywhere rename everythign to what hte user purpose is. 
-- User flow overhall
-  - One main page buttons bring up popups that are segments of user journey
-  - Eg rather than node management just an add person button that then pops up and shows page by page. 
-- Responsiveness
-  - THe app needs tto be mroe responseive to show what is goign on the users trust slow stuff less
-- Confirmation
-  -   Each action should include some confirmation messgae to user only thing they were confident in was the uploading file 
+### Changes List
+| Flaw/Area                   | Explanation                                                                                                                           | User Test Evidence (notes on where/why this is needed)                                                                                                                                                                                      |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Overly Technical Design     | The app uses too much backend/developer jargon (like "node," "edge," "JSON array," "avatar URL"), and many UI labels are unclear or misaligned with user intent.           | User was confused by labels like "Add node," "manage nodes/edges," and "avatar URL"; didn't understand concepts or required data, and asked "what does that mean?" for "headline" field; expected LinkedIn-like flows.                 |
+| Poor User Flow & Navigation | Navigation is fragmented and non-intuitive, with multiple tabs and no clear, guided process for common tasks; actions often require understanding backend structures.        | User struggled to find the right tab ("multi source network" hard to locate, typed tab name in search bar), expected simpler actions like "add connection," and found it unclear how to proceed (added root by accident, etc.).        |
+| Lack of Responsiveness      | The interface is slow to update, save, and confirm user actions, leading to frustration and loss of trust in whether processes succeeded.                                    | User complained "saving takes forever," profile didn't update reliably or quickly, and network search gave little/no feedback ("seems like it is doing nothing"), making the app feel unresponsive and unreliable.                      |
+| Insufficient Confirmation/Feedback | Actions don't consistently provide feedback or confirmation, so users often don't know if what they did worked—except for file import, which was clear and successful.            | Only importing a file gave a clear success state; all other actions ("save," add/edit flows) left the user unsure if anything happened—user asked for confirmation messages or visible response after each action.                       |
