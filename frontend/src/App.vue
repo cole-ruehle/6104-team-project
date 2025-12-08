@@ -8,18 +8,14 @@
           workspace.
         </p>
         <nav>
-          <RouterLink to="/network">MultiSource Network</RouterLink>
-          <RouterLink to="/profiles">Public Profiles</RouterLink>
-          <RouterLink to="/import">Import LinkedIn</RouterLink>
-          <RouterLink to="/search">Network Search</RouterLink>
+          <RouterLink to="/home">Home</RouterLink>
+          <RouterLink to="/edit-network">Edit Network</RouterLink>
+          <RouterLink to="/import">Import</RouterLink>
         </nav>
       </div>
       <div class="auth-status" v-if="auth.isAuthenticated">
         <div class="user-chip">
-          <img class="avatar-chip" :src="avatar.src" alt="Profile avatar" />
-          <p class="muted">
-            Logged in as <strong>{{ auth.username }}</strong>
-          </p>
+          <img class="avatar-chip" :src="avatar.src" alt="Profile avatar" @click="showSettings = true" style="cursor: pointer;" />
           <button type="button" class="settings-btn" @click="showSettings = true" title="Settings">
             ⚙️
           </button>
