@@ -46,14 +46,117 @@ To make the app feel realistic, we prepopulated it with a large set of LinkedIn-
 - “Why isn’t everything just one tab with logical groupings? How does filtering work?”
 - One more: “If you have 500 dots you will not find anyone. Visualization is not useful unless it helps you navigate.”
 
+### User 1 – Report
+
+This test showed pretty quickly that a new user has no idea where to start in our app. Before even logging in, they asked what happens if they forget their password, which already pointed out a missing basic feature. After logging in, the first real blocker was the profile creation page. The fields were not obvious at all. “Headline” especially made no sense to them, and they just guessed and treated it like a bio. They only figured out more about their profile by accidentally clicking the account icon instead of settings, which says a lot about how unclear the navigation is.
+
+The biggest struggle was trying to add a connection. The user expected something simple and familiar, like adding a connection on LinkedIn. Instead they hit the “multi source network” and “manage nodes/edges” area and instantly felt like it was built for developers, not users. They did not understand why they had to worry about nodes, edges, tags, avatar URLs, or JSON arrays. Having to add an edge after a node, and not being told that clearly, completely broke the flow. Their quote about not wanting to “know how the database works” sums their struggle up.
+
+There were a few things that went well. Logging in itself was fine, and once they actually found the import page, they were able to upload the file with no issues and even said that flow “should be everywhere.” But search and the graph both felt confusing. “Public profiles” did not match what they expected, network search felt too slow with no feedback, and the visualization looked more like a cloud of random dots than a useful tool.
+
+Overall, the test reinforced that the UI is exposing way too much internal complex information and not giving users a clear path through the main features.
+
+
 ### Improvement Opportunities
 
 The biggest thing is that the front end design is poor. It should be simpler with buttons that prompt quick and clear user flows. "Add connection" pops up and takes a simple path to start and end with completeion. Same thing with linked in, accoutn creation and everywhere. A major theme with front end is to think about how the user will use the product and focus on that. NO decisions should be made on back end concepts or technical implemetaiton waht matters is the user flow not what the backend is expecting or what concept it is going to. The final thing is that the design colors were offputting and it made them less confident to navigate than websites and services that seemingly push you to exactly where you need to go.
 
 ### Changes List
-| Flaw/Area                   | Explanation                                                                                                                           | User Test Evidence (notes on where/why this is needed)                                                                                                                                                                                      |
-|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Overly Technical Design     | The app uses too much backend/developer jargon (like "node," "edge," "JSON array," "avatar URL"), and many UI labels are unclear or misaligned with user intent.           | User was confused by labels like "Add node," "manage nodes/edges," and "avatar URL"; didn't understand concepts or required data, and asked "what does that mean?" for "headline" field; expected LinkedIn-like flows.                 |
-| Poor User Flow & Navigation | Navigation is fragmented and non-intuitive, with multiple tabs and no clear, guided process for common tasks; actions often require understanding backend structures.        | User struggled to find the right tab ("multi source network" hard to locate, typed tab name in search bar), expected simpler actions like "add connection," and found it unclear how to proceed (added root by accident, etc.).        |
-| Lack of Responsiveness      | The interface is slow to update, save, and confirm user actions, leading to frustration and loss of trust in whether processes succeeded.                                    | User complained "saving takes forever," profile didn't update reliably or quickly, and network search gave little/no feedback ("seems like it is doing nothing"), making the app feel unresponsive and unreliable.                      |
-| Insufficient Confirmation/Feedback | Actions don't consistently provide feedback or confirmation, so users often don't know if what they did worked—except for file import, which was clear and successful.            | Only importing a file gave a clear success state; all other actions ("save," add/edit flows) left the user unsure if anything happened—user asked for confirmation messages or visible response after each action.                       |
+| Flaw/Area                        | Explanation                                                                                                                           | User Test Evidence (notes on where/why this is needed)                                                                                                                                                                                      | Potential Solution(s)                                                                                                                                       |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Overly Technical Design          | The app uses too much backend/developer jargon (like "node," "edge," "JSON array," "avatar URL"), and many UI labels are unclear or misaligned with user intent.           | User was confused by labels like "Add node," "manage nodes/edges," and "avatar URL"; didn't understand concepts or required data, and asked "what does that mean?" for "headline" field; expected LinkedIn-like flows.                 | **UI Overhaul, Design Streamlining**: Replace technical terms with user-friendly language, use familiar social networking metaphors, and clarify all labels.  |
+| Poor User Flow & Navigation      | Navigation is fragmented and non-intuitive, with multiple tabs and no clear, guided process for common tasks; actions often require understanding backend structures.        | User struggled to find the right tab ("multi source network" hard to locate, typed tab name in search bar), expected simpler actions like "add connection," and found it unclear how to proceed (added root by accident, etc.).        | **Design Streamlining, UI Overhaul**: Simplify navigation, make main actions (add connection, import data, search) central and obvious; provide guidance.    |
+| Lack of Responsiveness           | The interface is slow to update, save, and confirm user actions, leading to frustration and loss of trust in whether processes succeeded.                                    | User complained "saving takes forever," profile didn't update reliably or quickly, and network search gave little/no feedback ("seems like it is doing nothing"), making the app feel unresponsive and unreliable.                      | **Backend Optimization, Confirmation Messages**: Improve performance where possible and provide loading/progress indicators and after-action feedback.         |
+| Insufficient Confirmation/Feedback| Actions don't consistently provide feedback or confirmation, so users often don't know if what they did worked—except for file import, which was clear and successful.            | Only importing a file gave a clear success state; all other actions ("save," add/edit flows) left the user unsure if anything happened—user asked for confirmation messages or visible response after each action.                       | **Confirmation Messages, UI Overhaul**: Ensure every major action has visible, timely success and error notifications, similar to the import workflow.        |
+
+
+---
+<br>
+
+## User 2 – Feedback, Notes
+
+### Live Notes Summarized
+
+- The user complimented the color scheme and said it's soothing to the eye.
+
+- Before logging in, the user immediately asked what would happen if they forgot their password. There is no password or username recovery function.
+- After logging in, the user reacted strongly to the layout and said the page felt very cluttered. They said “WHAT IS ALL THIS??” and also questioned why the application name was missing from the page.
+
+- The user could not find any way to change their profile display name. They were able to upload a new profile picture successfully.
+- They were confused about why there is a Public Profiles page and why there is a broken Update Profile button even though there is already a settings page where the profile picture can be changed.
+
+- When attempting to manually add a connection, the user became very confused. The panel was hard to read and use. They said the following:
+  - “This is too much.”
+  - “You’re expecting me to have this person’s resume next to me.”
+  - “Why do I need to add in their summary.”
+  - The language is too technical.
+  - Having dropdowns for names of connections is nice and helpful.
+- They were surprised that the edge adding fields take in names and didn't understand what to fill in for "Source" and "Weight".
+- The circular layout of the network visualization was confusing and hard to read.
+- The user questioned why adding an edge is not included in the process of adding a node.
+- They also found the network graph difficult to play with, but they enjoyed how nodes can be moved around very smoothly.
+
+- The user easily navigated to the correct page to import connections and uploaded the file without issues. They suggested adding a progress percentage bar since the upload can take a while.
+
+- When searching for a specific person, the user became confused again.
+  - They did not understand why semantic search was located in the Public Profiles tab.
+  - They asked “So there’s two different searches?” because there's a keyword-like search in Network Search tab and a semantic search in Public Profiles tab.
+  - They questioned why the two search bars were in different places.
+  - They also questioned what the semantic score means.
+
+- Searching for software engineers was successful, but the user questioned why interns ranked above actual software engineers.
+
+- Searching by company was completed with no confusion.
+
+### Post-Test Debrief Notes
+
+- The user felt the app was not beginner friendly.
+- They suggested that many things could be combined into one instead of being spread out across multiple tabs.
+- They expected the network visualization to be emphasized since it seems like the main feature. They questioned why it appears low on the page instead of being the first thing shown after logging in.
+- They found the three column layout for working with the network to be confusing and taking up too much space.
+- Required fields should be more clearly emphasized, for example in red.
+- Some node panels in the visualization were cut off and not readable.
+- The user said there should be limits for zooming in and out, since the current zoom behavior is messy.
+- The 100% zoom state does not look like 100 percent to them. They suggested using whatever the refresh view sets the graph to as the true 100 percent.
+- The main tab layout did not feel intuitive, and they felt the entire app could be simplified into one or two tabs such as Network and Search.
+- They also wanted profile data beyond the picture to be editable.
+
+### User 2 – Report
+
+This user test made it really clear where things feel intuitive in the app and where people just get stuck. Even before logging in, the user asked what would happen if they forgot their password, which immediately showed we’re missing some really basic account features. Once they got into the app, their first reaction was basically confusion. The layout felt overwhelming to them, and without the app name anywhere, they weren’t even sure what page they were on or what they were supposed to do first.
+
+The biggest pain point was definitely the manual “add connection” flow. The user expected something simple, like adding a connection on LinkedIn, and instead ran into a long form with a lot of technical language. Their comments about needing someone’s resume really highlighted how mismatched what we ask the user to fill out with what someone would realistically know and want to fill out. They were also confused about why adding an edge wasn’t just part of adding a node. They did appreciate the dropdown for selecting names, so there were small parts of the flow that made sense to them, but overall they were pretty overwhelmed.
+
+Search was a similar situation. The tasks themselves were completed, but the user didn’t understand why there were two forms of searching and why they were located in different pages. They also weren’t sure what the semantic score meant and questioned certain semantic responses, such as why interns were ranking above actual full-time engineers when they queried "software engineers". So even though search worked, the reasoning behind it wasn’t communicated well and the information wasn't delivered well.
+
+There were some positive moments though. Importing the LinkedIn file went smoothly, and they had no trouble finding the right page or finishing all the tasks. They also liked how smoothly the nodes moved around in the graph visualization, even if the circular layout itself felt confusing and hard to read.
+
+Overall, this test showed a clear divide between the parts of the app that are simple and the parts that feel overly complex. Whenever a flow was direct and clearly labeled, the user moved through it with no issues. But the moment the interface required them to understand technical terms or jump between different tabs, they got confused or stuck. It highlighted exactly which areas need simplification so the core ideas of the app can come through more clearly.
+
+
+### Improvement Opportunities
+
+| Flaw/Area | Explanation (Why it occurs) | How to Address It | User Test Evidence |
+|-----------|-----------------------------|--------------------|--------------------|
+| Undiscoverable Profile Editing | Profile editing is scattered across multiple locations with inconsistent or unclear labels. The broken Update Profile button and the existence of Public Profiles alongside Settings creates conflicting pathways. | Consolidate all profile editing into a single, clearly named Settings page. Remove or repair duplicate buttons and eliminate unnecessary pages like Public Profiles if they overlap with existing functionality. | User never found where to change their display name, noticed a broken Update Profile button, and questioned why Public Profiles was separate from Settings. |
+| Overly Technical Manual Connection Workflow | The manual node and edge creation panels expose backend concepts directly to users. Field names and required inputs do not match what users typically know about their connections. | Replace technical field names with user-friendly labels. Hide backend values or auto-generate them. Combine node and edge creation into one guided flow that matches how users expect to “add a connection.” | User said “This is too much,” questioned why many fields were needed, and did not understand what many fields are asking for such as “Source" or “Weight.” |
+| Fragmented Search Experience | Search functionality is split across multiple tabs, creating a disconnect between the keyword-like search and semantic search located on different pages. This stems from features being built separately instead of as a unified search system. The user also questioned the details of search results, such as the semantic score. | Consolidate all search into one unified search page. Visually separate keyword vs semantic search modes within the same interface. Provide clear explanations for semantic scoring and ranking logic. | User asked “So there’s two different searches?” They questioned semantic search being in Public Profiles and did not understand where the semantic score came from. |
+| Poor Visualization Usability | The graph layout lacks clear structure, constraints, and viewport handling. Node detail panels can be cut off, zooming behaves unpredictably, and the visualization is not emphasized (and rather hidden under a lot of panels) despite being the main feature of the app. This occurs because the visualization was added without a layout strategy or a clear place in the information hierarchy. | Add max/min zoom limits, ensure node detail panels reposition within the viewport, move the visualization to a more prominent location on the page, and switch to a more readable default layout (ex: hierarchical or force-directed). | User said the circular layout was confusing, node panels were sometimes cut off, zooming felt messy and unintuitive, and they questioned why the graph is placed so low on the page if it is supposed to be the main feature. |
+| Overwhelming Initial Interface | The landing page contains too much information with no visual hierarchy or guidance. Without the app name or a clear starting point, new users feel lost immediately. | Simplify the landing page and introduce a clear top-level structure. Add the application name, highlight the primary action (network visualization), and reduce visual clutter. | Upon login, the user said “WHAT IS ALL THIS??” and questioned why the application name was missing. |
+
+
+---
+<br>
+
+## Similarities Between User 1 and User 2
+
+Across both user studies, there were several strong points of overlap:
+
+- Both users immediately felt overwhelmed by the interface after logging in. Each commented on clutter and confusion right away.
+- Both were unable to find or understand how to edit basic profile data such as their display name.
+- Both found the manual connection creation process extremely confusing. They questioned the number of required fields, did not understand the terminology, and felt the process expected far too much information.
+- Both were confused by fragmented navigation. They had trouble finding the correct tabs, and both felt that there were too many sections that could be combined.
+- Both struggled with graph usability, noting that the layout was confusing, difficult to read, and not intuitive to interact with.
+- Both questioned why search features were split into different tabs and why semantic search was separated from the keyword-like search.
+
+Overall, the two user tests independently revealed the same core issues in navigation, terminology, information density, graph usability, and the separation of search features. These recurring patterns indicate that the problems are systemic rather than isolated to individual users.
