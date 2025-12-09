@@ -1584,7 +1584,7 @@ async function loadNetworkData() {
                         ...nd,
                     },
                     avatarUrl:
-                        (nd.avatarUrl as string) || avatarStore.DEFAULT_AVATAR,
+                        (nd.avatarUrl as string) || avatarStore.getLetterAvatar(nd.label || nd.firstName || id),
                     username: (nd.label as string) || id,
                 };
             });
@@ -1621,9 +1621,10 @@ async function loadNetworkData() {
                 const fullName = `${firstName} ${lastName}`.trim();
 
                 displayName = fullName || linkedInConn.headline || nodeId;
+                // Use profile picture if available, otherwise use letter-based avatar
                 avatarUrl =
                     linkedInConn.profilePictureUrl ||
-                    avatarStore.DEFAULT_AVATAR;
+                    avatarStore.getLetterAvatar(displayName);
 
                 // Store in nodeProfiles for company/location filtering
                 nodeProfiles.value[nodeId] = {
@@ -1661,11 +1662,16 @@ async function loadNetworkData() {
                     if (publicProfile?.profilePictureUrl) {
                         avatarUrl = publicProfile.profilePictureUrl;
                     } else {
-                        avatarUrl = profileData.avatarUrl;
+                        // Use letter-based avatar if no profile picture
+                        avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+                            ? avatarStore.getLetterAvatar(displayName)
+                            : profileData.avatarUrl;
                     }
                 } else {
-                    // Non-root nodes: use the avatarUrl from profileData (which may be from node metadata or default)
-                    avatarUrl = profileData.avatarUrl;
+                    // Non-root nodes: use letter-based avatar if no profile picture
+                    avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+                        ? avatarStore.getLetterAvatar(displayName)
+                        : profileData.avatarUrl;
                 }
             }
 

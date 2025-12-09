@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import { RouterLink, RouterView, useRouter } from "vue-router";
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import LandingPage from "@/pages/LandingPage.vue";
 import UserSettingsPanel from "@/components/UserSettingsPanel.vue";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -65,9 +65,21 @@ async function loadUserProfilePicture() {
     if (profile && (profile as any).profilePictureUrl) {
       avatar.set((profile as any).profilePictureUrl);
       avatar.setForUser(auth.userId, (profile as any).profilePictureUrl);
+    } else {
+      // Use letter-based avatar if no profile picture is available
+      const username = auth.username || auth.userId;
+      const letterAvatar = avatar.getLetterAvatar(username);
+      avatar.set(letterAvatar);
+      avatar.setForUser(auth.userId, letterAvatar);
     }
   } catch {
-    // Silently fail - profile might not exist yet
+    // Silently fail - profile might not exist yet, use letter-based avatar
+    const username = auth.username || auth.userId || "";
+    const letterAvatar = avatar.getLetterAvatar(username);
+    avatar.set(letterAvatar);
+    if (auth.userId) {
+      avatar.setForUser(auth.userId, letterAvatar);
+    }
   }
 }
 
@@ -76,7 +88,19 @@ onMounted(() => {
   if (auth.isAuthenticated) {
     loadUserProfilePicture();
   }
+  // Listen for profile picture updates
+  window.addEventListener("profilePictureUpdated", handleProfilePictureUpdated);
 });
+
+// Clean up event listener
+onBeforeUnmount(() => {
+  window.removeEventListener("profilePictureUpdated", handleProfilePictureUpdated);
+});
+
+// Handle profile picture updates
+async function handleProfilePictureUpdated() {
+  await loadUserProfilePicture();
+}
 
 // Load when user logs in
 watch(() => auth.userId, (userId) => {

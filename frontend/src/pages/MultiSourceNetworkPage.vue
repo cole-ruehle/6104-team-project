@@ -1743,7 +1743,13 @@ async function fetchNodeProfiles(nodeIds: string[]) {
                     avatarUrl = profile.profilePictureUrl;
                     avatarStore.setForUser(nodeId, avatarUrl);
                 } else {
-                    avatarUrl = avatarStore.getForUser(nodeId);
+                    // Use letter-based avatar if no profile picture
+                    const storedAvatar = avatarStore.getForUser(nodeId);
+                    if (storedAvatar === avatarStore.DEFAULT_AVATAR) {
+                        avatarUrl = avatarStore.getLetterAvatar(username);
+                    } else {
+                        avatarUrl = storedAvatar;
+                    }
                 }
 
                 nodeProfiles.value[nodeId] = {
@@ -1752,16 +1758,26 @@ async function fetchNodeProfiles(nodeIds: string[]) {
                     username: username, // Store actual username, not headline
                 };
             } else {
-                // No profile, but we have username from auth
-                avatarUrl = avatarStore.getForUser(nodeId);
+                // No profile, but we have username from auth - use letter-based avatar
+                const storedAvatar = avatarStore.getForUser(nodeId);
+                if (storedAvatar === avatarStore.DEFAULT_AVATAR) {
+                    avatarUrl = avatarStore.getLetterAvatar(username);
+                } else {
+                    avatarUrl = storedAvatar;
+                }
                 nodeProfiles.value[nodeId] = {
                     avatarUrl,
                     username,
                 };
             }
         } catch {
-            // No profile found, use username from auth or nodeId
-            avatarUrl = avatarStore.getForUser(nodeId);
+            // No profile found, use letter-based avatar based on username or nodeId
+            const storedAvatar = avatarStore.getForUser(nodeId);
+            if (storedAvatar === avatarStore.DEFAULT_AVATAR) {
+                avatarUrl = avatarStore.getLetterAvatar(username);
+            } else {
+                avatarUrl = storedAvatar;
+            }
             nodeProfiles.value[nodeId] = {
                 avatarUrl,
                 username,
@@ -1970,11 +1986,17 @@ async function renderNetwork() {
                 ? auth.username || profileData.username || nodeId
                 : profileData.username || nodeId);
 
+        // Use letter-based avatar if no profile picture is available
+        let avatarUrl = profileData.avatarUrl;
+        if (avatarUrl === avatarStore.DEFAULT_AVATAR) {
+            avatarUrl = avatarStore.getLetterAvatar(nodeLabel);
+        }
+
         const node: any = {
             id: nodeId,
             label: nodeLabel,
             shape: "circularImage",
-            image: profileData.avatarUrl,
+            image: avatarUrl,
             brokenImage: avatarStore.DEFAULT_AVATAR,
             borderWidth: isRoot(nodeId) ? 6 : 4,
             borderColor: nodeColor,
@@ -2120,6 +2142,12 @@ async function renderNetwork() {
                 const nodeLabel =
                     nameFromMetaTarget || profileData.username || edge.to;
 
+                // Use letter-based avatar if no profile picture is available
+                let targetAvatarUrl = profileData.avatarUrl;
+                if (targetAvatarUrl === avatarStore.DEFAULT_AVATAR) {
+                    targetAvatarUrl = avatarStore.getLetterAvatar(nodeLabel);
+                }
+
                 // Check if this target node is the root node
                 const isTargetRoot = isRoot(edge.to);
                 const targetNodeColor = getDegreeColor(edge.to);
@@ -2127,7 +2155,7 @@ async function renderNetwork() {
                     id: edge.to,
                     label: nodeLabel,
                     shape: "circularImage",
-                    image: profileData.avatarUrl,
+                    image: targetAvatarUrl,
                     brokenImage: avatarStore.DEFAULT_AVATAR,
                     borderWidth: isTargetRoot ? 6 : 4,
                     borderColor: targetNodeColor,
@@ -2464,7 +2492,18 @@ function setupNodeHoverTooltip() {
             location: normalizeValue(nodeData.location) ?? normalizeValue(profile?.location),
             industry: normalizeValue(nodeData.industry) ?? normalizeValue(profile?.industry),
             profileUrl: normalizeValue(nodeData.profileUrl) ?? normalizeValue(profile?.profileUrl),
-            avatarUrl: normalizeValue(nodeData.avatarUrl) ?? normalizeValue(nodeData.profilePictureUrl) ?? normalizeValue(profile?.avatarUrl) ?? normalizeValue(profile?.profilePictureUrl),
+            avatarUrl: (() => {
+                const url = normalizeValue(nodeData.avatarUrl) ?? normalizeValue(nodeData.profilePictureUrl) ?? normalizeValue(profile?.avatarUrl) ?? normalizeValue(profile?.profilePictureUrl);
+                // If no avatar URL, use letter-based avatar based on node name
+                if (!url) {
+                    return avatarStore.getLetterAvatar(nodeName);
+                }
+                // If it's the default avatar, use letter-based avatar
+                if (url === avatarStore.DEFAULT_AVATAR) {
+                    return avatarStore.getLetterAvatar(nodeName);
+                }
+                return url;
+            })(),
             profilePictureUrl: normalizeValue(nodeData.profilePictureUrl) ?? normalizeValue(profile?.profilePictureUrl),
             summary: normalizeValue(nodeData.summary) ?? normalizeValue(profile?.summary),
             skills: nodeData.skills && Array.isArray(nodeData.skills) && nodeData.skills.length > 0

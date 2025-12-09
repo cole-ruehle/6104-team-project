@@ -954,7 +954,7 @@ async function performSemanticSearch() {
                     const fullName = `${firstName} ${lastName}`.trim();
                     displayName = fullName || conn.headline || connectionId;
                     avatarUrl =
-                        conn.profilePictureUrl || avatarStore.DEFAULT_AVATAR;
+                        conn.profilePictureUrl || avatarStore.getLetterAvatar(displayName);
                     location = conn.location;
                     currentJob = conn.currentPosition || conn.headline;
                     company = conn.currentCompany;
@@ -975,7 +975,10 @@ async function performSemanticSearch() {
                         displayName = profileData.username || connectionId;
                     }
 
-                    avatarUrl = profileData.avatarUrl;
+                    // Use letter-based avatar if no profile picture
+                    avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+                        ? avatarStore.getLetterAvatar(displayName)
+                        : profileData.avatarUrl;
                     location = profData.location;
                     currentJob = profData.headline;
                     company = profData.company;
@@ -1486,7 +1489,7 @@ async function loadNetworkData() {
                         ...nd,
                     },
                     avatarUrl:
-                        (nd.avatarUrl as string) || avatarStore.DEFAULT_AVATAR,
+                        (nd.avatarUrl as string) || avatarStore.getLetterAvatar(nd.label || nd.firstName || id),
                     username: (nd.label as string) || id,
                 };
             });
@@ -1524,9 +1527,10 @@ async function loadNetworkData() {
                 const fullName = `${firstName} ${lastName}`.trim();
 
                 displayName = fullName || linkedInConn.headline || nodeId;
+                // Use profile picture if available, otherwise use letter-based avatar
                 avatarUrl =
                     linkedInConn.profilePictureUrl ||
-                    avatarStore.DEFAULT_AVATAR;
+                    avatarStore.getLetterAvatar(displayName);
                 location = linkedInConn.location;
                 currentJob = linkedInConn.currentPosition || linkedInConn.headline;
                 company = linkedInConn.currentCompany;
@@ -1563,10 +1567,16 @@ async function loadNetworkData() {
                     if (publicProfile?.profilePictureUrl) {
                         avatarUrl = publicProfile.profilePictureUrl;
                     } else {
-                        avatarUrl = profileData.avatarUrl;
+                        // Use letter-based avatar if no profile picture
+                        avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+                            ? avatarStore.getLetterAvatar(displayName)
+                            : profileData.avatarUrl;
                     }
                 } else {
-                    avatarUrl = profileData.avatarUrl;
+                    // Use letter-based avatar if no profile picture
+                    avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+                        ? avatarStore.getLetterAvatar(displayName)
+                        : profileData.avatarUrl;
                 }
                 location = profile.location;
                 currentJob = profile.headline;

@@ -28,12 +28,34 @@ export const useAvatarStore = defineStore("avatar", () => {
     return userCache.get(userId) ?? lookup.value[userId] ?? DEFAULT_AVATAR;
   }
 
+  /**
+   * Get letter-based avatar for a name when no profile picture is available.
+   * Returns the path to the SVG icon based on the first letter of the name.
+   */
+  function getLetterAvatar(name: string | undefined | null): string {
+    if (!name || name.trim().length === 0) {
+      return DEFAULT_AVATAR;
+    }
+
+    // Get the first letter and convert to uppercase
+    const firstLetter = name.trim().charAt(0).toUpperCase();
+
+    // Check if it's a valid letter (A-Z)
+    if (firstLetter >= 'A' && firstLetter <= 'Z') {
+      return `/avatars/${firstLetter}.svg`;
+    }
+
+    // For non-letter characters, use default avatar
+    return DEFAULT_AVATAR;
+  }
+
   return {
     src,
     set,
     reset,
     setForUser,
     getForUser,
+    getLetterAvatar,
     DEFAULT_AVATAR,
   };
 });

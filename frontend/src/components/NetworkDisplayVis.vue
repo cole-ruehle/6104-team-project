@@ -285,6 +285,15 @@ async function renderNetwork() {
             }
         }
 
+        // Use letter-based avatar if no profile picture is available
+        if (avatarUrl === avatarStore.DEFAULT_AVATAR) {
+            const nodeLabel =
+                nodeId === props.currentUserId
+                    ? auth.username || profileData.username || nodeId
+                    : profileData.username || nodeId;
+            avatarUrl = avatarStore.getLetterAvatar(nodeLabel);
+        }
+
         const nodeColor = getDegreeColor(nodeId, nodeDegrees);
         const nodeLabel =
             nodeId === props.currentUserId
