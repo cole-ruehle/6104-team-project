@@ -1,7 +1,7 @@
 embeddings:
-  path: sentence-transformers/all-MiniLM-L6-v2
+    path: sentence-transformers/all-MiniLM-L6-v2
 
 api:
-  host: 0.0.0.0
-  port: ${PORT}
+    host: 0.0.0.0
+    port: 8080
 writable: true
