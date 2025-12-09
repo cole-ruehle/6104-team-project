@@ -446,15 +446,32 @@
                             v-if="selectedProfileData.currentPosition"
                             class="detail-section"
                         >
-                            <h3 class="detail-title">Current Position</h3>
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-briefcase"></i>
+                                Current Position
+                            </h3>
                             <p>{{ selectedProfileData.currentPosition }}</p>
+                        </div>
+
+                        <div
+                            v-if="selectedProfileData.currentCompany"
+                            class="detail-section"
+                        >
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-building"></i>
+                                Company
+                            </h3>
+                            <p>{{ selectedProfileData.currentCompany }}</p>
                         </div>
 
                         <div
                             v-if="selectedProfileData.industry"
                             class="detail-section"
                         >
-                            <h3 class="detail-title">Industry</h3>
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-industry"></i>
+                                Industry
+                            </h3>
                             <p>{{ selectedProfileData.industry }}</p>
                         </div>
 
@@ -462,7 +479,10 @@
                             v-if="selectedProfileData.summary"
                             class="detail-section"
                         >
-                            <h3 class="detail-title">Summary</h3>
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-file-text"></i>
+                                Summary
+                            </h3>
                             <p class="profile-summary">
                                 {{ selectedProfileData.summary }}
                             </p>
@@ -475,7 +495,10 @@
                             "
                             class="detail-section"
                         >
-                            <h3 class="detail-title">Skills</h3>
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-star"></i>
+                                Skills
+                            </h3>
                             <div class="skills-list">
                                 <span
                                     v-for="skill in selectedProfileData.skills"
@@ -494,7 +517,10 @@
                             "
                             class="detail-section"
                         >
-                            <h3 class="detail-title">Experience</h3>
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-briefcase"></i>
+                                Experience
+                            </h3>
                             <div class="experience-list">
                                 <div
                                     v-for="(
@@ -533,7 +559,10 @@
                             "
                             class="detail-section"
                         >
-                            <h3 class="detail-title">Education</h3>
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                                Education
+                            </h3>
                             <div class="education-list">
                                 <div
                                     v-for="(
@@ -569,17 +598,40 @@
                         </div>
 
                         <div
+                            v-if="selectedProfileData.tags && selectedProfileData.tags.length > 0"
+                            class="detail-section"
+                        >
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-tags"></i>
+                                Tags
+                            </h3>
+                            <div class="tags-list">
+                                <span
+                                    v-for="tag in selectedProfileData.tags"
+                                    :key="tag"
+                                    class="tag-item"
+                                >
+                                    {{ tag }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div
                             v-if="selectedProfileData.profileUrl"
                             class="detail-section"
                         >
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-link"></i>
+                                Profile Link
+                            </h3>
                             <a
                                 :href="selectedProfileData.profileUrl"
                                 target="_blank"
-                                rel="noopener"
+                                rel="noopener noreferrer"
                                 class="profile-link"
                             >
-                                <i class="fab fa-linkedin"></i> View LinkedIn
-                                Profile
+                                {{ selectedProfileData.profileUrl }}
+                                <i class="fa-solid fa-external-link-alt"></i>
                             </a>
                         </div>
                     </div>
@@ -875,24 +927,54 @@ const selectedProfileData = computed(() => {
 
     const linkedInConn = linkedInConnections.value[selectedProfileId.value];
     const profile = nodeProfiles.value[selectedProfileId.value];
+    const profileData = profile?.profile || {};
 
+    // Get all available data from different sources, prioritizing LinkedIn data
     return {
         id: node.id,
         displayName: node.displayName,
-        headline: linkedInConn?.headline || profile?.profile?.headline || "",
+        headline: linkedInConn?.headline || profileData.headline || "",
         currentCompany:
-            linkedInConn?.currentCompany || profile?.profile?.company || "",
-        currentPosition: linkedInConn?.currentPosition || "",
-        location: linkedInConn?.location || profile?.profile?.location || "",
-        industry: linkedInConn?.industry || "",
-        summary: linkedInConn?.summary || "",
-        skills: linkedInConn?.skills || [],
-        experience: linkedInConn?.experience || [],
-        education: linkedInConn?.education || [],
-        profileUrl: linkedInConn?.profileUrl || "",
+            linkedInConn?.currentCompany || 
+            profileData.currentCompany || 
+            profileData.company || 
+            "",
+        currentPosition: 
+            linkedInConn?.currentPosition || 
+            profileData.currentPosition || 
+            "",
+        location: 
+            linkedInConn?.location || 
+            profileData.location || 
+            "",
+        industry: 
+            linkedInConn?.industry || 
+            profileData.industry || 
+            "",
+        summary: 
+            linkedInConn?.summary || 
+            profileData.summary || 
+            "",
+        skills: 
+            linkedInConn?.skills || 
+            profileData.skills || 
+            [],
+        experience: 
+            linkedInConn?.experience || 
+            profileData.experience || 
+            [],
+        education: 
+            linkedInConn?.education || 
+            profileData.education || 
+            [],
+        profileUrl: 
+            linkedInConn?.profileUrl || 
+            profileData.profileUrl || 
+            "",
         avatarUrl: node.avatarUrl,
         initials: node.initials,
         sources: node.sources,
+        tags: profileData.tags || [],
     };
 });
 

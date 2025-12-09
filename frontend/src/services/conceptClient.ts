@@ -74,6 +74,9 @@ export const MultiSourceNetworkAPI = {
     avatarUrl?: string;
     tags?: string[];
     sourceIds?: Record<string, string>;
+    location?: string;
+    currentCompany?: string;
+    currentPosition?: string;
   }) =>
     postConcept<{ node: string }>(
       "MultiSourceNetwork",
@@ -116,6 +119,33 @@ export const MultiSourceNetworkAPI = {
     postConcept<Array<Record<string, unknown>>>(
       "MultiSourceNetwork",
       "getNodes",
+      payload,
+    ),
+  updateNode: (payload: {
+    node: string;
+    updater: string;
+    meta?: {
+      firstName?: string;
+      lastName?: string;
+      label?: string;
+      headline?: string;
+      profileUrl?: string;
+      avatarUrl?: string;
+      profilePictureUrl?: string;
+      location?: string;
+      industry?: string;
+      currentPosition?: string;
+      currentCompany?: string;
+      summary?: string;
+      skills?: string[];
+      education?: Array<Record<string, unknown>>;
+      experience?: Array<Record<string, unknown>>;
+      tags?: string[];
+    };
+  }) =>
+    postConcept<{ node?: string; error?: string }>(
+      "MultiSourceNetwork",
+      "updateNode",
       payload,
     ),
 };

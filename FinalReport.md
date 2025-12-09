@@ -1,6 +1,12 @@
 # Final Report
 
+### Differences From Original Design
+
+**Table**
+
 ## Design Summary
+
+### Disambiguation of Mutliple Users
 
 ### Ethics of importing
 Our original plan was to use a system similar to those commercially available online, which scrape profile information on a per-profile basis (e.g., profile_id → information). However, despite these sources existing, many are vague about how they accomplish this. Upon reviewing the LinkedIn API, we discovered that a change was made around six years ago to limit the amount of information accessible through standard means. This is because LinkedIn decided to monetize access to this data, making it available only to their corporate partners—requiring negotiation of a hefty payment package. Despite these factors, it is clearly still possible to get information from LinkedIn, and since LinkedIn still permits it (for a price), the use of that data is not inherently unethical. However, after this research, it became clear that knowingly subverting the explicit changes LinkedIn has made would be unethical.
