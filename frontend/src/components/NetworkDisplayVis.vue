@@ -1,5 +1,39 @@
 <template>
     <div class="network-display-vis">
+        <!-- Degree Legend -->
+        <div
+            v-if="hasNodes"
+            class="degree-legend"
+        >
+            <div class="legend-title">
+                Connection Levels (by shortest path):
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #dc2626;"></div>
+                <span>Root (Self)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #facc15;"></div>
+                <span>1st Degree</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #22c55e;"></div>
+                <span>2nd Degree</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #38bdf8;"></div>
+                <span>3rd Degree</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #a855f7;"></div>
+                <span>4th Degree</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #6b7280;"></div>
+                <span>5th+ Degree</span>
+            </div>
+        </div>
+
         <!-- Network Container -->
         <div class="network-visualization-container">
             <div ref="networkContainer" class="network-graph"></div>
@@ -582,6 +616,42 @@ onMounted(() => {
     padding: 0;
     margin: 0;
     box-sizing: border-box;
+}
+
+.degree-legend {
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.legend-title {
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 4px solid;
+}
+
+.legend-item span {
+    font-size: 0.85rem;
+    color: #64748b;
 }
 
 .network-visualization-container {

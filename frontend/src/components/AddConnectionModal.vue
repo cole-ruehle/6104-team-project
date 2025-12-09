@@ -277,6 +277,30 @@ async function handleSubmit(event?: Event) {
     saving.value = true;
 
     try {
+        // Step 0: Ensure network exists and root is set (replicating old flow requirement)
+        console.log("[AddConnection] Step 0: Ensuring network exists and root is set...");
+        try {
+            // Try to create network with user as root (will fail silently if network already exists)
+            await MultiSourceNetworkAPI.createNetwork({
+                owner: auth.userId,
+                root: auth.userId,
+            });
+            console.log("[AddConnection] Network created with root");
+        } catch (networkError: any) {
+            // Network might already exist, that's fine
+            // Try to set root node if it's not set
+            try {
+                await MultiSourceNetworkAPI.setRootNode({
+                    owner: auth.userId,
+                    root: auth.userId,
+                });
+                console.log("[AddConnection] Root node set");
+            } catch (rootError: any) {
+                // Root might already be set, that's fine
+                console.log("[AddConnection] Network and root already exist or set");
+            }
+        }
+
         console.log("[AddConnection] Step 1: Creating node...");
         // Step 1: Create the node (same pattern as MultiSourceNetworkPage)
         const label = `${form.value.firstName} ${form.value.lastName}`.trim();
@@ -321,6 +345,8 @@ async function handleSubmit(event?: Event) {
 
         console.log("[AddConnection] Step 3: Creating edge(s)...");
         // Step 3: Create edge(s) based on connection type
+        // By default, connect to the current user (auth.userId)
+        // If "connected through" is specified, connect through that intermediate node
         if (form.value.connectionType === "direct") {
             // Direct connection: user -> new connection (1st degree)
             console.log("[AddConnection] Creating direct edge from", auth.userId, "to", nodeId);
