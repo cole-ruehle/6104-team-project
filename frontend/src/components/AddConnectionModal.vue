@@ -361,8 +361,6 @@ async function handleSubmit(event?: Event) {
 
         const nodeId = (created as any).node as string;
         console.log("[AddConnection] Node created with ID:", nodeId);
-        const nodeId = (created as any).node as string;
-        console.log("[AddConnection] Node created with ID:", nodeId);
 
         console.log("[AddConnection] Step 2: Adding node to network...");
         // Step 2: Add node to network with source "manual" (same pattern as MultiSourceNetworkPage)

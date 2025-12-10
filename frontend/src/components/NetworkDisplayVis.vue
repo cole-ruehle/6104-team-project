@@ -42,7 +42,6 @@
                     <input
                         type="text"
                         v-model="searchQuery"
-                        @input="handleSearchInput"
                         @keydown.enter="handleSearchSubmit"
                         placeholder="Search nodes..."
                         class="search-input"
@@ -54,15 +53,7 @@
                     class="search-submit-btn"
                     title="Search"
                 >
-                    <p class="fa-solid fa-search">🔍</p>
-                </button>
-                <button
-                    v-if="searchQuery"
-                    @click="clearSearch"
-                    class="clear-search-btn"
-                    title="Clear search"
-                >
-                    <i class="fa-solid fa-times"></i>
+                    <i class="fa-solid fa-search">🔍</i>
                 </button>
             </div>
 
@@ -246,19 +237,8 @@ function clearSelection() {
     updateNodeSelection();
 }
 
-// Handle search input
-function handleSearchInput() {
-    applySearchFilter();
-}
-
 // Handle search submit (Enter key or button click)
 function handleSearchSubmit() {
-    applySearchFilter();
-}
-
-// Clear search
-function clearSearch() {
-    searchQuery.value = "";
     applySearchFilter();
 }
 
@@ -269,18 +249,20 @@ function applySearchFilter() {
     const nodes = nodeDataSet.value;
     const query = searchQuery.value.toLowerCase().trim();
 
-    if (!query) {
-        // Show all nodes
-        nodes.forEach((node: any) => {
-            nodes.update({
-                id: node.id,
-                hidden: false,
-            });
+    // Ensure all nodes are visible (don't hide any nodes)
+    nodes.forEach((node: any) => {
+        nodes.update({
+            id: node.id,
+            hidden: false,
         });
+    });
+
+    if (!query) {
+        // No query, just ensure all nodes are visible
         return;
     }
 
-    // Filter nodes based on search query and find matching nodes
+    // Find matching nodes (but don't hide non-matching ones)
     const matchingNodeIds: string[] = [];
     nodes.forEach((node: any) => {
         const nodeLabel = (node.label || "").toLowerCase();
@@ -289,14 +271,10 @@ function applySearchFilter() {
         if (matches) {
             matchingNodeIds.push(node.id);
         }
-
-        nodes.update({
-            id: node.id,
-            hidden: !matches,
-        });
     });
 
-    // Auto-zoom and center on the first matching node
+    // Auto-zoom and center on the first matching node (only once on submit)
+    // Keep all nodes visible so user can explore
     if (matchingNodeIds.length > 0) {
         setTimeout(() => {
             if (!networkInstance.value) return;
@@ -305,7 +283,8 @@ function applySearchFilter() {
                 const targetNodeId = matchingNodeIds[0];
                 const currentScale = networkInstance.value.getScale() || 1;
 
-                // Focus on the matching node with animation
+                // Focus on the matching node with animation (only once)
+                // This centers the view but doesn't hide other nodes
                 networkInstance.value.focus(targetNodeId, {
                     scale: Math.min(currentScale * 1.5, 2), // Zoom in a bit more
                     animation: {
@@ -314,7 +293,7 @@ function applySearchFilter() {
                     },
                 });
 
-                // Update zoom indicator
+                // Update zoom indicator after animation completes
                 setTimeout(() => {
                     if (networkInstance.value) {
                         const newScale = networkInstance.value.getScale();
@@ -322,38 +301,9 @@ function applySearchFilter() {
                             currentZoom.value = newScale;
                         }
                     }
-                }, 100);
+                }, 600); // Wait for animation to complete
             } catch (error) {
                 console.warn("Error focusing on searched node:", error);
-                // Fallback to fit view if focus fails
-                if (networkInstance.value) {
-                    try {
-                        networkInstance.value.fit({
-                            animation: {
-                                duration: 300,
-                                easingFunction: "easeInOutQuad",
-                            },
-                        });
-                    } catch (fitError) {
-                        console.warn("Error fitting network after search:", fitError);
-                    }
-                }
-            }
-        }, 100);
-    } else {
-        // No matches, just fit to show all visible nodes
-        setTimeout(() => {
-            if (networkInstance.value) {
-                try {
-                    networkInstance.value.fit({
-                        animation: {
-                            duration: 300,
-                            easingFunction: "easeInOutQuad",
-                        },
-                    });
-                } catch (error) {
-                    console.warn("Error fitting network after search:", error);
-                }
             }
         }, 100);
     }
@@ -974,10 +924,8 @@ watch(
     { deep: true }
 );
 
-// Watch for search query changes to apply filter
-watch(searchQuery, () => {
-    applySearchFilter();
-});
+// Don't watch searchQuery - only apply filter on explicit submit
+// This allows users to zoom/pan freely after searching
 
 // Cleanup on unmount
 onBeforeUnmount(() => {
