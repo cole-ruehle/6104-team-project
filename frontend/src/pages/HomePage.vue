@@ -11,9 +11,10 @@
                         @keydown="handleKeyDown"
                         @focus="showAutocompleteDropdown = true"
                         @blur="hideAutocomplete"
-                        :placeholder="searchMode === 'semantic' ? 'Describe what you\'re looking for...' : 'Who are you looking for?...'"
+                        :placeholder="viewMode === 'network' ? 'Use the search bar in card view only' : (searchMode === 'semantic' ? 'Describe what you\'re looking for...' : 'Who are you looking for?...')"
                         class="search-input"
                         :class="{ 'semantic-mode': searchMode === 'semantic' }"
+                        :disabled="viewMode === 'network'"
                     />
                     <i
                         v-if="searchMode === 'semantic'"
@@ -59,14 +60,13 @@
                     </div>
                 </div>
                 <button
-                    @click="toggleSearchMode"
+                    @click="triggerSearch"
                     class="smart-search-btn"
                     :class="{ active: searchMode === 'semantic' }"
-                    :disabled="semanticLoading"
-                    title="Toggle Smart Search"
+                    :disabled="semanticLoading || !searchQuery.trim() || viewMode === 'network'"
+                    title="Search"
                 >
-                    <i class="fa-solid fa-sparkles"></i>
-                    <span>Smart Search</span>
+                    <span>Search</span>
                 </button>
                 <button
                     @click="toggleView"
@@ -75,6 +75,16 @@
                 >
                     {{ viewMode === 'card' ? 'Network View' : 'Card View' }}
                 </button>
+            </div>
+
+            <!-- Smart Search Toggle Slider -->
+            <div class="smart-search-toggle-container" v-if="viewMode === 'card'">
+                <label class="toggle-label">
+                    <span>Smart Search</span>
+                    <div class="toggle-switch" :class="{ active: searchMode === 'semantic' }" @click="toggleSearchMode">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </label>
             </div>
 
             <!-- Active Filters and Search Mode Indicator -->
@@ -95,19 +105,6 @@
                         </button>
                     </div>
                 </div>
-                <div class="search-mode-indicator" v-if="searchMode === 'semantic'">
-                    <i class="fa-solid fa-sparkles"></i>
-                    <span>Smart Search Active</span>
-                </div>
-                <p class="results-count" v-if="!loading">
-                    {{
-                        searchMode === 'semantic'
-                            ? `Showing ${displayedNodes.length} semantic result${displayedNodes.length !== 1 ? 's' : ''}`
-                            : hasActiveFilters || searchQuery.trim()
-                            ? `Showing ${displayedNodes.length} of ${allNodes.length} connections`
-                            : `${allNodes.length} connections`
-                    }}
-                </p>
             </div>
         </div>
 
@@ -871,10 +868,6 @@ const autocompleteSuggestions = computed(() => {
     return suggestions.slice(0, 8);
 });
 
-const hasActiveFilters = computed(
-    () => activeFilters.value.length > 0 || searchQuery.value.length > 0
-);
-
 // Computed: Displayed nodes based on search mode
 const displayedNodes = computed(() => {
     if (searchMode.value === "semantic") {
@@ -1001,12 +994,22 @@ function toggleSearchMode() {
         searchMode.value = "semantic";
         activeFilters.value = [];
         showAutocompleteDropdown.value = false;
-        if (searchQuery.value.trim()) {
-            performSemanticSearch();
-        }
+        // Don't auto-search when toggling - wait for user to click search button
     } else {
         searchMode.value = "text";
         semanticResults.value = [];
+    }
+}
+
+function triggerSearch() {
+    if (!searchQuery.value.trim()) return;
+
+    if (searchMode.value === "semantic") {
+        performSemanticSearch();
+    } else {
+        // For text mode, the search is already handled by filtering displayedNodes
+        // This button click can be used to close autocomplete if needed
+        showAutocompleteDropdown.value = false;
     }
 }
 
@@ -1112,42 +1115,28 @@ function handleSearchInput() {
             showAutocompleteDropdown.value = false;
         }
     } else {
-        // Debounce semantic search
-        clearTimeout((window as any).semanticSearchTimeout);
-        (window as any).semanticSearchTimeout = setTimeout(() => {
-            if (searchQuery.value.trim()) {
-                performSemanticSearch();
-            } else {
-                semanticResults.value = [];
-            }
-        }, 500);
+        // In semantic mode, don't auto-search on input
+        // Only search when user clicks the search button or presses Enter
+        // Clear results if query is empty
+        if (!searchQuery.value.trim()) {
+            semanticResults.value = [];
+        }
     }
 }
 
 function handleKeyDown(event: KeyboardEvent) {
-    if (searchMode.value !== "text") return;
-
-    const suggestions = autocompleteSuggestions.value;
-
-    if (event.key === "ArrowDown") {
+    // Handle Enter key for both modes
+    if (event.key === "Enter") {
         event.preventDefault();
-        if (suggestions.length > 0) {
-            selectedAutocompleteIndex.value = Math.min(
-                selectedAutocompleteIndex.value + 1,
-                suggestions.length - 1
-            );
+
+        if (searchMode.value === "semantic") {
+            // In semantic mode, trigger search on Enter
+            triggerSearch();
+            return;
         }
-    } else if (event.key === "ArrowUp") {
-        event.preventDefault();
-        if (suggestions.length > 0) {
-            selectedAutocompleteIndex.value = Math.max(
-                selectedAutocompleteIndex.value - 1,
-                -1
-            );
-        }
-    } else if (event.key === "Enter") {
-        event.preventDefault();
 
+        // Text mode handling
+        const suggestions = autocompleteSuggestions.value;
         if (
             selectedAutocompleteIndex.value >= 0 &&
             suggestions[selectedAutocompleteIndex.value]
@@ -1203,6 +1192,30 @@ function handleKeyDown(event: KeyboardEvent) {
         }
 
         showAutocompleteDropdown.value = false;
+        return;
+    }
+
+    // Arrow keys and Escape only work in text mode
+    if (searchMode.value !== "text") return;
+
+    const suggestions = autocompleteSuggestions.value;
+
+    if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (suggestions.length > 0) {
+            selectedAutocompleteIndex.value = Math.min(
+                selectedAutocompleteIndex.value + 1,
+                suggestions.length - 1
+            );
+        }
+    } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (suggestions.length > 0) {
+            selectedAutocompleteIndex.value = Math.max(
+                selectedAutocompleteIndex.value - 1,
+                -1
+            );
+        }
     } else if (event.key === "Escape") {
         showAutocompleteDropdown.value = false;
         selectedAutocompleteIndex.value = -1;
@@ -1260,6 +1273,13 @@ function hideAutocomplete() {
 
 function toggleView() {
     viewMode.value = viewMode.value === "card" ? "network" : "card";
+
+    // Clear search query when switching to network view
+    if (viewMode.value === "network") {
+        searchQuery.value = "";
+        semanticResults.value = [];
+        showAutocompleteDropdown.value = false;
+    }
 }
 
 // Pagination functions
@@ -1844,11 +1864,10 @@ async function loadNetworkData() {
 
 // Watch for search mode changes
 watch(searchMode, (newMode) => {
-    if (newMode === "semantic" && searchQuery.value.trim()) {
-        performSemanticSearch();
-    } else if (newMode === "text") {
+    if (newMode === "text") {
         semanticResults.value = [];
     }
+    // Don't auto-search when switching to semantic mode
 });
 
 // Listen for profile picture updates
@@ -1886,7 +1905,7 @@ onBeforeUnmount(() => {
 }
 
 .search-section {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .search-container {
@@ -1915,6 +1934,13 @@ onBeforeUnmount(() => {
 .search-input:focus {
     border-color: var(--color-navy-400);
     box-shadow: 0 0 0 3px rgba(102, 153, 204, 0.2);
+}
+
+.search-input:disabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 .search-input.semantic-mode {
@@ -1948,16 +1974,13 @@ onBeforeUnmount(() => {
     color: var(--color-navy-900);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
     white-space: nowrap;
 }
 
 .smart-search-btn:hover:not(:disabled) {
-    background: #f8fafc;
-    border-color: rgba(147, 51, 234, 0.3);
-    color: #9333ea;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(147, 51, 234, 0.1);
+    background: #f1f5f9;
+    border-color: var(--color-navy-400);
 }
 
 .smart-search-btn.active {
@@ -1999,6 +2022,56 @@ onBeforeUnmount(() => {
     background: var(--color-navy-600);
     color: white;
     border-color: var(--color-navy-600);
+}
+
+.smart-search-toggle-container {
+    margin-top: 0.5rem;
+    padding: 0.25rem 0;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background: #cbd5e1;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.toggle-switch.active {
+    background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-slider {
+    transform: translateX(24px);
 }
 
 .search-meta {
@@ -2127,8 +2200,8 @@ onBeforeUnmount(() => {
 }
 
 .card-view-controls {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
@@ -2136,19 +2209,19 @@ onBeforeUnmount(() => {
 
 .controls-row {
     display: flex;
-    gap: 1.5rem;
+    gap: 1rem;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .control-group {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.375rem;
 }
 
 .control-group label {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: #1e293b;
     white-space: nowrap;
@@ -2171,7 +2244,7 @@ onBeforeUnmount(() => {
 }
 
 .connections-count {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: #64748b;
     font-weight: 500;
 }
