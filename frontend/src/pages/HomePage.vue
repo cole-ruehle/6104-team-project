@@ -593,6 +593,7 @@
                                 @dragover.prevent="handleDragOverProfile"
                                 @dragleave.prevent="handleDragLeaveProfile"
                                 @drop.prevent="handleDropProfile"
+                                @click="triggerFilePickerProfile"
                             >
                                 <input
                                     ref="fileInputProfile"
@@ -605,13 +606,17 @@
                                     v-if="!editProfileForm.avatarUrl"
                                     class="upload-placeholder"
                                 >
-                                    <i class="fa-solid fa-user upload-icon"></i>
-                                    <p class="upload-text">No profile image</p>
+                                    <i
+                                        class="fa-solid fa-cloud-arrow-up upload-icon"
+                                    ></i>
+                                    <p class="upload-text">
+                                        Drag and drop an image here, or click to
+                                        browse
+                                    </p>
                                     <p class="upload-hint">
                                         Supports JPG, PNG, GIF (max 5MB)
                                     </p>
                                 </div>
-
                                 <div v-else class="upload-preview">
                                     <img
                                         :src="editProfileForm.avatarUrl"
@@ -624,23 +629,7 @@
                                         @click.stop="removeImageProfile"
                                         aria-label="Remove image"
                                     >
-                                        <i class="fa-solid fa-xmark">x</i>
-                                    </button>
-                                </div>
-
-                                <!-- Upload button moved outside the preview/placeholder -->
-                                <div class="upload-actions">
-                                    <button
-                                        type="button"
-                                        class="upload-btn"
-                                        @click.prevent="
-                                            triggerFilePickerProfile
-                                        "
-                                    >
-                                        <i
-                                            class="fa-solid fa-cloud-arrow-up"
-                                        ></i>
-                                        Upload Image
+                                        <i class="fa-solid fa-xmark"></i>
                                     </button>
                                 </div>
                             </div>
@@ -960,9 +949,8 @@ const autocompleteSuggestions = computed(() => {
         });
     });
 
-    // Name search - prioritize actual names (exclude the current user's own profile)
+    // Name search - prioritize actual names
     allNodes.value.forEach((node) => {
-        if (node.id === auth.userId) return; // skip the owner's own profile
         const searchText = node.displayName.toLowerCase();
         if (
             searchText.includes(query) &&
@@ -1044,12 +1032,6 @@ const displayedNodes = computed(() => {
             });
         }
     });
-
-    // Exclude the owner's own node from card results (but keep it in the graph)
-    const ownerId = auth.userId;
-    if (ownerId) {
-        results = results.filter((node) => node.id !== ownerId);
-    }
 
     return results;
 });
@@ -1758,85 +1740,6 @@ function getInitials(text: string): string {
     if (trimmed.length === 0) return "?";
     // Return only the first letter
     return trimmed[0].toUpperCase();
-}
-
-// Helper function to extract node data consistently for both search modes
-function extractNodeData(nodeId: string): {
-    displayName: string;
-    avatarUrl: string;
-    location?: string;
-    currentJob?: string;
-    company?: string;
-} {
-    const linkedInConn = linkedInConnections.value[nodeId];
-
-    let displayName: string;
-    let avatarUrl: string;
-    let location: string | undefined;
-    let currentJob: string | undefined;
-    let company: string | undefined;
-
-    if (linkedInConn) {
-        const firstName = linkedInConn.firstName || "";
-        const lastName = linkedInConn.lastName || "";
-        const fullName = `${firstName} ${lastName}`.trim();
-
-        displayName = fullName || linkedInConn.headline || nodeId;
-        // Use profile picture if available, otherwise use letter-based avatar
-        avatarUrl =
-            linkedInConn.profilePictureUrl ||
-            avatarStore.getLetterAvatar(displayName);
-        location = linkedInConn.location;
-        currentJob = linkedInConn.currentPosition || linkedInConn.headline;
-        company = linkedInConn.currentCompany;
-    } else {
-        const profileData = nodeProfiles.value[nodeId] || {
-            avatarUrl: "",
-            username: nodeId,
-        };
-        const profile = profileData.profile || {};
-
-        const first = (profile.firstName || "").trim();
-        const last = (profile.lastName || "").trim();
-        if (first || last) {
-            displayName = `${first} ${last}`.trim();
-        } else if (profile.headline) {
-            displayName = profile.headline;
-        } else {
-            displayName = profileData.username || nodeId;
-        }
-
-        // For root node (current user), prioritize profile picture from PublicProfile
-        if (nodeId === auth.userId) {
-            const publicProfile = profile as PublicProfile | undefined;
-            if (publicProfile?.profilePictureUrl) {
-                avatarUrl = publicProfile.profilePictureUrl;
-            } else {
-                // Use empty string if avatar is default so initials will show
-                avatarUrl =
-                    profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                        ? ""
-                        : profileData.avatarUrl;
-            }
-        } else {
-            // Use empty string if avatar is default so initials will show
-            avatarUrl =
-                profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                    ? ""
-                    : profileData.avatarUrl;
-        }
-        location = profile.location;
-        currentJob = profile.currentPosition || profile.headline;
-        company = profile.company || profile.currentCompany;
-    }
-
-    return {
-        displayName,
-        avatarUrl,
-        location,
-        currentJob,
-        company,
-    };
 }
 
 // Helper function to extract node data consistently for both search modes
@@ -2805,16 +2708,15 @@ onBeforeUnmount(() => {
 
 .profile-avatar-large {
     flex-shrink: 0;
-    /* increased size for better visibility */
-    width: 240px;
-    height: 240px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     overflow: hidden;
     background: #dbeafe;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 6px solid #e2e8f0;
+    border: 4px solid #e2e8f0;
 }
 
 .profile-avatar-large img {
@@ -3053,8 +2955,8 @@ onBeforeUnmount(() => {
 .btn-primary {
     flex: 1;
     padding: 0.75rem 1.5rem;
-    background: #e6f4ff;
-    color: #003b6d;
+    background: var(--color-navy-600);
+    color: white;
     border: none;
     border-radius: 0.5rem;
     font-weight: 600;
@@ -3067,10 +2969,9 @@ onBeforeUnmount(() => {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #cfe9ff;
+    background: var(--color-navy-700);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(2, 6, 23, 0.06);
-    color: #002b54;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-primary:disabled {
@@ -3098,18 +2999,6 @@ onBeforeUnmount(() => {
     cursor: not-allowed;
 }
 
-.modal-body .edit-profile-form .form-actions .btn-primary {
-    background: #003b6d;
-    color: #ffffff;
-    box-shadow: 0 6px 14px rgba(2, 6, 23, 0.08);
-}
-
-.modal-body .edit-profile-form .form-actions .btn-primary:hover:not(:disabled) {
-    background: #e6f4ff;
-    color: #003b6d;
-    transform: translateY(-1px);
-}
-
 .upload-area {
     position: relative;
     border: 2px dashed rgba(15, 23, 42, 0.2);
@@ -3118,8 +3007,7 @@ onBeforeUnmount(() => {
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    /* show a light-blue background when no image is present */
-    background: #e6f4ff;
+    background: #f8fafc;
 }
 
 .upload-area:hover {
@@ -3158,7 +3046,7 @@ onBeforeUnmount(() => {
     margin: 0;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #0f172a;
+    color: #475569;
 }
 
 .upload-hint {
@@ -3173,7 +3061,6 @@ onBeforeUnmount(() => {
     aspect-ratio: 1;
     border-radius: 0.5rem;
     overflow: hidden;
-    background: #f8fafc;
 }
 
 .upload-preview img {
@@ -3182,51 +3069,13 @@ onBeforeUnmount(() => {
     object-fit: cover;
 }
 
-.modal-body .edit-profile-form .upload-preview {
-    /* double the small preview (was 96px) to improve visibility */
-    width: 192px;
-    height: 192px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    margin: 0 auto 1rem;
-    /* allow the remove button to overlap the preview without being clipped */
-    overflow: visible;
-}
-
-.modal-body .edit-profile-form .upload-preview img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.modal-body .edit-profile-form .remove-image-btn {
-    position: absolute;
-    /* move further out to match larger preview */
-    top: -12px;
-    right: -12px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    /* red circular button */
-    background: #ef4444;
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.14);
-    z-index: 60;
-    transition: transform 120ms ease, background 120ms ease;
-}
-
 .remove-image-btn {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
-    background: rgba(255, 255, 255, 0.9);
-    color: #0f172a;
-    border: 1px solid rgba(15, 23, 42, 0.06);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
     border-radius: 50%;
     width: 2rem;
     height: 2rem;
@@ -3234,40 +3083,11 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.12s ease;
+    transition: all 0.2s ease;
 }
 
 .remove-image-btn:hover {
-    background: #dc2626;
-    color: white;
-    transform: translateY(-2px) scale(1.02);
-}
-
-/* Upload actions button below preview/placeholder */
-.upload-actions {
-    margin-top: 0.75rem;
-    display: flex;
-    justify-content: center;
-}
-
-.upload-btn {
-    padding: 0.5rem 1rem;
-    background: #003b6d; /* dark blue */
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.15s ease;
-}
-
-.upload-btn:hover:not(:disabled) {
-    background: #e6f4ff; /* light blue on hover */
-    color: #003b6d;
-    transform: translateY(-1px);
+    background: rgba(0, 0, 0, 0.9);
 }
 
 .upload-error {
