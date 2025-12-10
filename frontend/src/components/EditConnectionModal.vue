@@ -492,7 +492,7 @@ onMounted(() => {
     filter: drop-shadow(0 8px 16px rgba(51, 84, 162, 0.18));
     transform: translateY(-2px);
 
-    color: var(--color-navy-700);
+    color: white;
 }
 
 .btn-primary:disabled {
