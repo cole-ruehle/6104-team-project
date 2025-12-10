@@ -145,7 +145,9 @@
                 <!-- Card View Controls -->
                 <div
                     v-if="
-                        !loading && !semanticLoading && visibleNodes.length > 0
+                        !loading &&
+                        !semanticLoading &&
+                        displayedNodes.length > 0
                     "
                     class="card-view-controls"
                 >
@@ -175,7 +177,7 @@
                     </div>
                     <div class="connections-count">
                         Showing {{ startIndex + 1 }}-{{ endIndex }} out of
-                        {{ visibleNodes.length }} connections
+                        {{ displayedNodes.length }} connections
                     </div>
                 </div>
 
@@ -189,7 +191,10 @@
                         }}
                     </h3>
                 </div>
-                <div v-else-if="visibleNodes.length === 0" class="empty-state">
+                <div
+                    v-else-if="displayedNodes.length === 0"
+                    class="empty-state"
+                >
                     <div class="empty-icon">🔍</div>
                     <h3>No connections found</h3>
                     <p>
@@ -588,7 +593,6 @@
                                 @dragover.prevent="handleDragOverProfile"
                                 @dragleave.prevent="handleDragLeaveProfile"
                                 @drop.prevent="handleDropProfile"
-                                @click="triggerFilePickerProfile"
                             >
                                 <input
                                     ref="fileInputProfile"
@@ -601,17 +605,13 @@
                                     v-if="!editProfileForm.avatarUrl"
                                     class="upload-placeholder"
                                 >
-                                    <i
-                                        class="fa-solid fa-cloud-arrow-up upload-icon"
-                                    ></i>
-                                    <p class="upload-text">
-                                        Drag and drop an image here, or click to
-                                        browse
-                                    </p>
+                                    <i class="fa-solid fa-user upload-icon"></i>
+                                    <p class="upload-text">No profile image</p>
                                     <p class="upload-hint">
                                         Supports JPG, PNG, GIF (max 5MB)
                                     </p>
                                 </div>
+
                                 <div v-else class="upload-preview">
                                     <img
                                         :src="editProfileForm.avatarUrl"
@@ -624,7 +624,23 @@
                                         @click.stop="removeImageProfile"
                                         aria-label="Remove image"
                                     >
-                                        <i class="fa-solid fa-xmark"></i>
+                                        <i class="fa-solid fa-xmark">x</i>
+                                    </button>
+                                </div>
+
+                                <!-- Upload button moved outside the preview/placeholder -->
+                                <div class="upload-actions">
+                                    <button
+                                        type="button"
+                                        class="upload-btn"
+                                        @click.prevent="
+                                            triggerFilePickerProfile
+                                        "
+                                    >
+                                        <i
+                                            class="fa-solid fa-cloud-arrow-up"
+                                        ></i>
+                                        Upload Image
                                     </button>
                                 </div>
                             </div>
@@ -946,7 +962,7 @@ const autocompleteSuggestions = computed(() => {
 
     // Name search - prioritize actual names (exclude the current user's own profile)
     allNodes.value.forEach((node) => {
-        if (node.id === auth.userId) return; // skip owner's profile
+        if (node.id === auth.userId) return; // skip the owner's own profile
         const searchText = node.displayName.toLowerCase();
         if (
             searchText.includes(query) &&
@@ -1029,29 +1045,28 @@ const displayedNodes = computed(() => {
         }
     });
 
-    return results;
-});
-
-// Visible nodes for card view (ensure owner's node is never shown as a card)
-const visibleNodes = computed(() => {
+    // Exclude the owner's own node from card results (but keep it in the graph)
     const ownerId = auth.userId;
-    if (!ownerId) return displayedNodes.value;
-    return displayedNodes.value.filter((node) => node.id !== ownerId);
+    if (ownerId) {
+        results = results.filter((node) => node.id !== ownerId);
+    }
+
+    return results;
 });
 
 // Pagination computed properties
 const cardsPerPage = computed(() => cardsPerRow.value * rowsPerPage.value);
 const totalPages = computed(() => {
-    if (visibleNodes.value.length === 0) return 1;
-    return Math.ceil(visibleNodes.value.length / cardsPerPage.value);
+    if (displayedNodes.value.length === 0) return 1;
+    return Math.ceil(displayedNodes.value.length / cardsPerPage.value);
 });
 const startIndex = computed(() => (currentPage.value - 1) * cardsPerPage.value);
 const endIndex = computed(() => {
     const end = startIndex.value + cardsPerPage.value;
-    return Math.min(end, visibleNodes.value.length);
+    return Math.min(end, displayedNodes.value.length);
 });
 const paginatedNodes = computed(() => {
-    return visibleNodes.value.slice(startIndex.value, endIndex.value);
+    return displayedNodes.value.slice(startIndex.value, endIndex.value);
 });
 
 const selectedProfileData = computed(() => {
@@ -1212,11 +1227,7 @@ async function performSemanticSearch() {
             })
         );
 
-        // Ensure the current owner's node is not shown in semantic results
-        // (it should remain visible in the graph only)
-        semanticResults.value = mappedResults.filter(
-            (r) => r.id !== auth.userId
-        );
+        semanticResults.value = mappedResults;
     } catch (error) {
         console.error("Semantic search error:", error);
         semanticResults.value = [];
@@ -2715,15 +2726,16 @@ onBeforeUnmount(() => {
 
 .profile-avatar-large {
     flex-shrink: 0;
-    width: 120px;
-    height: 120px;
+    /* increased size for better visibility */
+    width: 240px;
+    height: 240px;
     border-radius: 50%;
     overflow: hidden;
     background: #dbeafe;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 4px solid #e2e8f0;
+    border: 6px solid #e2e8f0;
 }
 
 .profile-avatar-large img {
@@ -2962,8 +2974,8 @@ onBeforeUnmount(() => {
 .btn-primary {
     flex: 1;
     padding: 0.75rem 1.5rem;
-    background: var(--color-navy-600);
-    color: white;
+    background: #e6f4ff;
+    color: #003b6d;
     border: none;
     border-radius: 0.5rem;
     font-weight: 600;
@@ -2976,9 +2988,10 @@ onBeforeUnmount(() => {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--color-navy-700);
+    background: #cfe9ff;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 8px rgba(2, 6, 23, 0.06);
+    color: #002b54;
 }
 
 .btn-primary:disabled {
@@ -3006,6 +3019,18 @@ onBeforeUnmount(() => {
     cursor: not-allowed;
 }
 
+.modal-body .edit-profile-form .form-actions .btn-primary {
+    background: #003b6d;
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(2, 6, 23, 0.08);
+}
+
+.modal-body .edit-profile-form .form-actions .btn-primary:hover:not(:disabled) {
+    background: #e6f4ff;
+    color: #003b6d;
+    transform: translateY(-1px);
+}
+
 .upload-area {
     position: relative;
     border: 2px dashed rgba(15, 23, 42, 0.2);
@@ -3014,7 +3039,8 @@ onBeforeUnmount(() => {
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: #f8fafc;
+    /* show a light-blue background when no image is present */
+    background: #e6f4ff;
 }
 
 .upload-area:hover {
@@ -3053,7 +3079,7 @@ onBeforeUnmount(() => {
     margin: 0;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #475569;
+    color: #0f172a;
 }
 
 .upload-hint {
@@ -3068,6 +3094,7 @@ onBeforeUnmount(() => {
     aspect-ratio: 1;
     border-radius: 0.5rem;
     overflow: hidden;
+    background: #f8fafc;
 }
 
 .upload-preview img {
@@ -3076,13 +3103,51 @@ onBeforeUnmount(() => {
     object-fit: cover;
 }
 
+.modal-body .edit-profile-form .upload-preview {
+    /* double the small preview (was 96px) to improve visibility */
+    width: 192px;
+    height: 192px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    /* allow the remove button to overlap the preview without being clipped */
+    overflow: visible;
+}
+
+.modal-body .edit-profile-form .upload-preview img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.modal-body .edit-profile-form .remove-image-btn {
+    position: absolute;
+    /* move further out to match larger preview */
+    top: -12px;
+    right: -12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    /* red circular button */
+    background: #ef4444;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.14);
+    z-index: 60;
+    transition: transform 120ms ease, background 120ms ease;
+}
+
 .remove-image-btn {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    color: #0f172a;
+    border: 1px solid rgba(15, 23, 42, 0.06);
     border-radius: 50%;
     width: 2rem;
     height: 2rem;
@@ -3090,11 +3155,40 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.12s ease;
 }
 
 .remove-image-btn:hover {
-    background: rgba(0, 0, 0, 0.9);
+    background: #dc2626;
+    color: white;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* Upload actions button below preview/placeholder */
+.upload-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    justify-content: center;
+}
+
+.upload-btn {
+    padding: 0.5rem 1rem;
+    background: #003b6d; /* dark blue */
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.15s ease;
+}
+
+.upload-btn:hover:not(:disabled) {
+    background: #e6f4ff; /* light blue on hover */
+    color: #003b6d;
+    transform: translateY(-1px);
 }
 
 .upload-error {

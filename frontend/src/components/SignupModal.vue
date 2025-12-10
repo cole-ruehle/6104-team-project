@@ -366,7 +366,8 @@ async function handleAccountCreation() {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--color-navy-700);
+    /* Match Login modal primary hover background for visual consistency */
+    background: #003B6D;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }

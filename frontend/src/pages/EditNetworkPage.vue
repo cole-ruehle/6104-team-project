@@ -576,6 +576,8 @@ onMounted(() => {
 
 .action-btn.primary:hover:not(:disabled) {
     background: var(--color-navy-700);
+    /* Make the button text a darker blue on hover for better emphasis */
+    color: #003B6D;
 }
 
 .action-btn.danger {
