@@ -87,21 +87,11 @@
                     </button>
                 </div>
 
-                <div v-if="importResult" class="import-result">
+                <div v-if="importResult && importResult.error" class="import-result">
                     <h3>Import Result</h3>
                     <div class="result-details">
-                        <p>
-                            <strong>Status:</strong> {{ importResult.status }}
-                        </p>
-                        <p v-if="importResult.importJob">
-                            <strong>Import Job ID:</strong>
-                            {{ importResult.importJob }}
-                        </p>
-                        <p
-                            v-if="
-                                importResult.connectionsImported !== undefined
-                            "
-                        >
+                        <p><strong>Status:</strong> {{ importResult.status }}</p>
+                        <p v-if="importResult.connectionsImported !== undefined">
                             <strong>Connections Imported:</strong>
                             {{ importResult.connectionsImported }}
                         </p>
@@ -276,15 +266,9 @@ async function handleUpload() {
 
         importResult.value = {
             status: "success",
-            importJob: result.importJob,
-            connectionsImported: result.connectionsImported,
-            connections: result.connections,
         };
 
-        showBanner(
-            "success",
-            `Successfully imported ${result.connectionsImported} connections!`
-        );
+        showBanner("success", "Success");
 
         // Emit success event after a short delay to show the result
         setTimeout(() => {

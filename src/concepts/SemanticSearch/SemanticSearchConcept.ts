@@ -259,6 +259,35 @@ export default class SemanticSearchConcept {
   }
 
   /**
+   * reindexAllOwners (): Empty
+   *
+   * **requires** txtai semantic service is reachable.
+   *
+   * **effects** for each distinct owner in IndexedItems, re-sends all of
+   * their indexed items to the external semantic search service. This is
+   * useful when the txtai index has been lost or restarted while the
+   * MongoDB-backed metadata remains intact.
+   */
+  async reindexAllOwners({}: {}): Promise<Empty> {
+    const owners = await this.indexedItems.distinct("owner", {});
+
+    for (const owner of owners as Owner[]) {
+      const ownerDocs = await this.indexedItems.find({ owner }).toArray();
+      if (!ownerDocs.length) continue;
+
+      await semanticIndex(
+        owner,
+        ownerDocs.map((doc) => ({
+          item: doc.item,
+          text: doc.text,
+        })),
+      );
+    }
+
+    return {};
+  }
+
+  /**
    * searchConnections (owner: Owner, queryText: String, limit?: Number): { results: { connectionId, score, text, connection }[] }
    *
    * **requires** queryText is not empty.
