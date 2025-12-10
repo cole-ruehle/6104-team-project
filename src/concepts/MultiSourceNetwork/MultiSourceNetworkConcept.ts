@@ -137,15 +137,21 @@ export default class MultiSourceNetworkConcept {
       if (root && existingNetwork.root !== root) {
         await this.networks.updateOne({ owner }, { $set: { root } });
         console.log(
-        "[MultiSourceNetwork] createNetwork: Network exists, updated root node to", root);
+          "[MultiSourceNetwork] createNetwork: Network exists, updated root node to",
+          root,
+        );
       } else {
-        console.log("[MultiSourceNetwork] createNetwork: Network already exists for owner",
-        owner,
-      );
+        console.log(
+          "[MultiSourceNetwork] createNetwork: Network already exists for owner",
+          owner,
+        );
       }
       // Ensure owner membership exists
       const selfSource = "self" as Source;
-      const ownerMembership = await this.memberships.findOne({ owner, node: owner });
+      const ownerMembership = await this.memberships.findOne({
+        owner,
+        node: owner,
+      });
       if (!ownerMembership) {
         await this.memberships.insertOne({
           _id: freshID(),
@@ -153,7 +159,9 @@ export default class MultiSourceNetworkConcept {
           node: owner,
           sources: { [selfSource]: true },
         });
-        console.log("[MultiSourceNetwork] createNetwork: Owner membership created with source 'self'");
+        console.log(
+          "[MultiSourceNetwork] createNetwork: Owner membership created with source 'self'",
+        );
       }
       return { network: owner };
     }
@@ -370,7 +378,10 @@ export default class MultiSourceNetworkConcept {
     }
 
     const membership = await this.memberships.findOne({ owner, node: nodeId });
-    const label = nodeMeta && typeof nodeMeta === 'object' && 'label' in nodeMeta ? nodeMeta.label : undefined;
+    const label =
+      nodeMeta && typeof nodeMeta === "object" && "label" in nodeMeta
+        ? nodeMeta.label
+        : undefined;
 
     if (!membership) {
       // Create membership if it doesn't exist
@@ -391,7 +402,10 @@ export default class MultiSourceNetworkConcept {
     const updateData: any = { [`sources.${source}`]: true };
     if (label) {
       updateData.label = label;
-      console.log("[MultiSourceNetwork] addNodeToNetwork: Updating label to:", label);
+      console.log(
+        "[MultiSourceNetwork] addNodeToNetwork: Updating label to:",
+        label,
+      );
     }
     await this.memberships.updateOne(
       { owner, node: nodeId },
@@ -803,20 +817,23 @@ export default class MultiSourceNetworkConcept {
         });
         if (existing) {
           const nodeId = (existing._id as unknown) as ID;
-          // ensure membership exists
+          // If the node exists globally but the owner does not yet have a membership
+          // for it, DO NOT attach the global node to the owner automatically.
+          // Creating a membership would cause cross-account sharing of the
+          // same canonical node. Instead, only reuse an existing node when the
+          // owner already has a membership for it. Otherwise, allow the flow to
+          // fall through so we create a new owner-scoped node below.
           const existingMembership = await this.memberships.findOne({
             owner,
             node: nodeId,
           });
-          if (!existingMembership) {
-            await this.memberships.insertOne({
-              _id: freshID(),
-              owner,
-              node: nodeId,
-              sources: { ["user" as unknown as Source]: true },
-            });
+          if (existingMembership) {
+            return { node: nodeId };
           }
-          return { node: nodeId };
+          console.log(
+            `[MultiSourceNetwork] createNodeForUser: found global node ${nodeId} for sourceId but no membership for owner ${owner}; creating owner-specific node instead`,
+          );
+          // do not return — continue to create a fresh node for this owner
         }
       }
     }
@@ -1073,7 +1090,9 @@ export default class MultiSourceNetworkConcept {
 
   async _getAdjacencyArray(
     { owner }: { owner: Owner },
-  ): Promise<Record<string, Array<{ to: Node; source: Source; weight?: number }>>> {
+  ): Promise<
+    Record<string, Array<{ to: Node; source: Source; weight?: number }>>
+  > {
     console.log(
       "[MultiSourceNetwork] _getAdjacencyArray called for owner:",
       owner,
@@ -1122,7 +1141,10 @@ export default class MultiSourceNetworkConcept {
       );
     }
 
-    const adjacency: Record<string, Array<{ to: Node; source: Source; weight?: number }>> = {};
+    const adjacency: Record<
+      string,
+      Array<{ to: Node; source: Source; weight?: number }>
+    > = {};
     const nodeLabels: Record<string, string | undefined> = {};
 
     // First, get all memberships to initialize nodes and collect labels
@@ -1138,7 +1160,12 @@ export default class MultiSourceNetworkConcept {
       // Store label if available
       if (m.label) {
         nodeLabels[String(m.node)] = m.label;
-        console.log("[MultiSourceNetwork] _getAdjacencyArray: Node", m.node, "has label:", m.label);
+        console.log(
+          "[MultiSourceNetwork] _getAdjacencyArray: Node",
+          m.node,
+          "has label:",
+          m.label,
+        );
       }
     }
 
@@ -1151,7 +1178,7 @@ export default class MultiSourceNetworkConcept {
       owner,
     );
     for (const edge of ownerEdges) {
-  const fromKey = String(edge.from);
+      const fromKey = String(edge.from);
       // Ensure the "from" node exists in adjacency (even if not in memberships)
       if (!adjacency[fromKey]) {
         adjacency[fromKey] = [];
@@ -1175,7 +1202,10 @@ export default class MultiSourceNetworkConcept {
     }
 
     const nodeCount = Object.keys(adjacency).length;
-    const totalEdges = Object.values(adjacency).reduce((sum, edges) => sum + edges.length, 0);
+    const totalEdges = Object.values(adjacency).reduce(
+      (sum, edges) => sum + edges.length,
+      0,
+    );
     console.log(
       "[MultiSourceNetwork] _getAdjacencyArray SUCCESS: Returning adjacency with",
       nodeCount,

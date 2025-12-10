@@ -7,11 +7,7 @@
     <template v-else>
       <header>
         <div>
-          <h1 class="app-title">Concept Control Center</h1>
-          <p class="app-subtitle">
-            Manage the MultiSourceNetwork and PublicProfile concepts from a single
-            workspace.
-          </p>
+          <h1 class="app-title">Contact Web</h1>
           <nav>
             <RouterLink to="/home">Home</RouterLink>
             <RouterLink to="/tutorials">Tutorials</RouterLink>

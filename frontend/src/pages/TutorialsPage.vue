@@ -34,8 +34,8 @@
                                 </li>
                                 <li>
                                     A filter (like company, location, or
-                                    platform) - filter suggestions will pop up in
-                                    the dropdown
+                                    platform) - filter suggestions will pop up
+                                    in the dropdown
                                 </li>
                             </ul>
                         </li>
@@ -46,9 +46,9 @@
                         </li>
                         <li>
                             <strong>Enable Smart Search:</strong> Click the
-                            "Smart Search" button to turn on embedding technology
-                            that finds the best semantic matches for whatever you
-                            type, even if it doesn't match exactly.
+                            "Smart Search" button to turn on embedding
+                            technology that finds the best semantic matches for
+                            whatever you type, even if it doesn't match exactly.
                         </li>
                     </ol>
                     <div class="tutorial-tip">
@@ -76,9 +76,7 @@
                         <li>
                             <strong>Request your LinkedIn data:</strong>
                             <ul class="nested-list">
-                                <li>
-                                    Go to your LinkedIn account settings
-                                </li>
+                                <li>Go to your LinkedIn account settings</li>
                                 <li>
                                     Navigate to "Data Privacy" or "Get a copy of
                                     your data"
@@ -164,12 +162,16 @@
                             "Advanced Options" and select how you're connected:
                             <ul class="nested-list">
                                 <li>
-                                    <strong>Direct Connection (1st Degree):</strong>
+                                    <strong
+                                        >Direct Connection (1st Degree):</strong
+                                    >
                                     Select this if you know them directly and
                                     have a first-degree connection.
                                 </li>
                                 <li>
-                                    <strong>Connected Through Someone Else:</strong>
+                                    <strong
+                                        >Connected Through Someone Else:</strong
+                                    >
                                     Select this if you're connected via another
                                     person. You'll need to search for and select
                                     the person who connects you.
@@ -201,17 +203,17 @@
                 <h2 class="tutorial-title">Demo Video Tutorial</h2>
                 <div class="tutorial-content">
                     <p class="tutorial-intro">
-                        Our recoreded demo video
-                        will walk you through all the features of the platform.
+                        Our recoreded demo video will walk you through all the
+                        features of the platform.
                     </p>
                     <div class="coming-soon-notice">
                         <i class="fa-solid fa-clock"></i>
                         <p>
-                            <strong>Coming Soon:</strong> Our demo video tutorial
-                            will be added to this page once the website is fully
-                            created and deployed. The video will provide a visual
-                            walkthrough of all the platform's features and
-                            capabilities.
+                            <strong>Coming Soon:</strong> Our demo video
+                            tutorial will be added to this page once the website
+                            is fully created and deployed. The video will
+                            provide a visual walkthrough of all the platform's
+                            features and capabilities.
                         </p>
                     </div>
                 </div>
@@ -255,6 +257,8 @@
     grid-template-columns: repeat(2, 2fr);
     gap: 1.5rem;
     width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 .tutorial-card {
