@@ -442,6 +442,17 @@
                         </div>
 
                         <div
+                            v-if="selectedProfileData.location"
+                            class="detail-section"
+                        >
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-map-marker-alt"></i>
+                                Location
+                            </h3>
+                            <p>{{ selectedProfileData.location }}</p>
+                        </div>
+
+                        <div
                             v-if="selectedProfileData.industry"
                             class="detail-section"
                         >
@@ -1196,7 +1207,12 @@ function hideAutocomplete() {
 
 function handleImageError(event: Event) {
     const img = event.target as HTMLImageElement;
-    img.src = avatarStore.DEFAULT_AVATAR;
+    // Hide the image - the placeholder will show via v-else
+    img.style.display = "none";
+    const placeholder = img.parentElement?.querySelector(".avatar-placeholder, .avatar-placeholder-large") as HTMLElement;
+    if (placeholder) {
+        placeholder.style.display = "flex";
+    }
 }
 
 function openProfileModal(nodeId: string) {
@@ -1359,11 +1375,10 @@ async function saveProfile() {
 
 function getInitials(text: string): string {
     if (!text) return "?";
-    const words = text.trim().split(/\s+/);
-    if (words.length >= 2) {
-        return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    return text.substring(0, 2).toUpperCase();
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return "?";
+    // Return only the first letter
+    return trimmed[0].toUpperCase();
 }
 
 async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = []) {
@@ -1373,7 +1388,7 @@ async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = [])
 
         let profile: PublicProfile | undefined;
         let username = nodeId;
-        let avatarUrl = avatarStore.DEFAULT_AVATAR;
+        let avatarUrl = "";
 
         // Try to fetch username from UserAuthentication API
         try {
@@ -1401,7 +1416,9 @@ async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = [])
                     avatarUrl = profile.profilePictureUrl;
                     avatarStore.setForUser(nodeId, avatarUrl);
                 } else {
-                    avatarUrl = avatarStore.getForUser(nodeId);
+                    const storedAvatar = avatarStore.getForUser(nodeId);
+                    // Use empty string if avatar is default so initials will show
+                    avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
                 }
 
                 nodeProfiles.value[nodeId] = {
@@ -1410,14 +1427,18 @@ async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = [])
                     username: displayName,
                 };
             } else {
-                avatarUrl = avatarStore.getForUser(nodeId);
+                const storedAvatar = avatarStore.getForUser(nodeId);
+                // Use empty string if avatar is default so initials will show
+                avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
                 nodeProfiles.value[nodeId] = {
                     avatarUrl,
                     username,
                 };
             }
         } catch {
-            avatarUrl = avatarStore.getForUser(nodeId);
+            const storedAvatar = avatarStore.getForUser(nodeId);
+            // Use empty string if avatar is default so initials will show
+            avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
             nodeProfiles.value[nodeId] = {
                 avatarUrl,
                 username,
@@ -1593,10 +1614,8 @@ async function loadNetworkData() {
                 const fullName = `${firstName} ${lastName}`.trim();
 
                 displayName = fullName || linkedInConn.headline || nodeId;
-                // Use profile picture if available, otherwise use letter-based avatar
-                avatarUrl =
-                    linkedInConn.profilePictureUrl ||
-                    avatarStore.getLetterAvatar(displayName);
+                // Use empty string if no profile picture so initials will show
+                avatarUrl = linkedInConn.profilePictureUrl || "";
 
                 // Store in nodeProfiles for company/location filtering
                 nodeProfiles.value[nodeId] = {
@@ -1612,7 +1631,7 @@ async function loadNetworkData() {
                 // Use profile data or fallback. Prefer firstName + lastName when available,
                 // then headline, then username, then node id.
                 const profileData = nodeProfiles.value[nodeId] || {
-                    avatarUrl: avatarStore.DEFAULT_AVATAR,
+                    avatarUrl: "",
                     username: nodeId,
                 };
                 const profile = profileData.profile || {};
@@ -1634,15 +1653,15 @@ async function loadNetworkData() {
                     if (publicProfile?.profilePictureUrl) {
                         avatarUrl = publicProfile.profilePictureUrl;
                     } else {
-                        // Use letter-based avatar if no profile picture
+                        // Use empty string if avatar is default so initials will show
                         avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                            ? avatarStore.getLetterAvatar(displayName)
+                            ? ""
                             : profileData.avatarUrl;
                     }
                 } else {
-                    // Non-root nodes: use letter-based avatar if no profile picture
+                    // Use empty string if avatar is default so initials will show
                     avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                        ? avatarStore.getLetterAvatar(displayName)
+                        ? ""
                         : profileData.avatarUrl;
                 }
             }

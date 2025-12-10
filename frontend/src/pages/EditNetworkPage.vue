@@ -61,9 +61,10 @@
                         >
                             <div class="member-avatar">
                                 <img
-                                    v-if="member.avatarUrl"
+                                    v-if="member.avatarUrl && member.avatarUrl.trim() !== ''"
                                     :src="member.avatarUrl"
                                     :alt="member.displayName"
+                                    :data-member-id="member.id"
                                     @error="handleImageError"
                                 />
                                 <div v-else class="avatar-placeholder">
@@ -186,7 +187,14 @@ function formatSourceName(source: string): string {
 
 function handleImageError(event: Event) {
     const img = event.target as HTMLImageElement;
-    img.src = avatarStore.DEFAULT_AVATAR;
+    // Find which member this image belongs to and set their avatarUrl to empty
+    const memberId = img.getAttribute("data-member-id");
+    if (memberId) {
+        const member = networkMembers.value.find(m => m.id === memberId);
+        if (member) {
+            member.avatarUrl = "";
+        }
+    }
 }
 
 function handleEditSelected() {
@@ -235,11 +243,10 @@ async function handleConnectionAdded() {
 
 function getInitials(text: string): string {
     if (!text) return "?";
-    const words = text.trim().split(/\s+/);
-    if (words.length >= 2) {
-        return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    return text.substring(0, 2).toUpperCase();
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return "?";
+    // Return only the first letter
+    return trimmed[0].toUpperCase();
 }
 
 async function fetchNodeProfiles(nodeIds: string[]) {
@@ -248,7 +255,7 @@ async function fetchNodeProfiles(nodeIds: string[]) {
 
         let profile: any;
         let username = nodeId;
-        let avatarUrl = avatarStore.DEFAULT_AVATAR;
+        let avatarUrl = "";
 
         try {
             const userResult = await UserAuthenticationAPI.getUserById({
@@ -273,7 +280,9 @@ async function fetchNodeProfiles(nodeIds: string[]) {
                     avatarUrl = (profile as any).profilePictureUrl;
                     avatarStore.setForUser(nodeId, avatarUrl);
                 } else {
-                    avatarUrl = avatarStore.getForUser(nodeId);
+                    const storedAvatar = avatarStore.getForUser(nodeId);
+                    // Use empty string if avatar is default so initials will show
+                    avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
                 }
 
                 nodeProfiles.value[nodeId] = {
@@ -282,14 +291,18 @@ async function fetchNodeProfiles(nodeIds: string[]) {
                     username: displayName,
                 };
             } else {
-                avatarUrl = avatarStore.getForUser(nodeId);
+                const storedAvatar = avatarStore.getForUser(nodeId);
+                // Use empty string if avatar is default so initials will show
+                avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
                 nodeProfiles.value[nodeId] = {
                     avatarUrl,
                     username,
                 };
             }
         } catch {
-            avatarUrl = avatarStore.getForUser(nodeId);
+            const storedAvatar = avatarStore.getForUser(nodeId);
+            // Use empty string if avatar is default so initials will show
+            avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
             nodeProfiles.value[nodeId] = {
                 avatarUrl,
                 username,
@@ -396,8 +409,7 @@ async function loadNetworkData() {
                         membershipSources: nd.membershipSources || {},
                         ...nd,
                     },
-                    avatarUrl:
-                        (nd.avatarUrl as string) || avatarStore.DEFAULT_AVATAR,
+                    avatarUrl: (nd.avatarUrl as string) || "",
                     username: (nd.label as string) || id,
                 };
             });
@@ -432,9 +444,7 @@ async function loadNetworkData() {
                 const fullName = `${firstName} ${lastName}`.trim();
 
                 displayName = fullName || linkedInConn.headline || nodeId;
-                avatarUrl =
-                    linkedInConn.profilePictureUrl ||
-                    avatarStore.DEFAULT_AVATAR;
+                avatarUrl = linkedInConn.profilePictureUrl || "";
                 location = linkedInConn.location;
                 currentJob = linkedInConn.currentPosition || linkedInConn.headline;
 
@@ -449,7 +459,7 @@ async function loadNetworkData() {
                 };
             } else {
                 const profileData = nodeProfiles.value[nodeId] || {
-                    avatarUrl: avatarStore.DEFAULT_AVATAR,
+                    avatarUrl: "",
                     username: nodeId,
                 };
                 const profile = profileData.profile || {};
@@ -464,7 +474,10 @@ async function loadNetworkData() {
                     displayName = profileData.username || nodeId;
                 }
 
-                avatarUrl = profileData.avatarUrl;
+                // Use empty string if avatar is default so initials will show
+                avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+                    ? ""
+                    : profileData.avatarUrl;
                 location = profile.location;
                 currentJob = profile.headline;
             }
@@ -732,4 +745,3 @@ onMounted(() => {
     }
 }
 </style>
-

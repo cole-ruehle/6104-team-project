@@ -46,7 +46,12 @@ defineEmits<{
 
 function handleImageError(event: Event) {
     const img = event.target as HTMLImageElement;
-    img.src = avatarStore.DEFAULT_AVATAR;
+    // Hide the image - the placeholder will show via v-else
+    img.style.display = "none";
+    const placeholder = img.parentElement?.querySelector(".avatar-placeholder") as HTMLElement;
+    if (placeholder) {
+        placeholder.style.display = "flex";
+    }
 }
 </script>
 
@@ -123,4 +128,3 @@ function handleImageError(event: Event) {
     line-height: 1.5;
 }
 </style>
-

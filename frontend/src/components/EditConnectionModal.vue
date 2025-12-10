@@ -20,17 +20,24 @@
                     <!-- Profile Picture Upload -->
                     <div class="form-section">
                         <label class="form-label">Profile Picture</label>
-                        <div
-                            class="upload-area"
-                            :class="{
-                                'drag-over': isDragging,
-                                'has-image': form.avatarUrl,
-                            }"
-                            @dragover.prevent="handleDragOver"
-                            @dragleave.prevent="handleDragLeave"
-                            @drop.prevent="handleDrop"
-                            @click="triggerFilePicker"
-                        >
+                        <div class="profile-picture-container">
+                            <div v-if="form.avatarUrl" class="profile-picture-preview">
+                                <img
+                                    :src="form.avatarUrl"
+                                    alt="Profile preview"
+                                    @error="handleImageError"
+                                />
+                            </div>
+                            <div v-else class="profile-picture-placeholder">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <button
+                                type="button"
+                                class="change-profile-pic-btn"
+                                @click="triggerFilePicker"
+                            >
+                                Change Profile Picture
+                            </button>
                             <input
                                 ref="fileInput"
                                 type="file"
@@ -38,36 +45,6 @@
                                 class="file-input"
                                 @change="handleFileChange"
                             />
-                            <div
-                                v-if="!form.avatarUrl"
-                                class="upload-placeholder"
-                            >
-                                <i
-                                    class="fa-solid fa-cloud-arrow-up upload-icon"
-                                ></i>
-                                <p class="upload-text">
-                                    Drag and drop an image here, or click to
-                                    browse
-                                </p>
-                                <p class="upload-hint">
-                                    Supports JPG, PNG, GIF (max 5MB)
-                                </p>
-                            </div>
-                            <div v-else class="upload-preview">
-                                <img
-                                    :src="form.avatarUrl"
-                                    alt="Preview"
-                                    @error="handleImageError"
-                                />
-                                <button
-                                    type="button"
-                                    class="remove-image-btn"
-                                    @click.stop="removeImage"
-                                    aria-label="Remove image"
-                                >
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </div>
                         </div>
                         <div v-if="uploadError" class="upload-error">
                             <i class="fa-solid fa-exclamation-circle"></i>
@@ -173,7 +150,6 @@ const auth = useAuthStore();
 const saving = ref(false);
 const loading = ref(true);
 const error = ref<string | null>(null);
-const isDragging = ref(false);
 const uploadError = ref<string>("");
 const fileInput = ref<HTMLInputElement | null>(null);
 
@@ -294,28 +270,6 @@ function triggerFilePicker() {
     fileInput.value?.click();
 }
 
-function handleDragOver(event: DragEvent) {
-    isDragging.value = true;
-    event.preventDefault();
-}
-
-function handleDragLeave(event: DragEvent) {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = event.clientX;
-    const y = event.clientY;
-
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-        isDragging.value = false;
-    }
-}
-
-function handleDrop(event: DragEvent) {
-    isDragging.value = false;
-    const files = event.dataTransfer?.files;
-    if (files && files.length > 0) {
-        processFile(files[0]);
-    }
-}
 
 function handleFileChange(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -354,14 +308,6 @@ function processFile(file: File) {
         uploadError.value = "Failed to read image file";
     };
     reader.readAsDataURL(file);
-}
-
-function removeImage() {
-    form.value.avatarUrl = "";
-    uploadError.value = "";
-    if (fileInput.value) {
-        fileInput.value.value = "";
-    }
 }
 
 function handleImageError(event: Event) {
@@ -534,7 +480,7 @@ onMounted(() => {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--color-navy-700);
+    background: #003B6D;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
@@ -564,95 +510,67 @@ onMounted(() => {
     cursor: not-allowed;
 }
 
-.upload-area {
-    position: relative;
-    border: 2px dashed rgba(15, 23, 42, 0.2);
-    border-radius: 0.5rem;
-    padding: 2rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: #f8fafc;
-}
-
-.upload-area:hover {
-    border-color: var(--color-navy-400);
-    background: #f1f5f9;
-}
-
-.upload-area.drag-over {
-    border-color: var(--color-navy-600);
-    background: #eff6ff;
-}
-
-.upload-area.has-image {
-    padding: 0;
-    border: none;
-    background: transparent;
-}
-
-.file-input {
-    display: none;
-}
-
-.upload-placeholder {
+/* Profile Picture Upload */
+.profile-picture-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: flex-start;
+    gap: 1rem;
 }
 
-.upload-icon {
-    font-size: 2rem;
-    color: #94a3b8;
-}
-
-.upload-text {
-    margin: 0;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #475569;
-}
-
-.upload-hint {
-    margin: 0;
-    font-size: 0.75rem;
-    color: #94a3b8;
-}
-
-.upload-preview {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 0.5rem;
+.profile-picture-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
     overflow: hidden;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.upload-preview img {
+.profile-picture-preview img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.remove-image-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: none;
+.profile-picture-placeholder {
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
-    width: 2rem;
-    height: 2rem;
+    background: #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    color: #94a3b8;
+    font-size: 2rem;
 }
 
-.remove-image-btn:hover {
-    background: rgba(0, 0, 0, 0.9);
+.change-profile-pic-btn {
+    padding: 0.5rem 1rem;
+    background: var(--color-navy-600);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.change-profile-pic-btn:hover {
+    background: #003B6D;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-input {
+    display: none;
 }
 
 .upload-error {
@@ -667,4 +585,3 @@ onMounted(() => {
     gap: 0.5rem;
 }
 </style>
-

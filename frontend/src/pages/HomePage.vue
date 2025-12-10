@@ -115,6 +115,37 @@
         <div class="content-area">
             <!-- Card View -->
             <div v-if="viewMode === 'card'" class="card-view">
+                <!-- Card View Controls -->
+                <div v-if="!loading && !semanticLoading && displayedNodes.length > 0" class="card-view-controls">
+                    <div class="controls-row">
+                        <div class="control-group">
+                            <label for="cards-per-row">Cards per Row:</label>
+                            <input
+                                id="cards-per-row"
+                                type="number"
+                                v-model.number="cardsPerRow"
+                                min="1"
+                                max="10"
+                                class="control-input"
+                            />
+                        </div>
+                        <div class="control-group">
+                            <label for="rows-per-page">Rows per Page:</label>
+                            <input
+                                id="rows-per-page"
+                                type="number"
+                                v-model.number="rowsPerPage"
+                                min="1"
+                                max="20"
+                                class="control-input"
+                            />
+                        </div>
+                    </div>
+                    <div class="connections-count">
+                        Showing {{ startIndex + 1 }}-{{ endIndex }} out of {{ displayedNodes.length }} connections
+                    </div>
+                </div>
+
                 <div v-if="loading || semanticLoading" class="loading-state">
                     <div class="loading-icon">📡</div>
                     <h3>
@@ -139,14 +170,48 @@
                         }}
                     </p>
                 </div>
-                <div v-else class="cards-grid">
-                    <ConnectionCard
-                        v-for="node in displayedNodes"
-                        :key="node.id"
-                        :node="node"
-                        @click="openProfileModal(node.id)"
-                    />
-                </div>
+                <template v-else>
+                    <div class="cards-grid" :style="{ gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` }">
+                        <ConnectionCard
+                            v-for="node in paginatedNodes"
+                            :key="node.id"
+                            :node="node"
+                            @click="openProfileModal(node.id)"
+                        />
+                    </div>
+                    <!-- Pagination Controls -->
+                    <div v-if="totalPages > 1" class="pagination-controls">
+                        <button
+                            @click="goToPage(currentPage - 1)"
+                            :disabled="currentPage === 1"
+                            class="pagination-btn"
+                        >
+                            <i class="fa-solid fa-chevron-left"></i>
+                            Previous
+                        </button>
+                        <div class="page-input-group">
+                            <span>Page</span>
+                            <input
+                                type="number"
+                                v-model.number="pageInput"
+                                :min="1"
+                                :max="totalPages"
+                                @keyup.enter="goToPage(pageInput)"
+                                @blur="validateAndGoToPage"
+                                class="page-input"
+                            />
+                            <span>of {{ totalPages }}</span>
+                        </div>
+                        <button
+                            @click="goToPage(currentPage + 1)"
+                            :disabled="currentPage === totalPages"
+                            class="pagination-btn"
+                        >
+                            Next
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </template>
             </div>
 
             <!-- Network View -->
@@ -258,6 +323,18 @@
                                     Company
                                 </h3>
                                 <p>{{ selectedProfileData.currentCompany }}</p>
+                            </div>
+
+                            <!-- Location -->
+                            <div
+                                v-if="selectedProfileData.location"
+                                class="detail-section"
+                            >
+                                <h3 class="detail-title">
+                                    <i class="fa-solid fa-map-marker-alt"></i>
+                                    Location
+                                </h3>
+                                <p>{{ selectedProfileData.location }}</p>
                             </div>
 
                             <!-- Industry -->
@@ -585,6 +662,12 @@ const isDraggingProfile = ref(false);
 const uploadErrorProfile = ref<string>("");
 const fileInputProfile = ref<HTMLInputElement | null>(null);
 
+// Card view pagination state
+const cardsPerRow = ref(3);
+const rowsPerPage = ref(4);
+const currentPage = ref(1);
+const pageInput = ref(1);
+
 const editProfileForm = ref({
     firstName: "",
     lastName: "",
@@ -852,6 +935,21 @@ const displayedNodes = computed(() => {
     return results;
 });
 
+// Pagination computed properties
+const cardsPerPage = computed(() => cardsPerRow.value * rowsPerPage.value);
+const totalPages = computed(() => {
+    if (displayedNodes.value.length === 0) return 1;
+    return Math.ceil(displayedNodes.value.length / cardsPerPage.value);
+});
+const startIndex = computed(() => (currentPage.value - 1) * cardsPerPage.value);
+const endIndex = computed(() => {
+    const end = startIndex.value + cardsPerPage.value;
+    return Math.min(end, displayedNodes.value.length);
+});
+const paginatedNodes = computed(() => {
+    return displayedNodes.value.slice(startIndex.value, endIndex.value);
+});
+
 const selectedProfileData = computed(() => {
     if (!selectedProfileId.value) {
         return null;
@@ -959,7 +1057,7 @@ async function performSemanticSearch() {
                     company = conn.currentCompany;
                 } else {
                     const profileData = nodeProfiles.value[connectionId] || {
-                        avatarUrl: avatarStore.DEFAULT_AVATAR,
+                        avatarUrl: "",
                         username: connectionId,
                     };
                     const profData = profileData.profile || {};
@@ -974,9 +1072,9 @@ async function performSemanticSearch() {
                         displayName = profileData.username || connectionId;
                     }
 
-                    // Use letter-based avatar if no profile picture
+                    // Use empty string if avatar is default so initials will show
                     avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                        ? avatarStore.getLetterAvatar(displayName)
+                        ? ""
                         : profileData.avatarUrl;
                     location = profData.location;
                     currentJob = profData.headline;
@@ -1164,9 +1262,36 @@ function toggleView() {
     viewMode.value = viewMode.value === "card" ? "network" : "card";
 }
 
+// Pagination functions
+function goToPage(page: number) {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+        pageInput.value = page;
+    }
+}
+
+function validateAndGoToPage() {
+    let page = pageInput.value;
+    if (page < 1) page = 1;
+    if (page > totalPages.value) page = totalPages.value;
+    goToPage(page);
+}
+
+// Watch for changes that should reset pagination
+watch([displayedNodes, cardsPerRow, rowsPerPage], () => {
+    // Reset to page 1 when filters/search change or pagination settings change
+    currentPage.value = 1;
+    pageInput.value = 1;
+});
+
 function handleImageError(event: Event) {
     const img = event.target as HTMLImageElement;
-    img.src = avatarStore.DEFAULT_AVATAR;
+    // Hide the image - the placeholder will show via v-else
+    img.style.display = "none";
+    const placeholder = img.parentElement?.querySelector(".avatar-placeholder, .avatar-placeholder-large") as HTMLElement;
+    if (placeholder) {
+        placeholder.style.display = "flex";
+    }
 }
 
 function openProfileModal(nodeId: string) {
@@ -1294,25 +1419,118 @@ async function saveProfile() {
         const label = `${editProfileForm.value.firstName} ${editProfileForm.value.lastName}`.trim();
         const headline = editProfileForm.value.headline || editProfileForm.value.jobTitle || "";
 
-        // Update the existing node using updateNode
-        const nodeResult = await MultiSourceNetworkAPI.updateNode({
-            node: selectedProfileId.value,
-            updater: auth.userId,
-            meta: {
-                firstName: editProfileForm.value.firstName.trim(),
-                lastName: editProfileForm.value.lastName.trim(),
-                label: label,
-                headline: headline,
-                location: editProfileForm.value.location.trim() || undefined,
-                currentCompany: editProfileForm.value.company.trim() || undefined,
-                currentPosition: editProfileForm.value.jobTitle.trim() || undefined,
-                avatarUrl: editProfileForm.value.avatarUrl || undefined,
-                profilePictureUrl: editProfileForm.value.avatarUrl || undefined,
-            },
+        const updateMeta = {
+            firstName: editProfileForm.value.firstName.trim(),
+            lastName: editProfileForm.value.lastName.trim(),
+            label: label,
+            headline: headline,
+            location: editProfileForm.value.location.trim() || undefined,
+            currentCompany: editProfileForm.value.company.trim() || undefined,
+            currentPosition: editProfileForm.value.jobTitle.trim() || undefined,
+            avatarUrl: editProfileForm.value.avatarUrl || undefined,
+            profilePictureUrl: editProfileForm.value.avatarUrl || undefined,
+        };
+
+        // Check if this is the user's own profile node
+        const isOwnProfile = selectedProfileId.value === auth.userId;
+        console.log("Saving profile:", {
+            selectedProfileId: selectedProfileId.value,
+            userId: auth.userId,
+            isOwnProfile
         });
 
+        // Always ensure network exists first (this creates the node document and membership for userId->userId)
+        // This is critical for the user's own profile node
+        await MultiSourceNetworkAPI.createNetwork({
+            owner: auth.userId,
+            root: auth.userId,
+        });
+
+        // Try to update the node
+        let nodeResult = await MultiSourceNetworkAPI.updateNode({
+            node: selectedProfileId.value,
+            updater: auth.userId,
+            meta: updateMeta,
+        });
+
+        // If update fails, check the error type
         if (nodeResult.error) {
-            throw new Error(nodeResult.error);
+            const errorMsg = nodeResult.error.toLowerCase();
+
+            // If node doesn't exist, we need to create it
+            if (errorMsg.includes("not found") || errorMsg.includes("does not exist")) {
+                if (isOwnProfile) {
+                    // For own profile, the node should already exist after createNetwork
+                    // But if it doesn't, we need to ensure it exists
+                    // The createNetwork should have created it, so this might be a timing issue
+                    // Retry after a short delay, or the node ID might be wrong
+                    console.warn("Own profile node not found after createNetwork, retrying update...");
+                    // Wait a moment and retry
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    nodeResult = await MultiSourceNetworkAPI.updateNode({
+                        node: selectedProfileId.value,
+                        updater: auth.userId,
+                        meta: updateMeta,
+                    });
+                } else {
+                    // For other nodes, create it using createNodeForUser
+                    try {
+                        const createResult = await MultiSourceNetworkAPI.createNodeForUser({
+                            owner: auth.userId,
+                            firstName: updateMeta.firstName,
+                            lastName: updateMeta.lastName,
+                            label: updateMeta.label,
+                            headline: updateMeta.headline,
+                            location: updateMeta.location,
+                            currentCompany: updateMeta.currentCompany,
+                            currentPosition: updateMeta.currentPosition,
+                            avatarUrl: updateMeta.avatarUrl,
+                        });
+
+                        // Node was created - if it has a different ID, we're done
+                        // Otherwise, try to update it
+                        if (createResult.node && createResult.node !== selectedProfileId.value) {
+                            // Node was created with new ID - reload to see it
+                        } else {
+                            // Try updating again
+                            nodeResult = await MultiSourceNetworkAPI.updateNode({
+                                node: selectedProfileId.value,
+                                updater: auth.userId,
+                                meta: updateMeta,
+                            });
+                        }
+                    } catch (createErr) {
+                        throw new Error(`Failed to create node: ${createErr instanceof Error ? createErr.message : String(createErr)}`);
+                    }
+                }
+            }
+            // If authorization/membership error
+            else if (errorMsg.includes("authorized") || errorMsg.includes("membership") || errorMsg.includes("not authorized")) {
+                // If the node is not the userId, try to add it to network
+                if (!isOwnProfile) {
+                    try {
+                        await MultiSourceNetworkAPI.addNodeToNetwork({
+                            owner: auth.userId,
+                            node: selectedProfileId.value,
+                            source: "user",
+                        });
+                    } catch (e) {
+                        console.log("Note: Could not add node to network (may already exist):", e);
+                    }
+                }
+
+                // Retry the update
+                nodeResult = await MultiSourceNetworkAPI.updateNode({
+                    node: selectedProfileId.value,
+                    updater: auth.userId,
+                    meta: updateMeta,
+                });
+            }
+
+            // If there's still an error after all retries
+            if (nodeResult.error) {
+                throw new Error(nodeResult.error);
+            }
         }
 
         // Reload network data to refresh the profile
@@ -1330,11 +1548,10 @@ async function saveProfile() {
 
 function getInitials(text: string): string {
     if (!text) return "?";
-    const words = text.trim().split(/\s+/);
-    if (words.length >= 2) {
-        return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    return text.substring(0, 2).toUpperCase();
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return "?";
+    // Return only the first letter
+    return trimmed[0].toUpperCase();
 }
 
 async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = []) {
@@ -1545,7 +1762,7 @@ async function loadNetworkData() {
                 };
             } else {
                 const profileData = nodeProfiles.value[nodeId] || {
-                    avatarUrl: avatarStore.DEFAULT_AVATAR,
+                    avatarUrl: "",
                     username: nodeId,
                 };
                 const profile = profileData.profile || {};
@@ -1566,15 +1783,15 @@ async function loadNetworkData() {
                     if (publicProfile?.profilePictureUrl) {
                         avatarUrl = publicProfile.profilePictureUrl;
                     } else {
-                        // Use letter-based avatar if no profile picture
+                        // Use empty string if avatar is default so initials will show
                         avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                            ? avatarStore.getLetterAvatar(displayName)
+                            ? ""
                             : profileData.avatarUrl;
                     }
                 } else {
-                    // Use letter-based avatar if no profile picture
+                    // Use empty string if avatar is default so initials will show
                     avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                        ? avatarStore.getLetterAvatar(displayName)
+                        ? ""
                         : profileData.avatarUrl;
                 }
                 location = profile.location;
@@ -1909,10 +2126,122 @@ onBeforeUnmount(() => {
     width: 100%;
 }
 
+.card-view-controls {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+}
+
+.controls-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.control-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+}
+
+.control-input {
+    width: 80px;
+    padding: 0.5rem;
+    border: 1px solid rgba(15, 23, 42, 0.2);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.control-input:focus {
+    border-color: var(--color-navy-400);
+    box-shadow: 0 0 0 3px rgba(102, 153, 204, 0.2);
+}
+
+.connections-count {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
 .cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 0;
+    margin-top: 2rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.pagination-btn {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid rgba(15, 23, 42, 0.2);
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--color-navy-900);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: var(--color-navy-400);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.page-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #1e293b;
+}
+
+.page-input {
+    width: 60px;
+    padding: 0.5rem;
+    border: 1px solid rgba(15, 23, 42, 0.2);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.page-input:focus {
+    border-color: var(--color-navy-400);
+    box-shadow: 0 0 0 3px rgba(102, 153, 204, 0.2);
 }
 
 .network-view {
