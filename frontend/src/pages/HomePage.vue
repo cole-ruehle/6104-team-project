@@ -145,9 +145,7 @@
                 <!-- Card View Controls -->
                 <div
                     v-if="
-                        !loading &&
-                        !semanticLoading &&
-                        displayedNodes.length > 0
+                        !loading && !semanticLoading && visibleNodes.length > 0
                     "
                     class="card-view-controls"
                 >
@@ -177,7 +175,7 @@
                     </div>
                     <div class="connections-count">
                         Showing {{ startIndex + 1 }}-{{ endIndex }} out of
-                        {{ displayedNodes.length }} connections
+                        {{ visibleNodes.length }} connections
                     </div>
                 </div>
 
@@ -191,10 +189,7 @@
                         }}
                     </h3>
                 </div>
-                <div
-                    v-else-if="displayedNodes.length === 0"
-                    class="empty-state"
-                >
+                <div v-else-if="visibleNodes.length === 0" class="empty-state">
                     <div class="empty-icon">🔍</div>
                     <h3>No connections found</h3>
                     <p>
@@ -949,8 +944,9 @@ const autocompleteSuggestions = computed(() => {
         });
     });
 
-    // Name search - prioritize actual names
+    // Name search - prioritize actual names (exclude the current user's own profile)
     allNodes.value.forEach((node) => {
+        if (node.id === auth.userId) return; // skip owner's profile
         const searchText = node.displayName.toLowerCase();
         if (
             searchText.includes(query) &&
@@ -1036,19 +1032,26 @@ const displayedNodes = computed(() => {
     return results;
 });
 
+// Visible nodes for card view (ensure owner's node is never shown as a card)
+const visibleNodes = computed(() => {
+    const ownerId = auth.userId;
+    if (!ownerId) return displayedNodes.value;
+    return displayedNodes.value.filter((node) => node.id !== ownerId);
+});
+
 // Pagination computed properties
 const cardsPerPage = computed(() => cardsPerRow.value * rowsPerPage.value);
 const totalPages = computed(() => {
-    if (displayedNodes.value.length === 0) return 1;
-    return Math.ceil(displayedNodes.value.length / cardsPerPage.value);
+    if (visibleNodes.value.length === 0) return 1;
+    return Math.ceil(visibleNodes.value.length / cardsPerPage.value);
 });
 const startIndex = computed(() => (currentPage.value - 1) * cardsPerPage.value);
 const endIndex = computed(() => {
     const end = startIndex.value + cardsPerPage.value;
-    return Math.min(end, displayedNodes.value.length);
+    return Math.min(end, visibleNodes.value.length);
 });
 const paginatedNodes = computed(() => {
-    return displayedNodes.value.slice(startIndex.value, endIndex.value);
+    return visibleNodes.value.slice(startIndex.value, endIndex.value);
 });
 
 const selectedProfileData = computed(() => {
@@ -1209,7 +1212,11 @@ async function performSemanticSearch() {
             })
         );
 
-        semanticResults.value = mappedResults;
+        // Ensure the current owner's node is not shown in semantic results
+        // (it should remain visible in the graph only)
+        semanticResults.value = mappedResults.filter(
+            (r) => r.id !== auth.userId
+        );
     } catch (error) {
         console.error("Semantic search error:", error);
         semanticResults.value = [];
