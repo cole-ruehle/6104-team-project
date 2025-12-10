@@ -14,6 +14,9 @@ export const IndexManualNodeInSemanticSearch: Sync = ({
   label,
   headline,
   text,
+  location,
+  currentPosition,
+  currentCompany,
 }) => ({
   when: actions([
     MultiSourceNetwork.createNodeForUser,
@@ -23,6 +26,9 @@ export const IndexManualNodeInSemanticSearch: Sync = ({
       lastName,
       label,
       headline,
+      location,
+      currentPosition,
+      currentCompany,
     },
     { node },
   ]),
@@ -34,10 +40,22 @@ export const IndexManualNodeInSemanticSearch: Sync = ({
 
       const rawLabel = String(frame[label] ?? "").trim();
       const headlineVal = String(frame[headline] ?? "").trim();
+      const locationVal = String(frame[location] ?? "").trim();
+      const positionVal = String(frame[currentPosition] ?? "").trim();
+      const companyVal = String(frame[currentCompany] ?? "").trim();
 
       const parts: string[] = [];
       if (name) parts.push(name);
+
+      if (positionVal || companyVal) {
+        const roleCompany = [positionVal, companyVal]
+          .filter((x) => x.length > 0)
+          .join(" at ");
+        if (roleCompany) parts.push(roleCompany);
+      }
+
       if (headlineVal) parts.push(headlineVal);
+      if (locationVal) parts.push(locationVal);
 
       // Fall back to label or node id if we have nothing else.
       if (parts.length === 0) {

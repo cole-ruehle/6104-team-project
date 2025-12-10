@@ -25,6 +25,11 @@ interface SearchQueries {
 const SEMANTIC_SERVICE_URL = Deno.env.get("SEMANTIC_SERVICE_URL") ??
   "http://localhost:8001";
 
+// Minimum relevance score required for a semantic match to be
+// surfaced in searchConnections. Higher values mean fewer but
+// more confident results.
+const MIN_CONNECTION_SCORE = 0.25;
+
 async function semanticIndex(
   owner: Owner,
   items: Array<
@@ -300,8 +305,16 @@ export default class SemanticSearchConcept {
     const rawResults = await semanticSearch(owner, trimmed, {}, limit);
     if (!rawResults.length) return { results: [] };
 
+    // 1a. Drop low-confidence matches so obviously irrelevant
+    // hits don't show up at all.
+    const filteredRaw = rawResults.filter((r) => {
+      const score = Number.isFinite(r.score) ? r.score : 0;
+      return score >= MIN_CONNECTION_SCORE;
+    });
+    if (!filteredRaw.length) return { results: [] };
+
     // 2. Fetch matching LinkedIn connections by _id where possible.
-    const ids = rawResults
+    const ids = filteredRaw
       .map((r) => String(r.item))
       .filter((id) =>
         id && !["FULLSTACK_ID", "BACKEND_ID", "ML_ID"].includes(id)
@@ -411,8 +424,8 @@ export default class SemanticSearchConcept {
       }
     }
 
-    // 3. Build rich results in the original semantic order.
-    const results = rawResults.map((r) => {
+    // 3. Build rich results in the filtered semantic order.
+    const results = filteredRaw.map((r) => {
       const connectionId = String(r.item);
       const score = Number.isFinite(r.score) ? r.score : 0;
       const doc = byId.get(connectionId);

@@ -515,7 +515,7 @@ export default class LinkedInImportConcept {
     }
 
     if (connection.skills && connection.skills.length > 0) {
-      parts.push(`Skills: ${connection.skills.join(", ")}`);
+      parts.push(connection.skills.join(", "));
     }
 
     if (parts.length === 0) {
@@ -1224,7 +1224,11 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
     account: LinkedInAccount;
     jsonContent: string;
   }): Promise<
-    | { importJob: ImportJob; connectionsImported: number; connections: Array<ConnectionDoc> }
+    | {
+      importJob: ImportJob;
+      connectionsImported: number;
+      connections: Array<ConnectionDoc>;
+    }
     | { error: string }
   > {
     // Validate account exists
@@ -1315,10 +1319,10 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
 
       const fieldMapping = mappingResult;
 
-  // Process each connection object
-  let connectionsImported = 0;
-  const errors: string[] = [];
-  const createdConnections: Array<ConnectionDoc> = [];
+      // Process each connection object
+      let connectionsImported = 0;
+      const errors: string[] = [];
+      const createdConnections: Array<ConnectionDoc> = [];
 
       for (let objIndex = 0; objIndex < connectionsArray.length; objIndex++) {
         const connectionObj = connectionsArray[objIndex];
@@ -1472,7 +1476,9 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
           connectionsImported++;
           // Fetch the created connection document to include in return value
           if (addResult.connection) {
-            const connDoc = await this.connections.findOne({ _id: addResult.connection });
+            const connDoc = await this.connections.findOne({
+              _id: addResult.connection,
+            });
             if (connDoc) createdConnections.push(connDoc);
           }
         }
@@ -1501,7 +1507,11 @@ Return ONLY a JSON object mapping CSV column names to ConnectionDoc field names.
         );
       }
 
-  return { importJob: importJobId, connectionsImported, connections: createdConnections };
+      return {
+        importJob: importJobId,
+        connectionsImported,
+        connections: createdConnections,
+      };
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       await this.importJobs.updateOne(
