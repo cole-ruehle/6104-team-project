@@ -79,26 +79,35 @@ function handleImageError(event: Event) {
 }
 
 .card-avatar {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  background: #dbeafe;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    /* Avatar size scales with card width - customize the values below */
+    /* The size will be between min-size and max-size, scaling with card width */
+    --avatar-size-percent: 70%; /* Percentage of card width (adjust: 30%, 40%, 50%, etc.) */
+    --avatar-max-size: 200px; /* Maximum size in pixels (adjust this value) */
+    --avatar-min-size: 60px; /* Minimum size in pixels (adjust this value) */
+
+    width: clamp(var(--avatar-min-size), var(--avatar-size-percent), var(--avatar-max-size));
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #dbeafe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    flex-shrink: 0;
 }
 
 .card-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+    border-radius: 50%;
 }
 
 .avatar-placeholder {
-  font-size: 2.5rem;
-  font-weight: 600;
-  color: #1e293b;
+    font-size: clamp(1.5rem, 40%, 3rem);
+    font-weight: 600;
+    color: #1e293b;
 }
 
 .card-info {
