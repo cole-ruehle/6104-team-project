@@ -34,8 +34,8 @@
                                 </li>
                                 <li>
                                     A filter (like company, location, or
-                                    platform) - filter suggestions will pop up in
-                                    the dropdown
+                                    platform) - filter suggestions will pop up
+                                    in the dropdown
                                 </li>
                             </ul>
                         </li>
@@ -46,9 +46,9 @@
                         </li>
                         <li>
                             <strong>Enable Smart Search:</strong> Click the
-                            "Smart Search" button to turn on embedding technology
-                            that finds the best semantic matches for whatever you
-                            type, even if it doesn't match exactly.
+                            "Smart Search" button to turn on embedding
+                            technology that finds the best semantic matches for
+                            whatever you type, even if it doesn't match exactly.
                         </li>
                     </ol>
                     <div class="tutorial-tip">
@@ -76,9 +76,7 @@
                         <li>
                             <strong>Request your LinkedIn data:</strong>
                             <ul class="nested-list">
-                                <li>
-                                    Go to your LinkedIn account settings
-                                </li>
+                                <li>Go to your LinkedIn account settings</li>
                                 <li>
                                     Navigate to "Data Privacy" or "Get a copy of
                                     your data"
@@ -164,12 +162,16 @@
                             "Advanced Options" and select how you're connected:
                             <ul class="nested-list">
                                 <li>
-                                    <strong>Direct Connection (1st Degree):</strong>
+                                    <strong
+                                        >Direct Connection (1st Degree):</strong
+                                    >
                                     Select this if you know them directly and
                                     have a first-degree connection.
                                 </li>
                                 <li>
-                                    <strong>Connected Through Someone Else:</strong>
+                                    <strong
+                                        >Connected Through Someone Else:</strong
+                                    >
                                     Select this if you're connected via another
                                     person. You'll need to search for and select
                                     the person who connects you.
@@ -201,17 +203,17 @@
                 <h2 class="tutorial-title">Demo Video Tutorial</h2>
                 <div class="tutorial-content">
                     <p class="tutorial-intro">
-                        Our recoreded demo video
-                        will walk you through all the features of the platform.
+                        Our recoreded demo video will walk you through all the
+                        features of the platform.
                     </p>
                     <div class="coming-soon-notice">
                         <i class="fa-solid fa-clock"></i>
                         <p>
-                            <strong>Coming Soon:</strong> Our demo video tutorial
-                            will be added to this page once the website is fully
-                            created and deployed. The video will provide a visual
-                            walkthrough of all the platform's features and
-                            capabilities.
+                            <strong>Coming Soon:</strong> Our demo video
+                            tutorial will be added to this page once the website
+                            is fully created and deployed. The video will
+                            provide a visual walkthrough of all the platform's
+                            features and capabilities.
                         </p>
                     </div>
                 </div>
@@ -226,20 +228,21 @@
 
 <style scoped>
 .tutorials-page {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.5rem 2rem;
+    width: 100%;
 }
 
 .page-header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .page-title {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 800;
-    margin: 0 0 1rem;
+    margin: 0 0 0.5rem;
     color: var(--color-navy-900);
 }
 
@@ -250,18 +253,23 @@
 }
 
 .tutorials-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+    display: grid;
+    grid-template-columns: repeat(2, 2fr);
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 .tutorial-card {
     background: white;
     border-radius: 1rem;
-    padding: 2.5rem;
+    padding: 1.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(15, 23, 42, 0.08);
     transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
 }
 
 .tutorial-card:hover {
@@ -270,15 +278,15 @@
 }
 
 .tutorial-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
     text-align: center;
 }
 
 .tutorial-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    margin: 0 0 1rem;
+    margin: 0 0 0.75rem;
     color: var(--color-navy-900);
     text-align: center;
 }
@@ -288,22 +296,22 @@
 }
 
 .tutorial-intro {
-    font-size: 1.125rem;
+    font-size: 1rem;
     color: #64748b;
-    margin: 0 0 1.5rem;
-    line-height: 1.6;
+    margin: 0 0 1rem;
+    line-height: 1.5;
     text-align: center;
 }
 
 .tutorial-steps {
-    margin: 0 0 1.5rem;
-    padding-left: 1.5rem;
-    line-height: 1.8;
+    margin: 0 0 1rem;
+    padding-left: 1.25rem;
+    line-height: 1.6;
 }
 
 .tutorial-steps li {
-    margin-bottom: 1rem;
-    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9375rem;
     color: #1e293b;
 }
 
@@ -327,12 +335,12 @@
 .tutorial-tip {
     background: #f8fafc;
     border-left: 4px solid var(--color-navy-600);
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-radius: 0.5rem;
     display: flex;
     gap: 0.75rem;
     align-items: flex-start;
-    margin-top: 1.5rem;
+    margin-top: 1rem;
 }
 
 .tutorial-tip i {
@@ -357,12 +365,12 @@
 .coming-soon-notice {
     background: #fff7ed;
     border-left: 4px solid #f59e0b;
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.25rem;
     border-radius: 0.5rem;
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     align-items: flex-start;
-    margin-top: 1rem;
+    margin-top: 0.75rem;
 }
 
 .coming-soon-notice i {
@@ -389,6 +397,10 @@
         padding: 1rem;
     }
 
+    .tutorials-container {
+        grid-template-columns: 1fr;
+    }
+
     .tutorial-card {
         padding: 1.5rem;
     }
@@ -402,4 +414,3 @@
     }
 }
 </style>
-

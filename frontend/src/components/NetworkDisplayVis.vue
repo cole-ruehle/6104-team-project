@@ -44,6 +44,14 @@
             >
                 {{ Math.round(currentZoom * 100) }}%
             </div>
+            <!-- Center button -->
+            <button
+                v-if="networkInstance && hasNodes"
+                @click="centerOnRoot"
+                class="center-graph-btn"
+                title="Center on root node"
+            >
+                <i class="fa-solid fa-crosshairs"></i>Center Root</button>
         </div>
 
         <!-- Empty State -->
@@ -81,6 +89,32 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
     nodeSelected: [nodeId: string];
 }>();
+
+// Expose method to center on root node
+function centerOnRoot() {
+    if (!networkInstance.value) return;
+
+    const rootId = props.rootNodeId || props.currentUserId;
+    if (!rootId) return;
+
+    try {
+        const currentScale = networkInstance.value.getScale();
+        networkInstance.value.focus(rootId, {
+            scale: currentScale,
+            animation: {
+                duration: 500,
+                easingFunction: "easeInOutQuad",
+            },
+        });
+    } catch (error) {
+        console.warn("Error centering on root node:", error);
+    }
+}
+
+// Expose the centerOnRoot function for parent component
+defineExpose({
+    centerOnRoot,
+});
 
 const auth = useAuthStore();
 const avatarStore = useAvatarStore();
@@ -704,6 +738,33 @@ onMounted(() => {
     color: var(--color-navy-900);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 10;
+}
+
+.center-graph-btn {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-navy-900);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.center-graph-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
 }
 
 .empty-state {

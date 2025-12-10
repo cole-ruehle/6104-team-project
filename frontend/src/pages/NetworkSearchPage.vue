@@ -91,21 +91,30 @@
 
                 <!-- Active Filters and Results Count -->
                 <div class="filters-section">
-                    <div class="active-filters">
-                        <div
-                            v-for="(filter, index) in activeFilters"
-                            :key="index"
-                            class="filter-chip"
-                        >
-                            <span>{{ filter.label }}: {{ filter.value }}</span>
-                            <button
-                                @click="removeFilter(index)"
-                                class="filter-remove"
-                                aria-label="Remove filter"
+                    <div class="active-filters-container" v-if="activeFilters.length > 0">
+                        <div class="active-filters">
+                            <div
+                                v-for="(filter, index) in activeFilters"
+                                :key="index"
+                                class="filter-chip"
                             >
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
+                                <span>{{ filter.label }}: {{ filter.value }}</span>
+                                <button
+                                    @click="removeFilter(index)"
+                                    class="filter-remove"
+                                    aria-label="Remove filter"
+                                >
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
                         </div>
+                        <button
+                            @click="clearAllFilters"
+                            class="clear-all-filters-btn"
+                            aria-label="Clear all filters"
+                        >
+                            Clear all
+                        </button>
                     </div>
                     <p class="results-count">
                         {{
@@ -439,6 +448,17 @@
                                 Company
                             </h3>
                             <p>{{ selectedProfileData.currentCompany }}</p>
+                        </div>
+
+                        <div
+                            v-if="selectedProfileData.location"
+                            class="detail-section"
+                        >
+                            <h3 class="detail-title">
+                                <i class="fa-solid fa-map-marker-alt"></i>
+                                Location
+                            </h3>
+                            <p>{{ selectedProfileData.location }}</p>
                         </div>
 
                         <div
@@ -1187,6 +1207,10 @@ function removeFilter(index: number) {
     activeFilters.value.splice(index, 1);
 }
 
+function clearAllFilters() {
+    activeFilters.value = [];
+}
+
 function hideAutocomplete() {
     setTimeout(() => {
         showAutocompleteDropdown.value = false;
@@ -1196,7 +1220,12 @@ function hideAutocomplete() {
 
 function handleImageError(event: Event) {
     const img = event.target as HTMLImageElement;
-    img.src = avatarStore.DEFAULT_AVATAR;
+    // Hide the image - the placeholder will show via v-else
+    img.style.display = "none";
+    const placeholder = img.parentElement?.querySelector(".avatar-placeholder, .avatar-placeholder-large") as HTMLElement;
+    if (placeholder) {
+        placeholder.style.display = "flex";
+    }
 }
 
 function openProfileModal(nodeId: string) {
@@ -1359,11 +1388,10 @@ async function saveProfile() {
 
 function getInitials(text: string): string {
     if (!text) return "?";
-    const words = text.trim().split(/\s+/);
-    if (words.length >= 2) {
-        return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    return text.substring(0, 2).toUpperCase();
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return "?";
+    // Return only the first letter
+    return trimmed[0].toUpperCase();
 }
 
 async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = []) {
@@ -1373,7 +1401,7 @@ async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = [])
 
         let profile: PublicProfile | undefined;
         let username = nodeId;
-        let avatarUrl = avatarStore.DEFAULT_AVATAR;
+        let avatarUrl = "";
 
         // Try to fetch username from UserAuthentication API
         try {
@@ -1401,7 +1429,9 @@ async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = [])
                     avatarUrl = profile.profilePictureUrl;
                     avatarStore.setForUser(nodeId, avatarUrl);
                 } else {
-                    avatarUrl = avatarStore.getForUser(nodeId);
+                    const storedAvatar = avatarStore.getForUser(nodeId);
+                    // Use empty string if avatar is default so initials will show
+                    avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
                 }
 
                 nodeProfiles.value[nodeId] = {
@@ -1410,14 +1440,18 @@ async function fetchNodeProfiles(nodeIds: string[], forceRefresh: string[] = [])
                     username: displayName,
                 };
             } else {
-                avatarUrl = avatarStore.getForUser(nodeId);
+                const storedAvatar = avatarStore.getForUser(nodeId);
+                // Use empty string if avatar is default so initials will show
+                avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
                 nodeProfiles.value[nodeId] = {
                     avatarUrl,
                     username,
                 };
             }
         } catch {
-            avatarUrl = avatarStore.getForUser(nodeId);
+            const storedAvatar = avatarStore.getForUser(nodeId);
+            // Use empty string if avatar is default so initials will show
+            avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
             nodeProfiles.value[nodeId] = {
                 avatarUrl,
                 username,
@@ -1593,10 +1627,8 @@ async function loadNetworkData() {
                 const fullName = `${firstName} ${lastName}`.trim();
 
                 displayName = fullName || linkedInConn.headline || nodeId;
-                // Use profile picture if available, otherwise use letter-based avatar
-                avatarUrl =
-                    linkedInConn.profilePictureUrl ||
-                    avatarStore.getLetterAvatar(displayName);
+                // Use empty string if no profile picture so initials will show
+                avatarUrl = linkedInConn.profilePictureUrl || "";
 
                 // Store in nodeProfiles for company/location filtering
                 nodeProfiles.value[nodeId] = {
@@ -1612,7 +1644,7 @@ async function loadNetworkData() {
                 // Use profile data or fallback. Prefer firstName + lastName when available,
                 // then headline, then username, then node id.
                 const profileData = nodeProfiles.value[nodeId] || {
-                    avatarUrl: avatarStore.DEFAULT_AVATAR,
+                    avatarUrl: "",
                     username: nodeId,
                 };
                 const profile = profileData.profile || {};
@@ -1634,15 +1666,15 @@ async function loadNetworkData() {
                     if (publicProfile?.profilePictureUrl) {
                         avatarUrl = publicProfile.profilePictureUrl;
                     } else {
-                        // Use letter-based avatar if no profile picture
+                        // Use empty string if avatar is default so initials will show
                         avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                            ? avatarStore.getLetterAvatar(displayName)
+                            ? ""
                             : profileData.avatarUrl;
                     }
                 } else {
-                    // Non-root nodes: use letter-based avatar if no profile picture
+                    // Use empty string if avatar is default so initials will show
                     avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                        ? avatarStore.getLetterAvatar(displayName)
+                        ? ""
                         : profileData.avatarUrl;
                 }
             }
@@ -1849,6 +1881,13 @@ onBeforeUnmount(() => {
     margin-top: 1rem;
 }
 
+.active-filters-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
 .active-filters {
     display: flex;
     flex-wrap: wrap;
@@ -1871,22 +1910,53 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.125rem;
-    background: transparent;
-    border: none;
+    padding: 0.375rem;
+    background: #dc2626;
+    border: 1px solid #dc2626;
     cursor: pointer;
-    color: #64748b;
+    color: white;
     transition: all 0.2s ease;
-    border-radius: 0.25rem;
+    border-radius: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    margin-left: 0.25rem;
+    position: relative;
+    z-index: 1;
 }
 
 .filter-remove:hover {
-    background: #cbd5e1;
-    color: #1e293b;
+    background: #b91c1c;
+    border-color: #b91c1c;
+    transform: scale(1.1);
 }
 
 .filter-remove i {
-    font-size: 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    position: relative;
+    z-index: 2;
+    display: block;
+    line-height: 1;
+}
+
+.clear-all-filters-btn {
+    padding: 0.5rem 1rem;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    color: #475569;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clear-all-filters-btn:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+    color: #1e293b;
 }
 
 .results-count {

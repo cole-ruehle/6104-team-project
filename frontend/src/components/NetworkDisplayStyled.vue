@@ -126,10 +126,11 @@
               >
                 <div class="node-circle">
                   <img
-                    v-if="node.avatarUrl"
+                    v-if="node.avatarUrl && node.avatarUrl.trim() !== ''"
                     :src="node.avatarUrl"
                     :alt="node.displayName"
                     class="node-avatar"
+                    :data-node-id="node.id"
                     @error="handleImageError"
                   />
                   <span v-else class="node-initials">{{ node.initials }}</span>
@@ -254,11 +255,10 @@ function getDisplayName(nodeId: string, profileData: any): string {
 // Helper to get initials from display name
 function getInitials(text: string): string {
   if (!text) return "?";
-  const words = text.trim().split(/\s+/);
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-  return text.substring(0, 2).toUpperCase();
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return "?";
+  // Return only the first letter
+  return trimmed[0].toUpperCase();
 }
 
 // Stable layout algorithm - calculates positions once
@@ -280,7 +280,7 @@ function calculateLayout(): { nodes: Node[]; edges: Edge[] } {
   // Create nodes with display names
   allNodeIds.forEach(nodeId => {
     const profileData = props.nodeProfiles[nodeId] || {
-      avatarUrl: avatarStore.DEFAULT_AVATAR,
+      avatarUrl: "",
       username: nodeId,
     };
 
@@ -288,13 +288,18 @@ function calculateLayout(): { nodes: Node[]; edges: Edge[] } {
     const displayName = getDisplayName(nodeId, profileData);
     const initials = getInitials(displayName);
 
+    // Use empty string if avatar is default so initials will show
+    const avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+        ? ""
+        : profileData.avatarUrl;
+
     const node: Node = {
       id: nodeId,
       x: 0,
       y: 0,
       displayName,
       username: profileData.username,
-      avatarUrl: profileData.avatarUrl,
+      avatarUrl,
       initials,
       isRoot,
     };
@@ -321,7 +326,7 @@ function calculateLayout(): { nodes: Node[]; edges: Edge[] } {
   if (rootNode && nodes.length > 1) {
     rootNode.x = networkBounds.value.width / 2;
     rootNode.y = 200;
-    
+
     // Arrange other nodes around root
     const otherNodes = nodes.filter(n => !n.isRoot);
     const angleStep = (2 * Math.PI) / otherNodes.length;
@@ -425,12 +430,12 @@ function updateLayout() {
 // Update viewport bounds based on scroll position and zoom
 function updateViewportBounds() {
   if (!scrollContainer.value) return;
-  
+
   const rect = scrollContainer.value.getBoundingClientRect();
   const scale = zoomLevel.value;
   const scrollLeft = scrollContainer.value.scrollLeft;
   const scrollTop = scrollContainer.value.scrollTop;
-  
+
   // Calculate visible area in network coordinates (accounting for zoom)
   viewportBounds.value = {
     x: scrollLeft / scale - 100, // Add padding for edge rendering
@@ -443,9 +448,9 @@ function updateViewportBounds() {
 // Check if a point is in viewport
 function isInViewport(x: number, y: number, padding = 50): boolean {
   const vp = viewportBounds.value;
-  return x >= vp.x - padding && 
+  return x >= vp.x - padding &&
          x <= vp.x + vp.width + padding &&
-         y >= vp.y - padding && 
+         y >= vp.y - padding &&
          y <= vp.y + vp.height + padding;
 }
 
@@ -454,7 +459,7 @@ function isEdgeInViewport(edge: Edge): boolean {
   // Check if either endpoint or midpoint is in viewport
   const midX = (edge.x1 + edge.x2) / 2;
   const midY = (edge.y1 + edge.y2) / 2;
-  return isInViewport(edge.x1, edge.y1) || 
+  return isInViewport(edge.x1, edge.y1) ||
          isInViewport(edge.x2, edge.y2) ||
          isInViewport(midX, midY);
 }
@@ -462,7 +467,7 @@ function isEdgeInViewport(edge: Edge): boolean {
 // Computed: Get visible nodes based on viewport and zoom level
 const visibleNodes = computed(() => {
   if (layoutedNodes.value.length === 0) return [];
-  
+
   // At very low zoom, show only root nodes and high-degree nodes
   if (zoomLevel.value < 0.2) {
     // Show only root nodes and nodes with many connections
@@ -475,7 +480,7 @@ const visibleNodes = computed(() => {
         });
       });
     }
-    
+
     return layoutedNodes.value
       .filter(node => {
         const isRoot = node.isRoot;
@@ -484,13 +489,13 @@ const visibleNodes = computed(() => {
       })
       .slice(0, 100); // Limit to 100 nodes at very low zoom
   }
-  
+
   // At medium zoom, show nodes in viewport
   if (zoomLevel.value < 0.5) {
-    const inViewport = layoutedNodes.value.filter(node => 
+    const inViewport = layoutedNodes.value.filter(node =>
       isInViewport(node.x, node.y)
     );
-    
+
     // If too many, prioritize root nodes and selected nodes
     if (inViewport.length > maxVisibleNodes.value) {
       const priority = inViewport.filter(n => n.isRoot || n.id === selectedNodeId.value);
@@ -499,19 +504,19 @@ const visibleNodes = computed(() => {
     }
     return inViewport;
   }
-  
+
   // At high zoom, show all nodes in viewport
-  const inViewport = layoutedNodes.value.filter(node => 
+  const inViewport = layoutedNodes.value.filter(node =>
     isInViewport(node.x, node.y)
   );
-  
+
   // Still limit to maxVisibleNodes for performance
   if (inViewport.length > maxVisibleNodes.value) {
     const priority = inViewport.filter(n => n.isRoot || n.id === selectedNodeId.value);
     const others = inViewport.filter(n => !n.isRoot && n.id !== selectedNodeId.value);
     return [...priority, ...others.slice(0, maxVisibleNodes.value - priority.length)];
   }
-  
+
   return inViewport;
 });
 
@@ -527,10 +532,10 @@ const nodePositionMap = computed(() => {
 // Computed: Get visible edges (only edges between visible nodes)
 const visibleEdges = computed(() => {
   if (layoutedEdges.value.length === 0) return [];
-  
+
   const visibleNodeIds = new Set(visibleNodes.value.map(n => n.id));
   const posMap = nodePositionMap.value;
-  
+
   // At very low zoom, show only edges to/from root nodes
   if (zoomLevel.value < 0.2) {
     const rootNodeIds = new Set(
@@ -540,7 +545,7 @@ const visibleEdges = computed(() => {
       // Find nodes by matching edge endpoints to node positions
       let fromId: string | null = null;
       let toId: string | null = null;
-      
+
       for (const [nodeId, pos] of posMap.entries()) {
         if (Math.abs(pos.x - edge.x1) < 10 && Math.abs(pos.y - edge.y1) < 10) {
           fromId = nodeId;
@@ -550,22 +555,22 @@ const visibleEdges = computed(() => {
         }
         if (fromId && toId) break;
       }
-      
-      return fromId && toId && 
+
+      return fromId && toId &&
              (rootNodeIds.has(fromId) || rootNodeIds.has(toId)) &&
-             visibleNodeIds.has(fromId) && 
+             visibleNodeIds.has(fromId) &&
              visibleNodeIds.has(toId);
     }).slice(0, 200); // Limit edges at low zoom
   }
-  
+
   // Filter edges that are in viewport and connect visible nodes
   return layoutedEdges.value.filter(edge => {
     if (!isEdgeInViewport(edge)) return false;
-    
+
     // Find nodes by matching edge endpoints to node positions
     let fromId: string | null = null;
     let toId: string | null = null;
-    
+
     for (const [nodeId, pos] of posMap.entries()) {
       if (Math.abs(pos.x - edge.x1) < 10 && Math.abs(pos.y - edge.y1) < 10) {
         fromId = nodeId;
@@ -575,9 +580,9 @@ const visibleEdges = computed(() => {
       }
       if (fromId && toId) break;
     }
-    
-    return fromId && toId && 
-           visibleNodeIds.has(fromId) && 
+
+    return fromId && toId &&
+           visibleNodeIds.has(fromId) &&
            visibleNodeIds.has(toId);
   }).slice(0, maxVisibleNodes.value * 2); // Limit edges
 });
@@ -595,7 +600,14 @@ function nodeStyle(node: Node) {
 
 function handleImageError(event: Event) {
   const img = event.target as HTMLImageElement;
-  img.src = avatarStore.DEFAULT_AVATAR;
+  // Hide the image - the placeholder will show via v-else
+  const nodeId = img.getAttribute("data-node-id");
+  if (nodeId) {
+    const node = layoutedNodes.value.find(n => n.id === nodeId);
+    if (node) {
+      node.avatarUrl = "";
+    }
+  }
 }
 
 function selectNode(nodeId: string) {
@@ -606,33 +618,33 @@ function selectNode(nodeId: string) {
 // Zoom and pan functions
 function zoomIn() {
   if (!scrollContainer.value) return;
-  
+
   const centerX = scrollContainer.value.clientWidth / 2 + scrollContainer.value.scrollLeft;
   const centerY = scrollContainer.value.clientHeight / 2 + scrollContainer.value.scrollTop;
   const oldZoom = zoomLevel.value;
-  
+
   zoomLevel.value = Math.min(zoomLevel.value * 1.2, 2);
   const scaleChange = zoomLevel.value / oldZoom;
-  
+
   scrollContainer.value.scrollLeft = centerX - (centerX - scrollContainer.value.scrollLeft) * scaleChange;
   scrollContainer.value.scrollTop = centerY - (centerY - scrollContainer.value.scrollTop) * scaleChange;
-  
+
   updateViewportBounds();
 }
 
 function zoomOut() {
   if (!scrollContainer.value) return;
-  
+
   const centerX = scrollContainer.value.clientWidth / 2 + scrollContainer.value.scrollLeft;
   const centerY = scrollContainer.value.clientHeight / 2 + scrollContainer.value.scrollTop;
   const oldZoom = zoomLevel.value;
-  
+
   zoomLevel.value = Math.max(zoomLevel.value / 1.2, 0.1);
   const scaleChange = zoomLevel.value / oldZoom;
-  
+
   scrollContainer.value.scrollLeft = centerX - (centerX - scrollContainer.value.scrollLeft) * scaleChange;
   scrollContainer.value.scrollTop = centerY - (centerY - scrollContainer.value.scrollTop) * scaleChange;
-  
+
   updateViewportBounds();
 }
 
@@ -650,7 +662,7 @@ function handleWheel(event: WheelEvent) {
   // Check if Ctrl/Cmd is held for zoom
   if (event.ctrlKey || event.metaKey) {
     event.preventDefault();
-    
+
     const delta = event.deltaY;
     const zoomFactor = delta > 0 ? 0.9 : 1.1;
     const newZoom = Math.max(0.1, Math.min(2, zoomLevel.value * zoomFactor));
@@ -665,7 +677,7 @@ function handleWheel(event: WheelEvent) {
 
     scrollContainer.value.scrollLeft = mouseX - (mouseX - scrollContainer.value.scrollLeft) * scaleChange;
     scrollContainer.value.scrollTop = mouseY - (mouseY - scrollContainer.value.scrollTop) * scaleChange;
-    
+
     updateViewportBounds();
   } else {
     // Update viewport on regular scroll
@@ -675,7 +687,7 @@ function handleWheel(event: WheelEvent) {
 
 function startPan(event: MouseEvent) {
   if (event.button !== 0) return;
-  if ((event.target as HTMLElement).closest(".network-node") || 
+  if ((event.target as HTMLElement).closest(".network-node") ||
       (event.target as HTMLElement).closest("button")) {
     return;
   }
@@ -731,7 +743,10 @@ watch(
         };
         node.displayName = getDisplayName(node.id, profileData);
         node.username = profileData.username;
-        node.avatarUrl = profileData.avatarUrl;
+        // Use empty string if avatar is default so initials will show
+        node.avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+            ? ""
+            : profileData.avatarUrl;
         node.initials = getInitials(node.displayName);
       });
     }
@@ -745,17 +760,17 @@ let viewportUpdateInterval: number | null = null;
 onMounted(() => {
   updateLayout();
   updateViewportBounds();
-  
+
   // Update viewport on scroll
   if (scrollContainer.value) {
     scrollContainer.value.addEventListener('scroll', updateViewportBounds);
   }
-  
+
   // Update viewport periodically and on resize
   viewportUpdateInterval = window.setInterval(() => {
     updateViewportBounds();
   }, 100);
-  
+
   window.addEventListener('resize', updateViewportBounds);
 });
 
@@ -1127,4 +1142,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-

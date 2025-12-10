@@ -17,6 +17,16 @@
                     connections to import them into your network.
                 </p>
 
+                <div class="import-warning" role="note">
+                    <strong>Prevent duplicate imports:</strong>
+                    Please ensure your CSV contains only new connections. We
+                    recommend sorting the file by "Date Connected" and removing
+                    any rows that correspond to connections already present in
+                    your account — you can use the app's current connections
+                    count to identify which rows have already been imported.
+                    Uploading only new rows helps avoid duplicate entries.
+                </div>
+
                 <StatusBanner
                     v-if="banner"
                     :type="banner.type"
@@ -46,8 +56,13 @@
 
                     <div v-if="selectedFile" class="file-info">
                         <div class="file-details">
-                            <p><strong>File:</strong> {{ selectedFile.name }}</p>
-                            <p><strong>Size:</strong> {{ formatFileSize(selectedFile.size) }}</p>
+                            <p>
+                                <strong>File:</strong> {{ selectedFile.name }}
+                            </p>
+                            <p>
+                                <strong>Size:</strong>
+                                {{ formatFileSize(selectedFile.size) }}
+                            </p>
                             <p><strong>Type:</strong> {{ fileType }}</p>
                         </div>
                         <button
@@ -75,12 +90,18 @@
                 <div v-if="importResult" class="import-result">
                     <h3>Import Result</h3>
                     <div class="result-details">
-                        <p><strong>Status:</strong> {{ importResult.status }}</p>
+                        <p>
+                            <strong>Status:</strong> {{ importResult.status }}
+                        </p>
                         <p v-if="importResult.importJob">
                             <strong>Import Job ID:</strong>
                             {{ importResult.importJob }}
                         </p>
-                        <p v-if="importResult.connectionsImported !== undefined">
+                        <p
+                            v-if="
+                                importResult.connectionsImported !== undefined
+                            "
+                        >
                             <strong>Connections Imported:</strong>
                             {{ importResult.connectionsImported }}
                         </p>
@@ -94,26 +115,31 @@
                     <h4>File Format Requirements</h4>
                     <div class="format-grid">
                         <div class="format-card">
-                            <h5><i class="fa-solid fa-file-csv"></i> CSV Format</h5>
+                            <h5>
+                                <i class="fa-solid fa-file-csv"></i> CSV Format
+                            </h5>
                             <p>
-                                Your CSV file should contain columns for connection
-                                information such as: First Name, Last Name, Headline,
-                                Location, Company, etc.
+                                Your CSV file should contain columns for
+                                connection information such as: First Name, Last
+                                Name, Headline, Location, Company, etc.
                             </p>
                             <p class="format-hint">
-                                The system will automatically map your columns to the
-                                appropriate fields.
+                                The system will automatically map your columns
+                                to the appropriate fields.
                             </p>
                         </div>
                         <div class="format-card">
-                            <h5><i class="fa-solid fa-file-code"></i> JSON Format</h5>
+                            <h5>
+                                <i class="fa-solid fa-file-code"></i> JSON
+                                Format
+                            </h5>
                             <p>
-                                Your JSON file should be an array of connection objects,
-                                or a single connection object.
+                                Your JSON file should be an array of connection
+                                objects, or a single connection object.
                             </p>
                             <p class="format-hint">
-                                Each object should contain fields like firstName,
-                                lastName, headline, etc.
+                                Each object should contain fields like
+                                firstName, lastName, headline, etc.
                             </p>
                         </div>
                     </div>
@@ -384,6 +410,22 @@ function formatError(error: unknown): string {
     line-height: 1.6;
 }
 
+.import-warning {
+    background: #fff8e1; /* soft yellow */
+    border-left: 4px solid #f59e0b; /* amber */
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.375rem;
+    color: #92400e;
+    font-size: 0.95rem;
+}
+
+.import-warning strong {
+    display: inline-block;
+    margin-right: 0.5rem;
+    color: #78350f;
+}
+
 .file-upload-section {
     margin-bottom: 2rem;
 }
@@ -411,7 +453,7 @@ function formatError(error: unknown): string {
 }
 
 .file-input-label:hover:not(.disabled) {
-    background: #003B6D;
+    background: #003b6d;
     transform: translateY(-1px);
 }
 
@@ -484,7 +526,7 @@ function formatError(error: unknown): string {
 }
 
 .upload-btn:hover:not(:disabled) {
-    background: #003B6D;
+    background: #003b6d;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }

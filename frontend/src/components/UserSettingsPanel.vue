@@ -8,7 +8,12 @@
             Signed in as <strong>{{ auth.username }}</strong>
           </p>
         </div>
-        <button class="close-btn" type="button" @click="emit('close')" aria-label="Close">
+        <button
+          class="close-btn"
+          type="button"
+          @click="emit('close')"
+          aria-label="Close"
+        >
           ×
         </button>
       </div>
@@ -23,7 +28,11 @@
       <div class="profile-section">
         <div class="profile-picture-container">
           <div class="avatar-wrapper">
-            <img :src="displayedAvatar" alt="Profile picture" class="profile-avatar" />
+            <img
+              :src="displayedAvatar"
+              alt="Profile picture"
+              class="profile-avatar"
+            />
             <div v-if="savingPhoto" class="avatar-overlay">
               <div class="spinner"></div>
             </div>
@@ -51,7 +60,7 @@
       </div>
 
       <!-- User ID Section -->
-      <div class="info-section">
+      <!-- <div class="info-section">
         <label class="info-label">User ID</label>
         <div class="user-id-display">
           <code>{{ auth.userId }}</code>
@@ -64,42 +73,9 @@
             <i class="fa-solid fa-copy"></i>
           </button>
         </div>
-      </div>
+      </div> -->
 
-      <!-- Profile Details Section -->
-      <div v-if="profile" class="profile-details-section">
-        <h3 class="section-title">Profile Information</h3>
-        <div class="detail-item" v-if="profile.headline">
-          <label class="detail-label">Headline</label>
-          <p class="detail-value">{{ profile.headline }}</p>
-        </div>
-        <div class="detail-item" v-if="profile.attributes && profile.attributes.length > 0">
-          <label class="detail-label">Attributes</label>
-          <div class="tags-list">
-            <span v-for="attr in profile.attributes" :key="attr" class="tag">{{ attr }}</span>
-          </div>
-        </div>
-        <div class="detail-item" v-if="profile.links && profile.links.length > 0">
-          <label class="detail-label">Links</label>
-          <div class="links-list">
-            <a
-              v-for="link in profile.links"
-              :key="link"
-              :href="link"
-              target="_blank"
-              rel="noreferrer"
-              class="link-item"
-            >
-              <i class="fa-solid fa-external-link"></i>
-              {{ link }}
-            </a>
-          </div>
-        </div>
-      </div>
-      <div v-else class="no-profile-message">
-        <i class="fa-solid fa-info-circle"></i>
-        <p>No public profile found yet.</p>
-      </div>
+      <!-- Profile Details Section removed as requested -->
 
       <!-- Danger Zone -->
       <div class="danger-zone">
@@ -121,10 +97,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import StatusBanner from "@/components/StatusBanner.vue";
-import {
-  PublicProfileAPI,
-  type PublicProfile,
-} from "@/services/conceptClient";
+import { PublicProfileAPI, type PublicProfile } from "@/services/conceptClient";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAvatarStore } from "@/stores/useAvatarStore";
 
@@ -138,8 +111,8 @@ const banner = ref<{ type: "success" | "error"; message: string } | null>(null);
 const deleting = ref(false);
 const savingPhoto = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
-const displayedAvatar = computed(() =>
-  previewUrl.value || avatarStore.src || avatarStore.DEFAULT_AVATAR
+const displayedAvatar = computed(
+  () => previewUrl.value || avatarStore.src || avatarStore.DEFAULT_AVATAR
 );
 
 async function loadProfile() {
@@ -166,9 +139,8 @@ async function loadProfile() {
       }
     }
   } catch (error) {
-    const message = error instanceof Error
-      ? error.message
-      : "Unable to load profile.";
+    const message =
+      error instanceof Error ? error.message : "Unable to load profile.";
     banner.value = { type: "error", message };
   }
 }
@@ -184,14 +156,20 @@ async function handleFileChange(event: Event) {
 
   // Validate file type
   if (!file.type.startsWith("image/")) {
-    banner.value = { type: "error", message: "Please select an image file" };
+    banner.value = {
+      type: "error",
+      message: "Please select an image file",
+    };
     return;
   }
 
   // Validate file size (5MB max)
   const maxSize = 5 * 1024 * 1024; // 5MB
   if (file.size > maxSize) {
-    banner.value = { type: "error", message: "Image size must be less than 5MB" };
+    banner.value = {
+      type: "error",
+      message: "Image size must be less than 5MB",
+    };
     return;
   }
 
@@ -236,15 +214,19 @@ async function handleSavePhoto() {
     await loadProfile();
 
     // Dispatch custom event to notify other components (like HomePage) to refresh
-    window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
-      detail: { userId: auth.userId }
-    }));
+    window.dispatchEvent(
+      new CustomEvent("profilePictureUpdated", {
+        detail: { userId: auth.userId },
+      })
+    );
 
-    banner.value = { type: "success", message: "Profile photo saved successfully!" };
+    banner.value = {
+      type: "success",
+      message: "Profile photo saved successfully!",
+    };
   } catch (error) {
-    const message = error instanceof Error
-      ? error.message
-      : "Failed to save profile photo.";
+    const message =
+      error instanceof Error ? error.message : "Failed to save profile photo.";
     banner.value = { type: "error", message };
   } finally {
     savingPhoto.value = false;
@@ -262,9 +244,8 @@ async function handleDeleteProfile() {
     previewUrl.value = null;
     avatarStore.reset();
   } catch (error) {
-    const message = error instanceof Error
-      ? error.message
-      : "Failed to delete profile.";
+    const message =
+      error instanceof Error ? error.message : "Failed to delete profile.";
     banner.value = { type: "error", message };
   } finally {
     deleting.value = false;
@@ -276,7 +257,7 @@ watch(
   () => {
     loadProfile();
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 onMounted(() => {

@@ -32,10 +32,6 @@
 </template>
 
 <script setup lang="ts">
-import { useAvatarStore } from "@/stores/useAvatarStore";
-
-const avatarStore = useAvatarStore();
-
 defineProps<{
   node: {
     id: string;
@@ -45,6 +41,7 @@ defineProps<{
     score?: number;
     location?: string;
     currentJob?: string;
+        company?: string;
   };
 }>();
 
@@ -53,8 +50,13 @@ defineEmits<{
 }>();
 
 function handleImageError(event: Event) {
-  const img = event.target as HTMLImageElement;
-  img.src = avatarStore.DEFAULT_AVATAR;
+    const img = event.target as HTMLImageElement;
+    // Hide the image - the placeholder will show via v-else
+    img.style.display = "none";
+    const placeholder = img.parentElement?.querySelector(".avatar-placeholder") as HTMLElement;
+    if (placeholder) {
+        placeholder.style.display = "flex";
+    }
 }
 </script>
 
@@ -144,9 +146,18 @@ function handleImageError(event: Event) {
 }
 
 .card-job {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #475569;
-  line-height: 1.5;
+    margin: 0;
+    font-size: 0.875rem;
+    color: #475569;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.card-company {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #475569;
+    line-height: 1.4;
+    font-weight: 500;
 }
 </style>

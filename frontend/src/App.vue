@@ -7,24 +7,26 @@
     <template v-else>
       <header>
         <div>
-          <h1 class="app-title">Concept Control Center</h1>
-          <p class="app-subtitle">
-            Manage the MultiSourceNetwork and PublicProfile concepts from a single
-            workspace.
-          </p>
+          <h1 class="app-title">Contact Web</h1>
           <nav>
-            <RouterLink to="/home">Home</RouterLink>
-            <RouterLink to="/tutorials">Tutorials</RouterLink>
-            <RouterLink to="/export">Export</RouterLink>
+            <RouterLink to="/home">My Network</RouterLink>
             <RouterLink to="/edit-network">Edit Network</RouterLink>
+            <RouterLink to="/export">Export</RouterLink>
+            <RouterLink to="/tutorials">Tutorials</RouterLink>
           </nav>
         </div>
         <div class="auth-status">
           <div class="user-chip">
-            <img class="avatar-chip" :src="avatar.src" alt="Profile avatar" @click="showSettings = true" style="cursor: pointer;" />
-            <button type="button" class="settings-btn" @click="showSettings = true" title="Settings">
+            <img
+              class="avatar-chip"
+              :src="avatar.src"
+              alt="Profile avatar"
+              @click="showSettings = true"
+              style="cursor: pointer"
+            />
+            <!-- <button type="button" class="settings-btn" @click="showSettings = true" title="Settings">
               ⚙️
-            </button>
+            </button> -->
           </div>
           <button type="button" @click="handleLogout">Logout</button>
         </div>
@@ -34,10 +36,7 @@
         <RouterView />
       </main>
 
-      <UserSettingsPanel
-        v-if="showSettings"
-        @close="showSettings = false"
-      />
+      <UserSettingsPanel v-if="showSettings" @close="showSettings = false" />
     </template>
   </div>
 </template>
@@ -94,7 +93,10 @@ onMounted(() => {
 
 // Clean up event listener
 onBeforeUnmount(() => {
-  window.removeEventListener("profilePictureUpdated", handleProfilePictureUpdated);
+  window.removeEventListener(
+    "profilePictureUpdated",
+    handleProfilePictureUpdated
+  );
 });
 
 // Handle profile picture updates
@@ -103,15 +105,21 @@ async function handleProfilePictureUpdated() {
 }
 
 // Load when user logs in
-watch(() => auth.userId, (userId) => {
-  if (userId) {
-    loadUserProfilePicture();
-    // Redirect to home if not already there
-    if (router.currentRoute.value.path === "/" || router.currentRoute.value.path === "/landing") {
-      router.push("/home");
+watch(
+  () => auth.userId,
+  (userId) => {
+    if (userId) {
+      loadUserProfilePicture();
+      // Redirect to home if not already there
+      if (
+        router.currentRoute.value.path === "/" ||
+        router.currentRoute.value.path === "/landing"
+      ) {
+        router.push("/home");
+      }
     }
   }
-});
+);
 
 function handleLogout() {
   auth.logout();

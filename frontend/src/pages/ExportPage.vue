@@ -3,8 +3,8 @@
         <div class="page-header">
             <h1 class="page-title">Export Network</h1>
             <p class="page-subtitle">
-                Export your network data in CSV format for backup or use in other
-                applications.
+                Export your network data in CSV format for backup or use in
+                other applications.
             </p>
         </div>
 
@@ -13,9 +13,9 @@
                 <div class="export-icon">📥</div>
                 <h2>Export All Connections</h2>
                 <p class="export-description">
-                    Download a CSV file containing all your network connections with
-                    complete information including names, locations, companies, job
-                    titles, and more.
+                    Download a CSV file containing all your network connections
+                    with complete information including names, locations,
+                    companies, job titles, and more.
                 </p>
 
                 <div v-if="loading" class="loading-state">
@@ -30,7 +30,11 @@
                     </div>
                     <div class="info-item">
                         <strong>Ready to Export:</strong>
-                        <span>{{ totalConnections > 0 ? "Yes" : "No connections found" }}</span>
+                        <span>{{
+                            totalConnections > 0
+                                ? "Yes"
+                                : "No connections found"
+                        }}</span>
                     </div>
                 </div>
 
@@ -88,7 +92,7 @@ const totalConnections = computed(() => {
     }
     // Exclude the current user
     if (auth.userId) {
-      allNodeIds.delete(auth.userId);
+        allNodeIds.delete(auth.userId);
     }
     return allNodeIds.size;
 });
@@ -275,13 +279,13 @@ function handleExportCSV() {
         const allNodeIds = new Set<string>(Object.keys(data));
         for (const nodeId of Object.keys(data)) {
             const edges = data[nodeId] || [];
-        for (const edge of edges) {
-            allNodeIds.add(edge.to);
+            for (const edge of edges) {
+                allNodeIds.add(edge.to);
+            }
         }
-    }
-    if (auth.userId) {
-        allNodeIds.delete(auth.userId);
-    }
+        if (auth.userId) {
+            allNodeIds.delete(auth.userId);
+        }
 
         // Collect all connection data
         const rows: any[] = [];
@@ -329,27 +333,30 @@ function handleExportCSV() {
                     nodeInfo.lastName ||
                     profile.lastName ||
                     "",
-                "Display Name":
-                    linkedInConn
-                        ? `${linkedInConn.firstName || ""} ${linkedInConn.lastName || ""}`.trim() ||
-                          linkedInConn.headline ||
-                          nodeId
-                        : nodeInfo.label ||
-                          `${(nodeInfo.firstName || "")} ${(nodeInfo.lastName || "")}`.trim() ||
-                          profile.headline ||
-                          profileData.username ||
-                          nodeId,
-                "Headline":
+                "Display Name": linkedInConn
+                    ? `${linkedInConn.firstName || ""} ${
+                          linkedInConn.lastName || ""
+                      }`.trim() ||
+                      linkedInConn.headline ||
+                      nodeId
+                    : nodeInfo.label ||
+                      `${nodeInfo.firstName || ""} ${
+                          nodeInfo.lastName || ""
+                      }`.trim() ||
+                      profile.headline ||
+                      profileData.username ||
+                      nodeId,
+                Headline:
                     linkedInConn?.headline ||
                     nodeInfo.headline ||
                     profile.headline ||
                     "",
-                "Location":
+                Location:
                     linkedInConn?.location ||
                     nodeInfo.location ||
                     profile.location ||
                     "",
-                "Company":
+                Company:
                     linkedInConn?.currentCompany ||
                     nodeInfo.currentCompany ||
                     nodeInfo.company ||
@@ -360,7 +367,7 @@ function handleExportCSV() {
                     nodeInfo.currentPosition ||
                     profile.currentPosition ||
                     "",
-                "Industry":
+                Industry:
                     linkedInConn?.industry ||
                     nodeInfo.industry ||
                     profile.industry ||
@@ -376,38 +383,35 @@ function handleExportCSV() {
                     nodeInfo.profilePictureUrl ||
                     profileData.avatarUrl ||
                     "",
-                "Summary":
+                Summary:
                     linkedInConn?.summary ||
                     nodeInfo.summary ||
                     profile.summary ||
                     "",
-                "Skills": arrayToCSV(
+                Skills: arrayToCSV(
                     linkedInConn?.skills ||
                         nodeInfo.skills ||
                         profile.skills ||
                         []
                 ),
-                "Education": linkedInConn?.education
+                Education: linkedInConn?.education
                     ? JSON.stringify(linkedInConn.education)
                     : nodeInfo.education
                     ? JSON.stringify(nodeInfo.education)
                     : profile.education
                     ? JSON.stringify(profile.education)
                     : "",
-                "Experience": linkedInConn?.experience
+                Experience: linkedInConn?.experience
                     ? JSON.stringify(linkedInConn.experience)
                     : nodeInfo.experience
                     ? JSON.stringify(nodeInfo.experience)
                     : profile.experience
                     ? JSON.stringify(profile.experience)
                     : "",
-                "Tags": arrayToCSV(
-                    nodeInfo.tags ||
-                        profile.tags ||
-                        []
-                ),
-                "Sources": arrayToCSV(Array.from(sources)),
-                "LinkedIn Connection ID": linkedInConn?.linkedInConnectionId || "",
+                Tags: arrayToCSV(nodeInfo.tags || profile.tags || []),
+                Sources: arrayToCSV(Array.from(sources)),
+                "LinkedIn Connection ID":
+                    linkedInConn?.linkedInConnectionId || "",
                 "Imported At": linkedInConn?.importedAt || "",
             };
 
@@ -424,7 +428,9 @@ function handleExportCSV() {
         ];
 
         const csvContent = csvRows.join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+        });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
 
@@ -570,7 +576,7 @@ onMounted(() => {
 
 .export-btn {
     padding: 1rem 2rem;
-    background: var(--color-navy-600);
+    background: #003b6d;
     color: white;
     border: none;
     border-radius: 0.75rem;
@@ -585,9 +591,11 @@ onMounted(() => {
 }
 
 .export-btn:hover:not(:disabled) {
-    background: var(--color-navy-700);
+    /* hover: light blue background with dark text */
+    background: #e6f4ff;
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(65, 90, 119, 0.3);
+    box-shadow: 0 8px 16px rgba(65, 90, 119, 0.12);
+    color: #003b6d;
 }
 
 .export-btn:disabled {

@@ -93,10 +93,11 @@
                         >
                             <div class="node-circle">
                                 <img
-                                    v-if="node.avatarUrl"
+                                    v-if="node.avatarUrl && node.avatarUrl.trim() !== ''"
                                     :src="node.avatarUrl"
                                     :alt="node.label"
                                     class="node-avatar"
+                                    :data-node-id="node.id"
                                     @error="handleImageError"
                                 />
                                 <span v-else class="node-initials">{{
@@ -222,8 +223,8 @@ function calculateLayout(): { nodes: Node[]; edges: Edge[] } {
 
     // Create nodes
     allNodeIds.forEach((nodeId) => {
-        const profileData = props.nodeProfiles[nodeId] || {
-            avatarUrl: avatarStore.DEFAULT_AVATAR,
+            const profileData = props.nodeProfiles[nodeId] || {
+            avatarUrl: "",
             username: nodeId,
         };
 
@@ -232,6 +233,10 @@ function calculateLayout(): { nodes: Node[]; edges: Edge[] } {
         const label =
             profileData.profile?.headline || profileData.username || nodeId;
         const initials = getInitials(label);
+        // Use empty string if avatar is default so initials will show
+        const avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+            ? ""
+            : profileData.avatarUrl;
 
         const node: Node = {
             id: nodeId,
@@ -239,7 +244,7 @@ function calculateLayout(): { nodes: Node[]; edges: Edge[] } {
             y: 0,
             label,
             username: profileData.username,
-            avatarUrl: profileData.avatarUrl,
+            avatarUrl,
             initials,
             isRoot,
         };
@@ -379,11 +384,10 @@ const computedEdges = computed(() => layoutedEdges.value);
 // Helper functions
 function getInitials(text: string): string {
     if (!text) return "?";
-    const words = text.trim().split(/\s+/);
-    if (words.length >= 2) {
-        return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    return text.substring(0, 2).toUpperCase();
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return "?";
+    // Return only the first letter
+    return trimmed[0].toUpperCase();
 }
 
 function nodeStyle(node: Node) {
@@ -395,7 +399,14 @@ function nodeStyle(node: Node) {
 
 function handleImageError(event: Event) {
     const img = event.target as HTMLImageElement;
-    img.src = avatarStore.DEFAULT_AVATAR;
+    // Find which node this image belongs to and set their avatarUrl to empty
+    const nodeId = img.getAttribute("data-node-id");
+    if (nodeId) {
+        const node = layoutedNodes.value.find(n => n.id === nodeId);
+        if (node) {
+            node.avatarUrl = "";
+        }
+    }
 }
 
 function selectNode(nodeId: string) {
@@ -537,7 +548,7 @@ watch(
         if (layoutedNodes.value.length > 0) {
             layoutedNodes.value.forEach((node) => {
                 const profileData = props.nodeProfiles[node.id] || {
-                    avatarUrl: avatarStore.DEFAULT_AVATAR,
+                    avatarUrl: "",
                     username: node.id,
                 };
                 node.label =
@@ -545,7 +556,10 @@ watch(
                     profileData.username ||
                     node.id;
                 node.username = profileData.username;
-                node.avatarUrl = profileData.avatarUrl;
+                // Use empty string if avatar is default so initials will show
+                node.avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+                    ? ""
+                    : profileData.avatarUrl;
                 node.initials = getInitials(node.label);
             });
         }

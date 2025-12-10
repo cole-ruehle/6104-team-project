@@ -3,6 +3,19 @@
     <!-- Search Section -->
     <div class="search-section">
       <div class="search-container">
+        <!-- Smart Search Toggle Slider -->
+        <div class="smart-search-toggle-container" v-if="viewMode === 'card'">
+          <label class="toggle-label">
+            <span>Smart Search</span>
+            <div
+              class="toggle-switch"
+              :class="{ active: searchMode === 'semantic' }"
+              @click="toggleSearchMode"
+            >
+              <div class="toggle-slider"></div>
+            </div>
+          </label>
+        </div>
         <div class="search-input-wrapper">
           <input
             type="text"
@@ -12,12 +25,15 @@
             @focus="showAutocompleteDropdown = true"
             @blur="hideAutocomplete"
             :placeholder="
-              searchMode === 'semantic'
+              viewMode === 'network'
+                ? 'Use the search bar in card view only'
+                : searchMode === 'semantic'
                 ? 'Describe what you\'re looking for...'
                 : 'Who are you looking for?...'
             "
             class="search-input"
             :class="{ 'semantic-mode': searchMode === 'semantic' }"
+            :disabled="viewMode === 'network'"
           />
           <i
             v-if="searchMode === 'semantic'"
@@ -52,14 +68,15 @@
           </div>
         </div>
         <button
-          @click="toggleSearchMode"
+          @click="triggerSearch"
           class="smart-search-btn"
           :class="{ active: searchMode === 'semantic' }"
-          :disabled="semanticLoading"
-          title="Toggle Smart Search"
+          :disabled="
+            semanticLoading || !searchQuery.trim() || viewMode === 'network'
+          "
+          title="Search"
         >
-          <i class="fa-solid fa-sparkles"></i>
-          <span>Smart Search</span>
+          <span>Search</span>
         </button>
         <button
           @click="toggleView"
@@ -72,37 +89,31 @@
 
       <!-- Active Filters and Search Mode Indicator -->
       <div class="search-meta">
-        <div class="active-filters" v-if="activeFilters.length > 0">
-          <div
-            v-for="(filter, index) in activeFilters"
-            :key="index"
-            class="filter-chip"
-          >
-            <span>{{ filter.label }}: {{ filter.value }}</span>
-            <button
-              @click="removeFilter(index)"
-              class="filter-remove"
-              aria-label="Remove filter"
+        <div class="active-filters-container" v-if="activeFilters.length > 0">
+          <div class="active-filters">
+            <div
+              v-for="(filter, index) in activeFilters"
+              :key="index"
+              class="filter-chip"
             >
-              <i class="fa-solid fa-xmark"></i>
-            </button>
+              <span>{{ filter.label }}: {{ filter.value }}</span>
+              <button
+                @click="removeFilter(index)"
+                class="filter-remove"
+                aria-label="Remove filter"
+              >
+                <p class="fa-solid fa-xmark">x</p>
+              </button>
+            </div>
           </div>
+          <button
+            @click="clearAllFilters"
+            class="clear-all-filters-btn"
+            aria-label="Clear all filters"
+          >
+            Clear all
+          </button>
         </div>
-        <div class="search-mode-indicator" v-if="searchMode === 'semantic'">
-          <i class="fa-solid fa-sparkles"></i>
-          <span>Smart Search Active</span>
-        </div>
-        <p class="results-count" v-if="!loading">
-          {{
-            searchMode === "semantic"
-              ? `Showing ${displayedNodes.length} semantic result${
-                  displayedNodes.length !== 1 ? "s" : ""
-                }`
-              : hasActiveFilters || searchQuery.trim()
-              ? `Showing ${displayedNodes.length} of ${allNodes.length} connections`
-              : `${allNodes.length} connections`
-          }}
-        </p>
       </div>
     </div>
 
@@ -110,6 +121,41 @@
     <div class="content-area">
       <!-- Card View -->
       <div v-if="viewMode === 'card'" class="card-view">
+        <!-- Card View Controls -->
+        <div
+          v-if="!loading && !semanticLoading && displayedNodes.length > 0"
+          class="card-view-controls"
+        >
+          <div class="controls-row">
+            <div class="control-group">
+              <label for="cards-per-row">Cards per Row:</label>
+              <input
+                id="cards-per-row"
+                type="number"
+                v-model.number="cardsPerRow"
+                min="1"
+                max="10"
+                class="control-input"
+              />
+            </div>
+            <div class="control-group">
+              <label for="rows-per-page">Rows per Page:</label>
+              <input
+                id="rows-per-page"
+                type="number"
+                v-model.number="rowsPerPage"
+                min="1"
+                max="20"
+                class="control-input"
+              />
+            </div>
+          </div>
+          <div class="connections-count">
+            Showing {{ startIndex + 1 }}-{{ endIndex }} out of
+            {{ displayedNodes.length }} connections
+          </div>
+        </div>
+
         <div v-if="loading || semanticLoading" class="loading-state">
           <div class="loading-icon">📡</div>
           <h3>
@@ -131,20 +177,60 @@
             }}
           </p>
         </div>
-        <div v-else>
-          <p v-if="searchMode === 'semantic'" class="semantic-score-help muted">
+        <template v-else>
+          <p
+            v-if="searchMode === 'semantic' && semanticResults.length > 0"
+            class="muted semantic-note"
+          >
             Percentages show how strongly each result matches your query (higher
             = more similar).
           </p>
-          <div class="cards-grid">
+          <div
+            class="cards-grid"
+            :style="{
+              gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)`,
+            }"
+          >
             <ConnectionCard
-              v-for="node in displayedNodes"
+              v-for="node in paginatedNodes"
               :key="node.id"
               :node="node"
               @click="openProfileModal(node.id)"
             />
           </div>
-        </div>
+          <!-- Pagination Controls -->
+          <div v-if="totalPages > 1" class="pagination-controls">
+            <button
+              @click="goToPage(currentPage - 1)"
+              :disabled="currentPage === 1"
+              class="pagination-btn"
+            >
+              <i class="fa-solid fa-chevron-left"></i>
+              Previous
+            </button>
+            <div class="page-input-group">
+              <span>Page</span>
+              <input
+                type="number"
+                v-model.number="pageInput"
+                :min="1"
+                :max="totalPages"
+                @keyup.enter="goToPage(pageInput)"
+                @blur="validateAndGoToPage"
+                class="page-input"
+              />
+              <span>of {{ totalPages }}</span>
+            </div>
+            <button
+              @click="goToPage(currentPage + 1)"
+              :disabled="currentPage === totalPages"
+              class="pagination-btn"
+            >
+              Next
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </template>
       </div>
 
       <!-- Network View -->
@@ -258,6 +344,15 @@
                 <p>{{ selectedProfileData.currentCompany }}</p>
               </div>
 
+              <!-- Location -->
+              <div v-if="selectedProfileData.location" class="detail-section">
+                <h3 class="detail-title">
+                  <i class="fa-solid fa-map-marker-alt"></i>
+                  Location
+                </h3>
+                <p>{{ selectedProfileData.location }}</p>
+              </div>
+
               <!-- Industry -->
               <div v-if="selectedProfileData.industry" class="detail-section">
                 <h3 class="detail-title">
@@ -328,7 +423,9 @@
                     >
                       {{
                         [edu.degree, edu.fieldOfStudy]
+
                           .filter(Boolean)
+
                           .join(", ")
                       }}
                     </p>
@@ -337,6 +434,7 @@
                       class="education-years"
                     >
                       {{ edu.startYear || "?" }} -
+
                       {{ edu.endYear || "Present" }}
                     </p>
                   </div>
@@ -372,6 +470,7 @@
                       class="experience-dates"
                     >
                       {{ exp.startDate || "?" }} -
+
                       {{ exp.endDate || "Present" }}
                     </p>
                     <p v-if="exp.description" class="experience-description">
@@ -440,7 +539,6 @@
                 @dragover.prevent="handleDragOverProfile"
                 @dragleave.prevent="handleDragLeaveProfile"
                 @drop.prevent="handleDropProfile"
-                @click="triggerFilePickerProfile"
               >
                 <input
                   ref="fileInputProfile"
@@ -453,12 +551,11 @@
                   v-if="!editProfileForm.avatarUrl"
                   class="upload-placeholder"
                 >
-                  <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
-                  <p class="upload-text">
-                    Drag and drop an image here, or click to browse
-                  </p>
+                  <i class="fa-solid fa-user upload-icon"></i>
+                  <p class="upload-text">No profile image</p>
                   <p class="upload-hint">Supports JPG, PNG, GIF (max 5MB)</p>
                 </div>
+
                 <div v-else class="upload-preview">
                   <img
                     :src="editProfileForm.avatarUrl"
@@ -471,7 +568,19 @@
                     @click.stop="removeImageProfile"
                     aria-label="Remove image"
                   >
-                    <i class="fa-solid fa-xmark"></i>
+                    <i class="fa-solid fa-xmark">x</i>
+                  </button>
+                </div>
+
+                <!-- Upload button moved outside the preview/placeholder -->
+                <div class="upload-actions">
+                  <button
+                    type="button"
+                    class="upload-btn"
+                    @click.prevent="triggerFilePickerProfile"
+                  >
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    Upload Image
                   </button>
                 </div>
               </div>
@@ -598,6 +707,12 @@ const errorProfile = ref<string | null>(null);
 const isDraggingProfile = ref(false);
 const uploadErrorProfile = ref<string>("");
 const fileInputProfile = ref<HTMLInputElement | null>(null);
+
+// Card view pagination state
+const cardsPerRow = ref(3);
+const rowsPerPage = ref(4);
+const currentPage = ref(1);
+const pageInput = ref(1);
 
 const editProfileForm = ref({
   firstName: "",
@@ -781,8 +896,9 @@ const autocompleteSuggestions = computed(() => {
     });
   });
 
-  // Name search - prioritize actual names
+  // Name search - prioritize actual names (exclude the current user's own profile)
   allNodes.value.forEach((node) => {
+    if (node.id === auth.userId) return; // skip the owner's own profile
     const searchText = node.displayName.toLowerCase();
     if (
       searchText.includes(query) &&
@@ -799,10 +915,6 @@ const autocompleteSuggestions = computed(() => {
 
   return suggestions.slice(0, 8);
 });
-
-const hasActiveFilters = computed(
-  () => activeFilters.value.length > 0 || searchQuery.value.length > 0
-);
 
 // Computed: Displayed nodes based on search mode
 const displayedNodes = computed(() => {
@@ -856,7 +968,28 @@ const displayedNodes = computed(() => {
     }
   });
 
+  // Exclude the owner's own node from card results (but keep it in the graph)
+  const ownerId = auth.userId;
+  if (ownerId) {
+    results = results.filter((node) => node.id !== ownerId);
+  }
+
   return results;
+});
+
+// Pagination computed properties
+const cardsPerPage = computed(() => cardsPerRow.value * rowsPerPage.value);
+const totalPages = computed(() => {
+  if (displayedNodes.value.length === 0) return 1;
+  return Math.ceil(displayedNodes.value.length / cardsPerPage.value);
+});
+const startIndex = computed(() => (currentPage.value - 1) * cardsPerPage.value);
+const endIndex = computed(() => {
+  const end = startIndex.value + cardsPerPage.value;
+  return Math.min(end, displayedNodes.value.length);
+});
+const paginatedNodes = computed(() => {
+  return displayedNodes.value.slice(startIndex.value, endIndex.value);
 });
 
 const selectedProfileData = computed(() => {
@@ -864,6 +997,50 @@ const selectedProfileData = computed(() => {
     return null;
   }
 
+  // First check if it's a semantic search result
+  const semanticResult = semanticResults.value.find(
+    (r) => r.id === selectedProfileId.value
+  );
+  if (semanticResult) {
+    const linkedInConn = linkedInConnections.value[selectedProfileId.value];
+    const profile = nodeProfiles.value[selectedProfileId.value];
+    const profileData = profile?.profile || {};
+
+    return {
+      id: semanticResult.id,
+      displayName: semanticResult.displayName,
+      firstName: linkedInConn?.firstName || profileData.firstName || "",
+      lastName: linkedInConn?.lastName || profileData.lastName || "",
+      headline: linkedInConn?.headline || profileData.headline || "",
+      currentCompany:
+        linkedInConn?.currentCompany ||
+        profileData.currentCompany ||
+        profileData.company ||
+        semanticResult.company ||
+        "",
+      currentPosition:
+        linkedInConn?.currentPosition ||
+        profileData.currentPosition ||
+        semanticResult.currentJob ||
+        "",
+      location:
+        linkedInConn?.location ||
+        profileData.location ||
+        semanticResult.location ||
+        "",
+      industry: linkedInConn?.industry || profileData.industry || "",
+      summary: linkedInConn?.summary || profileData.summary || "",
+      profileUrl: linkedInConn?.profileUrl || profileData.profileUrl || "",
+      avatarUrl: semanticResult.avatarUrl,
+      initials: semanticResult.initials,
+      skills: linkedInConn?.skills || profileData.skills || [],
+      education: linkedInConn?.education || profileData.education || [],
+      experience: linkedInConn?.experience || profileData.experience || [],
+      tags: profileData.tags || [],
+    };
+  }
+
+  // Otherwise, check allNodes (text search mode)
   const node = allNodes.value.find((n) => n.id === selectedProfileId.value);
   if (!node) return null;
 
@@ -905,12 +1082,22 @@ function toggleSearchMode() {
     searchMode.value = "semantic";
     activeFilters.value = [];
     showAutocompleteDropdown.value = false;
-    if (searchQuery.value.trim()) {
-      performSemanticSearch();
-    }
+    // Don't auto-search when toggling - wait for user to click search button
   } else {
     searchMode.value = "text";
     semanticResults.value = [];
+  }
+}
+
+function triggerSearch() {
+  if (!searchQuery.value.trim()) return;
+
+  if (searchMode.value === "semantic") {
+    performSemanticSearch();
+  } else {
+    // For text mode, the search is already handled by filtering displayedNodes
+    // This button click can be used to close autocomplete if needed
+    showAutocompleteDropdown.value = false;
   }
 }
 
@@ -1017,42 +1204,29 @@ function handleSearchInput() {
       showAutocompleteDropdown.value = false;
     }
   } else {
-    // Debounce semantic search
-    clearTimeout((window as any).semanticSearchTimeout);
-    (window as any).semanticSearchTimeout = setTimeout(() => {
-      if (searchQuery.value.trim()) {
-        performSemanticSearch();
-      } else {
-        semanticResults.value = [];
-      }
-    }, 500);
+    // In semantic mode, do not auto-search on input.
+    // Only clear results when the query is emptied; actual
+    // search is triggered via Enter key or the search button.
+    showAutocompleteDropdown.value = false;
+    if (!searchQuery.value.trim()) {
+      semanticResults.value = [];
+    }
   }
 }
 
 function handleKeyDown(event: KeyboardEvent) {
-  if (searchMode.value !== "text") return;
-
-  const suggestions = autocompleteSuggestions.value;
-
-  if (event.key === "ArrowDown") {
+  // Handle Enter key for both modes
+  if (event.key === "Enter") {
     event.preventDefault();
-    if (suggestions.length > 0) {
-      selectedAutocompleteIndex.value = Math.min(
-        selectedAutocompleteIndex.value + 1,
-        suggestions.length - 1
-      );
+
+    if (searchMode.value === "semantic") {
+      // In semantic mode, trigger search on Enter
+      triggerSearch();
+      return;
     }
-  } else if (event.key === "ArrowUp") {
-    event.preventDefault();
-    if (suggestions.length > 0) {
-      selectedAutocompleteIndex.value = Math.max(
-        selectedAutocompleteIndex.value - 1,
-        -1
-      );
-    }
-  } else if (event.key === "Enter") {
-    event.preventDefault();
 
+    // Text mode handling
+    const suggestions = autocompleteSuggestions.value;
     if (
       selectedAutocompleteIndex.value >= 0 &&
       suggestions[selectedAutocompleteIndex.value]
@@ -1107,6 +1281,30 @@ function handleKeyDown(event: KeyboardEvent) {
     }
 
     showAutocompleteDropdown.value = false;
+    return;
+  }
+
+  // Arrow keys and Escape only work in text mode
+  if (searchMode.value !== "text") return;
+
+  const suggestions = autocompleteSuggestions.value;
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    if (suggestions.length > 0) {
+      selectedAutocompleteIndex.value = Math.min(
+        selectedAutocompleteIndex.value + 1,
+        suggestions.length - 1
+      );
+    }
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    if (suggestions.length > 0) {
+      selectedAutocompleteIndex.value = Math.max(
+        selectedAutocompleteIndex.value - 1,
+        -1
+      );
+    }
   } else if (event.key === "Escape") {
     showAutocompleteDropdown.value = false;
     selectedAutocompleteIndex.value = -1;
@@ -1125,7 +1323,9 @@ function selectSuggestion(suggestion: {
   } else {
     addFilter(
       suggestion.type,
+
       getFilterLabel(suggestion.type),
+
       suggestion.value
     );
     searchQuery.value = "";
@@ -1157,6 +1357,10 @@ function removeFilter(index: number) {
   activeFilters.value.splice(index, 1);
 }
 
+function clearAllFilters() {
+  activeFilters.value = [];
+}
+
 function hideAutocomplete() {
   setTimeout(() => {
     showAutocompleteDropdown.value = false;
@@ -1166,16 +1370,67 @@ function hideAutocomplete() {
 
 function toggleView() {
   viewMode.value = viewMode.value === "card" ? "network" : "card";
+
+  // Clear search query when switching to network view
+  if (viewMode.value === "network") {
+    searchQuery.value = "";
+    semanticResults.value = [];
+    showAutocompleteDropdown.value = false;
+  }
 }
+
+// Pagination functions
+function goToPage(page: number) {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page;
+    pageInput.value = page;
+  }
+}
+
+function validateAndGoToPage() {
+  let page = pageInput.value;
+  if (page < 1) page = 1;
+  if (page > totalPages.value) page = totalPages.value;
+  goToPage(page);
+}
+
+// Watch for changes that should reset pagination
+watch([displayedNodes, cardsPerRow, rowsPerPage], () => {
+  // Reset to page 1 when filters/search change or pagination settings change
+  currentPage.value = 1;
+  pageInput.value = 1;
+});
 
 function handleImageError(event: Event) {
   const img = event.target as HTMLImageElement;
-  img.src = avatarStore.DEFAULT_AVATAR;
+  // Hide the image - the placeholder will show via v-else
+  img.style.display = "none";
+  const placeholder = img.parentElement?.querySelector(
+    ".avatar-placeholder, .avatar-placeholder-large"
+  ) as HTMLElement;
+  if (placeholder) {
+    placeholder.style.display = "flex";
+  }
 }
 
-function openProfileModal(nodeId: string) {
+async function openProfileModal(nodeId: string) {
   selectedProfileId.value = nodeId;
   isEditingProfile.value = false;
+
+  // Fetch profile data if not already available (especially for semantic search results)
+  if (!nodeProfiles.value[nodeId] || !linkedInConnections.value[nodeId]) {
+    try {
+      await fetchNodeProfiles([nodeId]);
+      // Also fetch LinkedIn connection data if available
+      const profile = nodeProfiles.value[nodeId];
+      if (profile?.profile?.profileUrl) {
+        // Try to get LinkedIn connection data
+        // This might need to be fetched separately if not already in linkedInConnections
+      }
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+    }
+  }
 }
 
 function closeProfileModal() {
@@ -1303,25 +1558,139 @@ async function saveProfile() {
     const headline =
       editProfileForm.value.headline || editProfileForm.value.jobTitle || "";
 
-    // Update the existing node using updateNode
-    const nodeResult = await MultiSourceNetworkAPI.updateNode({
-      node: selectedProfileId.value,
-      updater: auth.userId,
-      meta: {
-        firstName: editProfileForm.value.firstName.trim(),
-        lastName: editProfileForm.value.lastName.trim(),
-        label: label,
-        headline: headline,
-        location: editProfileForm.value.location.trim() || undefined,
-        currentCompany: editProfileForm.value.company.trim() || undefined,
-        currentPosition: editProfileForm.value.jobTitle.trim() || undefined,
-        avatarUrl: editProfileForm.value.avatarUrl || undefined,
-        profilePictureUrl: editProfileForm.value.avatarUrl || undefined,
-      },
+    const updateMeta = {
+      firstName: editProfileForm.value.firstName.trim(),
+      lastName: editProfileForm.value.lastName.trim(),
+      label: label,
+      headline: headline,
+      location: editProfileForm.value.location.trim() || undefined,
+      currentCompany: editProfileForm.value.company.trim() || undefined,
+      currentPosition: editProfileForm.value.jobTitle.trim() || undefined,
+      avatarUrl: editProfileForm.value.avatarUrl || undefined,
+      profilePictureUrl: editProfileForm.value.avatarUrl || undefined,
+    };
+
+    // Check if this is the user's own profile node
+    const isOwnProfile = selectedProfileId.value === auth.userId;
+    console.log("Saving profile:", {
+      selectedProfileId: selectedProfileId.value,
+      userId: auth.userId,
+      isOwnProfile,
     });
 
+    // Always ensure network exists first (this creates the node document and membership for userId->userId)
+    // This is critical for the user's own profile node
+    await MultiSourceNetworkAPI.createNetwork({
+      owner: auth.userId,
+      root: auth.userId,
+    });
+
+    // Try to update the node
+    let nodeResult = await MultiSourceNetworkAPI.updateNode({
+      node: selectedProfileId.value,
+      updater: auth.userId,
+      meta: updateMeta,
+    });
+
+    // If update fails, check the error type
     if (nodeResult.error) {
-      throw new Error(nodeResult.error);
+      const errorMsg = nodeResult.error.toLowerCase();
+
+      // If node doesn't exist, we need to create it
+      if (
+        errorMsg.includes("not found") ||
+        errorMsg.includes("does not exist")
+      ) {
+        if (isOwnProfile) {
+          // For own profile, the node should already exist after createNetwork
+          // But if it doesn't, we need to ensure it exists
+          // The createNetwork should have created it, so this might be a timing issue
+          // Retry after a short delay, or the node ID might be wrong
+          console.warn(
+            "Own profile node not found after createNetwork, retrying update..."
+          );
+          // Wait a moment and retry
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          nodeResult = await MultiSourceNetworkAPI.updateNode({
+            node: selectedProfileId.value,
+            updater: auth.userId,
+            meta: updateMeta,
+          });
+        } else {
+          // For other nodes, create it using createNodeForUser
+          try {
+            const createResult = await MultiSourceNetworkAPI.createNodeForUser({
+              owner: auth.userId,
+              firstName: updateMeta.firstName,
+              lastName: updateMeta.lastName,
+              label: updateMeta.label,
+              headline: updateMeta.headline,
+              location: updateMeta.location,
+              currentCompany: updateMeta.currentCompany,
+              currentPosition: updateMeta.currentPosition,
+              avatarUrl: updateMeta.avatarUrl,
+            });
+
+            // Node was created - if it has a different ID, we're done
+            // Otherwise, try to update it
+            if (
+              createResult.node &&
+              createResult.node !== selectedProfileId.value
+            ) {
+              // Node was created with new ID - reload to see it
+            } else {
+              // Try updating again
+              nodeResult = await MultiSourceNetworkAPI.updateNode({
+                node: selectedProfileId.value,
+                updater: auth.userId,
+                meta: updateMeta,
+              });
+            }
+          } catch (createErr) {
+            throw new Error(
+              `Failed to create node: ${
+                createErr instanceof Error
+                  ? createErr.message
+                  : String(createErr)
+              }`
+            );
+          }
+        }
+      }
+      // If authorization/membership error
+      else if (
+        errorMsg.includes("authorized") ||
+        errorMsg.includes("membership") ||
+        errorMsg.includes("not authorized")
+      ) {
+        // If the node is not the userId, try to add it to network
+        if (!isOwnProfile) {
+          try {
+            await MultiSourceNetworkAPI.addNodeToNetwork({
+              owner: auth.userId,
+              node: selectedProfileId.value,
+              source: "user",
+            });
+          } catch (e) {
+            console.log(
+              "Note: Could not add node to network (may already exist):",
+              e
+            );
+          }
+        }
+
+        // Retry the update
+        nodeResult = await MultiSourceNetworkAPI.updateNode({
+          node: selectedProfileId.value,
+          updater: auth.userId,
+          meta: updateMeta,
+        });
+      }
+
+      // If there's still an error after all retries
+      if (nodeResult.error) {
+        throw new Error(nodeResult.error);
+      }
     }
 
     // Reload network data to refresh the profile
@@ -1342,15 +1711,94 @@ async function saveProfile() {
 
 function getInitials(text: string): string {
   if (!text) return "?";
-  const words = text.trim().split(/\s+/);
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return "?";
+  // Return only the first letter
+  return trimmed[0].toUpperCase();
+}
+
+// Helper function to extract node data consistently for both search modes
+function extractNodeData(nodeId: string): {
+  displayName: string;
+  avatarUrl: string;
+  location?: string;
+  currentJob?: string;
+  company?: string;
+} {
+  const linkedInConn = linkedInConnections.value[nodeId];
+
+  let displayName: string;
+  let avatarUrl: string;
+  let location: string | undefined;
+  let currentJob: string | undefined;
+  let company: string | undefined;
+
+  if (linkedInConn) {
+    const firstName = linkedInConn.firstName || "";
+    const lastName = linkedInConn.lastName || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    displayName = fullName || linkedInConn.headline || nodeId;
+    // Use profile picture if available, otherwise use letter-based avatar
+    avatarUrl =
+      linkedInConn.profilePictureUrl ||
+      avatarStore.getLetterAvatar(displayName);
+    location = linkedInConn.location;
+    currentJob = linkedInConn.currentPosition || linkedInConn.headline;
+    company = linkedInConn.currentCompany;
+  } else {
+    const profileData = nodeProfiles.value[nodeId] || {
+      avatarUrl: "",
+      username: nodeId,
+    };
+    const profile = profileData.profile || {};
+
+    const first = (profile.firstName || "").trim();
+    const last = (profile.lastName || "").trim();
+    if (first || last) {
+      displayName = `${first} ${last}`.trim();
+    } else if (profile.headline) {
+      displayName = profile.headline;
+    } else {
+      displayName = profileData.username || nodeId;
+    }
+
+    // For root node (current user), prioritize profile picture from PublicProfile
+    if (nodeId === auth.userId) {
+      const publicProfile = profile as PublicProfile | undefined;
+      if (publicProfile?.profilePictureUrl) {
+        avatarUrl = publicProfile.profilePictureUrl;
+      } else {
+        // Use empty string if avatar is default so initials will show
+        avatarUrl =
+          profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+            ? ""
+            : profileData.avatarUrl;
+      }
+    } else {
+      // Use empty string if avatar is default so initials will show
+      avatarUrl =
+        profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+          ? ""
+          : profileData.avatarUrl;
+    }
+    location = profile.location;
+    currentJob = profile.currentPosition || profile.headline;
+    company = profile.company || profile.currentCompany;
   }
-  return text.substring(0, 2).toUpperCase();
+
+  return {
+    displayName,
+    avatarUrl,
+    location,
+    currentJob,
+    company,
+  };
 }
 
 async function fetchNodeProfiles(
   nodeIds: string[],
+
   forceRefresh: string[] = []
 ) {
   const profilePromises = nodeIds.map(async (nodeId) => {
@@ -1515,6 +1963,7 @@ async function loadNetworkData() {
     // Always force refresh for current user to get latest profile picture
     await fetchNodeProfiles(
       Array.from(allNodeIds),
+
       auth.userId ? [auth.userId] : []
     );
 
@@ -1533,76 +1982,20 @@ async function loadNetworkData() {
     for (const nodeId of allNodeIds) {
       const linkedInConn = linkedInConnections.value[nodeId];
 
-      let displayName: string;
-      let avatarUrl: string;
-      let location: string | undefined;
-      let currentJob: string | undefined;
-      let company: string | undefined;
+      // Use the same extraction logic as semantic search
+      const nodeData = extractNodeData(nodeId);
 
+      // Update nodeProfiles cache if we have LinkedIn connection data
       if (linkedInConn) {
-        const firstName = linkedInConn.firstName || "";
-        const lastName = linkedInConn.lastName || "";
-        const fullName = `${firstName} ${lastName}`.trim();
-
-        displayName = fullName || linkedInConn.headline || nodeId;
-        // Use profile picture if available, otherwise use letter-based avatar
-        avatarUrl =
-          linkedInConn.profilePictureUrl ||
-          avatarStore.getLetterAvatar(displayName);
-        location = linkedInConn.location;
-        currentJob = linkedInConn.currentPosition || linkedInConn.headline;
-        company = linkedInConn.currentCompany;
-
         nodeProfiles.value[nodeId] = {
           profile: {
             headline: linkedInConn.headline,
             company: linkedInConn.currentCompany,
             location: linkedInConn.location,
           },
-          avatarUrl,
-          username: displayName,
+          avatarUrl: nodeData.avatarUrl,
+          username: nodeData.displayName,
         };
-      } else {
-        const profileData = nodeProfiles.value[nodeId] || {
-          avatarUrl: avatarStore.DEFAULT_AVATAR,
-          username: nodeId,
-        };
-        const profile = profileData.profile || {};
-
-        const first = (profile.firstName || "").trim();
-        const last = (profile.lastName || "").trim();
-        if (first || last) {
-          displayName = `${first} ${last}`.trim();
-        } else if (profile.headline) {
-          displayName = profile.headline;
-        } else {
-          displayName = profileData.username || nodeId;
-        }
-
-        // For root node (current user), prioritize profile picture from PublicProfile
-        if (nodeId === auth.userId) {
-          const publicProfile = profileData.profile as
-            | PublicProfile
-            | undefined;
-          if (publicProfile?.profilePictureUrl) {
-            avatarUrl = publicProfile.profilePictureUrl;
-          } else {
-            // Use letter-based avatar if no profile picture
-            avatarUrl =
-              profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                ? avatarStore.getLetterAvatar(displayName)
-                : profileData.avatarUrl;
-          }
-        } else {
-          // Use letter-based avatar if no profile picture
-          avatarUrl =
-            profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-              ? avatarStore.getLetterAvatar(displayName)
-              : profileData.avatarUrl;
-        }
-        location = profile.location;
-        currentJob = profile.headline;
-        company = profile.company;
       }
 
       const sources = new Set<string>();
@@ -1627,13 +2020,13 @@ async function loadNetworkData() {
 
       nodes.push({
         id: nodeId,
-        displayName,
+        displayName: nodeData.displayName,
         username: nodeProfiles.value[nodeId]?.username,
-        avatarUrl,
-        initials: getInitials(displayName),
-        location,
-        currentJob,
-        company,
+        avatarUrl: nodeData.avatarUrl,
+        initials: getInitials(nodeData.displayName),
+        location: nodeData.location,
+        currentJob: nodeData.currentJob,
+        company: nodeData.company,
         sources: Array.from(sources),
       });
     }
@@ -1649,11 +2042,10 @@ async function loadNetworkData() {
 
 // Watch for search mode changes
 watch(searchMode, (newMode) => {
-  if (newMode === "semantic" && searchQuery.value.trim()) {
-    performSemanticSearch();
-  } else if (newMode === "text") {
+  if (newMode === "text") {
     semanticResults.value = [];
   }
+  // Don't auto-search when switching to semantic mode
 });
 
 // Listen for profile picture updates
@@ -1697,12 +2089,12 @@ onBeforeUnmount(() => {
 }
 
 .search-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .search-container {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   align-items: center;
 }
 
@@ -1713,11 +2105,11 @@ onBeforeUnmount(() => {
 
 .search-input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
   padding-right: 2.5rem;
-  font-size: 1rem;
+  font-size: 1.05rem;
   border: 1px solid rgba(15, 23, 42, 0.2);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   background: white;
   transition: all 0.2s ease;
   outline: none;
@@ -1726,6 +2118,13 @@ onBeforeUnmount(() => {
 .search-input:focus {
   border-color: var(--color-navy-400);
   box-shadow: 0 0 0 3px rgba(102, 153, 204, 0.2);
+}
+
+.search-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .search-input.semantic-mode {
@@ -1748,27 +2147,24 @@ onBeforeUnmount(() => {
 }
 
 .smart-search-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 1.6rem;
   background: white;
   border: 1px solid rgba(15, 23, 42, 0.2);
   border-radius: 0.5rem;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--color-navy-900);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
   white-space: nowrap;
 }
 
 .smart-search-btn:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: rgba(147, 51, 234, 0.3);
-  color: #9333ea;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.1);
+  background: #f1f5f9;
+  border-color: var(--color-navy-400);
 }
 
 .smart-search-btn.active {
@@ -1791,7 +2187,7 @@ onBeforeUnmount(() => {
 }
 
 .view-toggle-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 1.6rem;
   background: white;
   border: 1px solid rgba(15, 23, 42, 0.2);
   border-radius: 0.5rem;
@@ -1810,6 +2206,55 @@ onBeforeUnmount(() => {
   background: var(--color-navy-600);
   color: white;
   border-color: var(--color-navy-600);
+}
+
+.smart-search-toggle-container {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: #cbd5e1;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-switch.active {
+  background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-slider {
+  transform: translateX(24px);
 }
 
 .search-meta {
@@ -1839,31 +2284,64 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(15, 23, 42, 0.1);
 }
 
+.active-filters-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .filter-remove {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem;
-  background: transparent;
-  border: none;
+  padding: 0.375rem;
+  background: #dc2626;
+  border: 1px solid #dc2626;
   cursor: pointer;
-  color: #64748b;
+  color: white;
   transition: all 0.2s ease;
-  border-radius: 0.25rem;
-  width: 1.25rem;
-  height: 1.25rem;
+  border-radius: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
   flex-shrink: 0;
+  margin-left: 0.25rem;
+  position: relative;
+  z-index: 1;
 }
 
 .filter-remove:hover {
-  background: #cbd5e1;
-  color: #dc2626;
+  background: #b91c1c;
+  border-color: #b91c1c;
   transform: scale(1.1);
 }
 
 .filter-remove i {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: white;
+  position: relative;
+  z-index: 2;
+  display: block;
+  line-height: 1;
+}
+
+.clear-all-filters-btn {
+  padding: 0.5rem 1rem;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-all-filters-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #1e293b;
 }
 
 .search-mode-indicator {
@@ -1937,10 +2415,122 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
+.card-view-controls {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+
+.controls-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.control-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.control-input {
+  width: 80px;
+  padding: 0.5rem;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.control-input:focus {
+  border-color: var(--color-navy-400);
+  box-shadow: 0 0 0 3px rgba(102, 153, 204, 0.2);
+}
+
+.connections-count {
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0;
+  margin-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-navy-900);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: var(--color-navy-400);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.page-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #1e293b;
+}
+
+.page-input {
+  width: 60px;
+  padding: 0.5rem;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.page-input:focus {
+  border-color: var(--color-navy-400);
+  box-shadow: 0 0 0 3px rgba(102, 153, 204, 0.2);
 }
 
 .network-view {
@@ -2091,15 +2681,16 @@ onBeforeUnmount(() => {
 
 .profile-avatar-large {
   flex-shrink: 0;
-  width: 120px;
-  height: 120px;
+  /* increased size for better visibility */
+  width: 240px;
+  height: 240px;
   border-radius: 50%;
   overflow: hidden;
   background: #dbeafe;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 4px solid #e2e8f0;
+  border: 6px solid #e2e8f0;
 }
 
 .profile-avatar-large img {
@@ -2158,6 +2749,9 @@ onBeforeUnmount(() => {
 }
 
 .detail-section {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid rgba(15, 23, 42, 0.05);
 }
@@ -2168,18 +2762,26 @@ onBeforeUnmount(() => {
 }
 
 .detail-title {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 0.875rem;
   font-weight: 600;
   color: #1e293b;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex: 0 0 160px;
 }
 
 .detail-title i {
   font-size: 0.875rem;
   color: var(--color-navy-600);
+}
+
+/* Align detail content in a clean column next to labels */
+.detail-section > p,
+.detail-section > div {
+  margin: 0;
+  flex: 1 1 auto;
 }
 
 .profile-summary {
@@ -2338,8 +2940,8 @@ onBeforeUnmount(() => {
 .btn-primary {
   flex: 1;
   padding: 0.75rem 1.5rem;
-  background: var(--color-navy-600);
-  color: white;
+  background: #e6f4ff;
+  color: #003b6d;
   border: none;
   border-radius: 0.5rem;
   font-weight: 600;
@@ -2352,9 +2954,10 @@ onBeforeUnmount(() => {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-navy-700);
+  background: #cfe9ff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 8px rgba(2, 6, 23, 0.06);
+  color: #002b54;
 }
 
 .btn-primary:disabled {
@@ -2382,6 +2985,18 @@ onBeforeUnmount(() => {
   cursor: not-allowed;
 }
 
+.modal-body .edit-profile-form .form-actions .btn-primary {
+  background: #003b6d;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(2, 6, 23, 0.08);
+}
+
+.modal-body .edit-profile-form .form-actions .btn-primary:hover:not(:disabled) {
+  background: #e6f4ff;
+  color: #003b6d;
+  transform: translateY(-1px);
+}
+
 .upload-area {
   position: relative;
   border: 2px dashed rgba(15, 23, 42, 0.2);
@@ -2390,7 +3005,8 @@ onBeforeUnmount(() => {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: #f8fafc;
+  /* show a light-blue background when no image is present */
+  background: #e6f4ff;
 }
 
 .upload-area:hover {
@@ -2429,7 +3045,7 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #475569;
+  color: #0f172a;
 }
 
 .upload-hint {
@@ -2444,6 +3060,7 @@ onBeforeUnmount(() => {
   aspect-ratio: 1;
   border-radius: 0.5rem;
   overflow: hidden;
+  background: #f8fafc;
 }
 
 .upload-preview img {
@@ -2452,13 +3069,51 @@ onBeforeUnmount(() => {
   object-fit: cover;
 }
 
+.modal-body .edit-profile-form .upload-preview {
+  /* double the small preview (was 96px) to improve visibility */
+  width: 192px;
+  height: 192px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  /* allow the remove button to overlap the preview without being clipped */
+  overflow: visible;
+}
+
+.modal-body .edit-profile-form .upload-preview img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.modal-body .edit-profile-form .remove-image-btn {
+  position: absolute;
+  /* move further out to match larger preview */
+  top: -12px;
+  right: -12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  /* red circular button */
+  background: #ef4444;
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.14);
+  z-index: 60;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
 .remove-image-btn {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.06);
   border-radius: 50%;
   width: 2rem;
   height: 2rem;
@@ -2466,11 +3121,40 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.12s ease;
 }
 
 .remove-image-btn:hover {
-  background: rgba(0, 0, 0, 0.9);
+  background: #dc2626;
+  color: white;
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* Upload actions button below preview/placeholder */
+.upload-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+.upload-btn {
+  padding: 0.5rem 1rem;
+  background: #003b6d; /* dark blue */
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: #e6f4ff; /* light blue on hover */
+  color: #003b6d;
+  transform: translateY(-1px);
 }
 
 .upload-error {

@@ -75,3 +75,18 @@
 //     ];
 //   },
 // });
+
+/**
+ * Placeholder sync module for LLMDisambiguation.
+ *
+ * The actual LLMDisambiguation concept is not implemented or exported
+ * from `@concepts` in this branch. To avoid runtime import errors on
+ * deployments ("@concepts does not provide an export named 'LLMDisambiguation'"),
+ * we intentionally do not import it here and export no active syncs.
+ *
+ * When the LLMDisambiguation concept is ready and exported from
+ * `src/concepts/concepts.ts`, this file can be replaced with real
+ * sync implementations that depend on that concept.
+ */
+
+// Intentionally no imports from "@concepts" and no exported Syncs.
