@@ -244,6 +244,9 @@ async function handleUpload() {
             "success",
             `Successfully imported ${result.connectionsImported} connections!`
         );
+
+        // Trigger tooltip to show network graph button
+        window.dispatchEvent(new CustomEvent("csvImportCompleted"));
     } catch (error) {
         const errorMessage = formatError(error);
         importResult.value = {

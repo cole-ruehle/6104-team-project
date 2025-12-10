@@ -720,6 +720,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
     MultiSourceNetworkAPI,
     type AdjacencyMap,
@@ -738,6 +739,8 @@ import NetworkDisplayVis from "@/components/NetworkDisplayVis.vue";
 
 const auth = useAuthStore();
 const avatarStore = useAvatarStore();
+const route = useRoute();
+const router = useRouter();
 
 // State
 const searchQuery = ref("");
@@ -2119,6 +2122,22 @@ onMounted(() => {
         "profilePictureUpdated",
         handleProfilePictureUpdate as EventListener
     );
+
+    // Check for nodeId in query params to open profile modal
+    if (route.query.nodeId && typeof route.query.nodeId === "string") {
+        openProfileModal(route.query.nodeId);
+        // Clean up query param
+        router.replace({ query: {} });
+    }
+});
+
+// Watch for route changes to handle nodeId query param
+watch(() => route.query.nodeId, (nodeId) => {
+    if (nodeId && typeof nodeId === "string") {
+        openProfileModal(nodeId);
+        // Clean up query param
+        router.replace({ query: {} });
+    }
 });
 
 onBeforeUnmount(() => {
