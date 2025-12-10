@@ -116,7 +116,7 @@
                     >
                         <span>{{ filter.label }}: {{ filter.value }}</span>
                         <button
-                            @click="removeFilter(index)"
+                            @click.stop="removeFilter(index)"
                             class="filter-remove"
                             aria-label="Remove filter"
                         >
@@ -949,8 +949,9 @@ const autocompleteSuggestions = computed(() => {
         });
     });
 
-    // Name search - prioritize actual names
+    // Name search - prioritize actual names (exclude the current user's own profile)
     allNodes.value.forEach((node) => {
+        if (node.id === auth.userId) return; // skip the owner's own profile
         const searchText = node.displayName.toLowerCase();
         if (
             searchText.includes(query) &&
