@@ -120,7 +120,7 @@
                             class="filter-remove"
                             aria-label="Remove filter"
                         >
-                            <i class="fa-solid fa-xmark"></i>
+                            <i class="fa-solid fa-xmark">x</i>
                         </button>
                     </div>
                 </div>
