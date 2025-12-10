@@ -54,7 +54,7 @@ export const AddLinkedInConnectionToNetwork: Sync = ({
     // Note: The query returns { connection: ConnectionDoc }, so we map it to connectionDoc
     console.log(`[Sync] AddLinkedInConnectionToNetwork: Querying connection document for connection ${String(connectionValue)}`);
     frames = await frames.query(
-      LinkedInImport._getConnection,
+      LinkedInImport._getConnections,
       { connection },
       { connection: connectionDoc }, // Map the 'connection' property from query result to connectionDoc symbol
     );
@@ -95,7 +95,7 @@ export const AddLinkedInConnectionToNetwork: Sync = ({
 
     // Also fetch the full connection document so we can create a canonical node
     frames = await frames.query(
-      LinkedInImport._getConnection,
+      LinkedInImport._getConnections,
       { connection },
       { connectionDoc },
     );
