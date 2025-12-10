@@ -330,10 +330,86 @@ export default class SemanticSearchConcept {
       })
       .toArray();
 
+    // Also fetch any MultiSourceNetwork canonical nodes corresponding to
+    // semantic item ids that are not backed by LinkedInImport.connections.
+    const linkedInIds = new Set(docs.map((doc) => String(doc._id)));
+    const missingIds = ids.filter((id) => !linkedInIds.has(id));
+
+    const membershipsCollection = this.db.collection<
+      { owner: unknown; node: string }
+    >("MultiSourceNetwork.memberships");
+    const nodesCollection = this.db.collection<
+      {
+        _id: string;
+        firstName?: string;
+        lastName?: string;
+        headline?: string | null;
+        location?: string | null;
+        industry?: string | null;
+        currentPosition?: string | null;
+        currentCompany?: string | null;
+        profileUrl?: string | null;
+        profilePictureUrl?: string | null;
+        avatarUrl?: string | null;
+        summary?: string | null;
+      }
+    >("MultiSourceNetwork.nodes");
+
+    let nodeDocs: Array<{
+      _id: string;
+      firstName?: string;
+      lastName?: string;
+      headline?: string | null;
+      location?: string | null;
+      industry?: string | null;
+      currentPosition?: string | null;
+      currentCompany?: string | null;
+      profileUrl?: string | null;
+      profilePictureUrl?: string | null;
+      avatarUrl?: string | null;
+      summary?: string | null;
+    }> = [];
+
+    if (missingIds.length > 0) {
+      const relevantMemberships = await membershipsCollection
+        .find({
+          owner: owner as unknown,
+          node: { $in: missingIds as string[] },
+        })
+        .toArray();
+
+      const memberNodeIds = relevantMemberships.map((m) => String(m.node));
+      if (memberNodeIds.length > 0) {
+        nodeDocs = await nodesCollection
+          .find({ _id: { $in: memberNodeIds as string[] } })
+          .toArray();
+      }
+    }
+
     // deno-lint-ignore no-explicit-any
     const byId = new Map<string, any>(
       docs.map((doc) => [String(doc._id), doc]),
     );
+
+    for (const node of nodeDocs) {
+      const key = String(node._id);
+      if (!byId.has(key)) {
+        byId.set(key, {
+          _id: key,
+          firstName: node.firstName,
+          lastName: node.lastName,
+          headline: node.headline ?? null,
+          location: node.location ?? null,
+          industry: node.industry ?? null,
+          currentPosition: node.currentPosition ?? null,
+          currentCompany: node.currentCompany ?? null,
+          profileUrl: node.profileUrl ?? null,
+          // Prefer explicit profilePictureUrl, fall back to avatarUrl
+          profilePictureUrl: node.profilePictureUrl ?? node.avatarUrl ?? null,
+          summary: node.summary ?? null,
+        });
+      }
+    }
 
     // 3. Build rich results in the original semantic order.
     const results = rawResults.map((r) => {
