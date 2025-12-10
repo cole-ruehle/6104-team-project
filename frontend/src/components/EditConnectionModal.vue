@@ -475,7 +475,8 @@ onMounted(() => {
 .btn-primary {
     flex: 1;
     padding: 0.75rem 1.5rem;
-    background: var(--color-navy-600);
+    /* default: dark blue background with white text */
+    background: #003b6d;
     color: white;
     border: none;
     border-radius: 0.5rem;
@@ -489,9 +490,11 @@ onMounted(() => {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #003b6d;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    filter: drop-shadow(0 8px 16px rgba(51, 84, 162, 0.08));
+    transform: translateY(-2px);
+    /* hover: light blue background with dark text */
+    background: #e6f4ff;
+    color: #003b6d;
 }
 
 .btn-primary:disabled {
