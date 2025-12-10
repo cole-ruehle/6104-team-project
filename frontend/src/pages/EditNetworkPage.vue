@@ -46,7 +46,10 @@
                         <div class="loading-icon">📡</div>
                         <p>Loading network members...</p>
                     </div>
-                    <div v-else-if="networkMembers.length === 0" class="empty-state">
+                    <div
+                        v-else-if="networkMembers.length === 0"
+                        class="empty-state"
+                    >
                         <div class="empty-icon">👥</div>
                         <h3>No connections yet</h3>
                         <p>Click "Add Connection" to get started</p>
@@ -56,12 +59,17 @@
                             v-for="member in networkMembers"
                             :key="member.id"
                             class="member-item"
-                            :class="{ selected: selectedConnectionId === member.id }"
+                            :class="{
+                                selected: selectedConnectionId === member.id,
+                            }"
                             @click="selectedConnectionId = member.id"
                         >
                             <div class="member-avatar">
                                 <img
-                                    v-if="member.avatarUrl && member.avatarUrl.trim() !== ''"
+                                    v-if="
+                                        member.avatarUrl &&
+                                        member.avatarUrl.trim() !== ''
+                                    "
                                     :src="member.avatarUrl"
                                     :alt="member.displayName"
                                     :data-member-id="member.id"
@@ -72,8 +80,13 @@
                                 </div>
                             </div>
                             <div class="member-info">
-                                <h3 class="member-name">{{ member.displayName }}</h3>
-                                <p v-if="member.location" class="member-location">
+                                <h3 class="member-name">
+                                    {{ member.displayName }}
+                                </h3>
+                                <p
+                                    v-if="member.location"
+                                    class="member-location"
+                                >
                                     <i class="fa-solid fa-map-marker-alt"></i>
                                     {{ member.location }}
                                 </p>
@@ -190,7 +203,7 @@ function handleImageError(event: Event) {
     // Find which member this image belongs to and set their avatarUrl to empty
     const memberId = img.getAttribute("data-member-id");
     if (memberId) {
-        const member = networkMembers.value.find(m => m.id === memberId);
+        const member = networkMembers.value.find((m) => m.id === memberId);
         if (member) {
             member.avatarUrl = "";
         }
@@ -229,15 +242,25 @@ async function handleRemoveSelected() {
 
 async function handleConnectionAdded() {
     selectedConnectionId.value = null;
-    console.log("[EditNetworkPage] Connection added, refreshing network data...");
+    console.log(
+        "[EditNetworkPage] Connection added, refreshing network data..."
+    );
     try {
         // Small delay to ensure backend has fully persisted the data
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 300));
         await loadNetworkData();
-        console.log("[EditNetworkPage] Network data refreshed successfully. Members:", networkMembers.value.length);
+        console.log(
+            "[EditNetworkPage] Network data refreshed successfully. Members:",
+            networkMembers.value.length
+        );
     } catch (error) {
-        console.error("[EditNetworkPage] Error refreshing network data:", error);
-        alert("Connection was added, but there was an error refreshing the view. Please refresh the page.");
+        console.error(
+            "[EditNetworkPage] Error refreshing network data:",
+            error
+        );
+        alert(
+            "Connection was added, but there was an error refreshing the view. Please refresh the page."
+        );
     }
 }
 
@@ -296,7 +319,10 @@ async function fetchNodeProfiles(nodeIds: string[]) {
                 } else {
                     const storedAvatar = avatarStore.getForUser(nodeId);
                     // Use empty string if avatar is default so initials will show
-                    avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
+                    avatarUrl =
+                        storedAvatar === avatarStore.DEFAULT_AVATAR
+                            ? ""
+                            : storedAvatar;
                 }
 
                 nodeProfiles.value[nodeId] = {
@@ -307,7 +333,10 @@ async function fetchNodeProfiles(nodeIds: string[]) {
             } else {
                 const storedAvatar = avatarStore.getForUser(nodeId);
                 // Use empty string if avatar is default so initials will show
-                avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
+                avatarUrl =
+                    storedAvatar === avatarStore.DEFAULT_AVATAR
+                        ? ""
+                        : storedAvatar;
                 nodeProfiles.value[nodeId] = {
                     avatarUrl,
                     username,
@@ -316,7 +345,8 @@ async function fetchNodeProfiles(nodeIds: string[]) {
         } catch {
             const storedAvatar = avatarStore.getForUser(nodeId);
             // Use empty string if avatar is default so initials will show
-            avatarUrl = storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
+            avatarUrl =
+                storedAvatar === avatarStore.DEFAULT_AVATAR ? "" : storedAvatar;
             nodeProfiles.value[nodeId] = {
                 avatarUrl,
                 username,
@@ -396,7 +426,10 @@ async function loadNetworkData() {
         // Exclude the current user from the list
         allNodeIds.delete(auth.userId);
 
-        console.log("[EditNetworkPage] Found node IDs in adjacency:", Array.from(allNodeIds));
+        console.log(
+            "[EditNetworkPage] Found node IDs in adjacency:",
+            Array.from(allNodeIds)
+        );
 
         if (allNodeIds.size === 0) {
             networkMembers.value = [];
@@ -409,7 +442,11 @@ async function loadNetworkData() {
                 ids: Array.from(allNodeIds),
                 owner: auth.userId,
             });
-            console.log("[EditNetworkPage] getNodes returned:", nodeDocs?.length || 0, "nodes");
+            console.log(
+                "[EditNetworkPage] getNodes returned:",
+                nodeDocs?.length || 0,
+                "nodes"
+            );
             (nodeDocs || []).forEach((nd: Record<string, any>) => {
                 const id = nd._id as string;
                 if (!id) return;
@@ -443,7 +480,11 @@ async function loadNetworkData() {
             sources: string[];
         }> = [];
 
-        console.log("[EditNetworkPage] Building member list for", allNodeIds.size, "nodes");
+        console.log(
+            "[EditNetworkPage] Building member list for",
+            allNodeIds.size,
+            "nodes"
+        );
         for (const nodeId of allNodeIds) {
             const linkedInConn = linkedInConnections.value[nodeId];
 
@@ -460,7 +501,8 @@ async function loadNetworkData() {
                 displayName = fullName || linkedInConn.headline || nodeId;
                 avatarUrl = linkedInConn.profilePictureUrl || "";
                 location = linkedInConn.location;
-                currentJob = linkedInConn.currentPosition || linkedInConn.headline;
+                currentJob =
+                    linkedInConn.currentPosition || linkedInConn.headline;
 
                 nodeProfiles.value[nodeId] = {
                     profile: {
@@ -489,9 +531,10 @@ async function loadNetworkData() {
                 }
 
                 // Use empty string if avatar is default so initials will show
-                avatarUrl = profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
-                    ? ""
-                    : profileData.avatarUrl;
+                avatarUrl =
+                    profileData.avatarUrl === avatarStore.DEFAULT_AVATAR
+                        ? ""
+                        : profileData.avatarUrl;
                 location = profile.location;
                 currentJob = profile.headline;
             }
@@ -590,6 +633,8 @@ onMounted(() => {
 
 .action-btn.primary:hover:not(:disabled) {
     background: var(--color-navy-700);
+    /* Make the button text a darker blue on hover for better emphasis */
+    color: #003b6d;
 }
 
 .action-btn.danger {

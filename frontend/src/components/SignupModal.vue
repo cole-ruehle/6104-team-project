@@ -2,9 +2,7 @@
     <div class="modal-overlay" @click.self="handleClose">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">
-                    Create Account
-                </h2>
+                <h2 class="modal-title">Create Account</h2>
                 <button
                     class="modal-close"
                     @click="handleClose"
@@ -17,9 +15,13 @@
                 <!-- Account Creation Form -->
                 <div class="step-content">
                     <p class="step-description">
-                        Create your account. Your profile and network will be set up automatically.
+                        Create your account. Your profile and network will be
+                        set up automatically.
                     </p>
-                    <form @submit.prevent="handleAccountCreation" class="auth-form">
+                    <form
+                        @submit.prevent="handleAccountCreation"
+                        class="auth-form"
+                    >
                         <div class="form-section">
                             <label class="form-label">Username *</label>
                             <input
@@ -63,7 +65,11 @@
                                 :disabled="auth.loading || submitting"
                             >
                                 <i class="fa-solid fa-user-plus"></i>
-                                {{ (auth.loading || submitting) ? "Creating Account..." : "Create Account" }}
+                                {{
+                                    auth.loading || submitting
+                                        ? "Creating Account..."
+                                        : "Create Account"
+                                }}
                             </button>
                         </div>
                     </form>
@@ -76,7 +82,10 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { PublicProfileAPI, MultiSourceNetworkAPI } from "@/services/conceptClient";
+import {
+    PublicProfileAPI,
+    MultiSourceNetworkAPI,
+} from "@/services/conceptClient";
 import { useRouter } from "vue-router";
 
 const auth = useAuthStore();
@@ -109,42 +118,48 @@ async function handleAccountCreation() {
     // Clear any previous errors
     auth.error = null;
     submitting.value = true;
-    
+
     try {
         console.log("Attempting to register user:", accountForm.username);
         const userId = await auth.register({
             username: accountForm.username.trim(),
             password: accountForm.password,
         });
-        
+
         console.log("Registration successful, userId:", userId);
-        
+
         // Only proceed if registration was successful and we have a userId
         if (userId && auth.userId) {
             accountForm.password = ""; // Clear password for security
-            
+
             // Automatically create profile and network
-            console.log("Automatically creating profile and network for new user");
-            
+            console.log(
+                "Automatically creating profile and network for new user"
+            );
+
             try {
                 // Create profile with default headline
                 const profileResult = await PublicProfileAPI.createProfile({
                     user: auth.userId,
-                    headline: `${auth.username || accountForm.username}'s Profile`,
+                    headline: `${
+                        auth.username || accountForm.username
+                    }'s Profile`,
                     attributes: [],
                     links: [],
                 });
-                
+
                 console.log("Profile created:", profileResult);
-                
+
                 // Create network with user as root
-                const networkResult = await MultiSourceNetworkAPI.createNetwork({
-                    owner: auth.userId,
-                    root: auth.userId,
-                });
-                
+                const networkResult = await MultiSourceNetworkAPI.createNetwork(
+                    {
+                        owner: auth.userId,
+                        root: auth.userId,
+                    }
+                );
+
                 console.log("Network created:", networkResult);
-                
+
                 // Success - close modal and redirect
                 console.log("Account setup complete, redirecting to home");
                 emit("close");
@@ -153,9 +168,10 @@ async function handleAccountCreation() {
                 console.error("Error setting up profile/network:", setupError);
                 // Even if profile/network creation fails, user is registered
                 // They can create these later if needed
-                const errorMessage = setupError instanceof Error 
-                    ? setupError.message 
-                    : "Account created but profile setup failed. You can create it later.";
+                const errorMessage =
+                    setupError instanceof Error
+                        ? setupError.message
+                        : "Account created but profile setup failed. You can create it later.";
                 auth.error = errorMessage;
                 // Still redirect to home - user can set up profile/network later
                 emit("close");
@@ -169,9 +185,10 @@ async function handleAccountCreation() {
         console.error("Registration error:", error);
         // Ensure error is set if auth store didn't set it
         if (!auth.error) {
-            const errorMessage = error instanceof Error 
-                ? error.message 
-                : "Registration failed. Please try again.";
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "Registration failed. Please try again.";
             auth.error = errorMessage;
         }
         // Don't clear password on error so user can retry
@@ -179,7 +196,6 @@ async function handleAccountCreation() {
         submitting.value = false;
     }
 }
-
 </script>
 
 <style scoped>
@@ -366,7 +382,8 @@ async function handleAccountCreation() {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--color-navy-700);
+    /* Match Login modal primary hover background for visual consistency */
+    background: #003b6d;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
@@ -396,4 +413,3 @@ async function handleAccountCreation() {
     cursor: not-allowed;
 }
 </style>
-

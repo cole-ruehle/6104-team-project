@@ -2,7 +2,14 @@
 
 ### Differences From Original Design
 
-**Table**
+| Feature | Original Design | Final Implementation | How It Changed |
+|---------|----------------|---------------------|----------------|
+| **LinkedIn Import** | OAuth/API integration or scraping | File upload (CSV/JSON) | Switched from API/scraping to user-uploaded export files for ethical compliance and LinkedIn restrictions |
+| **User Flow** | Separate steps for account creation, profile setup, network creation | Unified flow with guided onboarding | Streamlined into a single guided process that creates account, profile, and network automatically |
+| **Export** | Not specified | CSV export functionality | Added new feature to allow users to download their network data for backup/portability |
+| **Tutorials** | Not specified | Dedicated tutorials page with step-by-step guides | Added educational content to help users understand platform features and workflows |
+| **Network Management** | Manual node/edge addition | Automated additions via "Add Connection" button | Single-button flow that creates node, adds to network, and creates edge automatically |
+| **Search** | Semantic search only | Semantic + standard text/filter search | Added traditional search alongside AI-powered semantic search for flexibility especially in the case of technical issues with semantic search |
 
 ## Design Summary
 
@@ -10,7 +17,7 @@
 
 This is one concept that we discuseed (more a feature) we determined through meetings with our TA and amoung ourselves that it may not have been critical to the functionality and purpose of our project. Therefore it was deprioritized. Additionally the user flow was the main reason we changed the design of this function. In teh case you add 600 people the balance between allowing the user to undersatnd the matching that is going on and itntervene in the case of a problem while not bothering them too much is difficult. With intelligent matching the question is a complex one. "Are these 2 bits of data representative of the same people?" It is complex and messing it up can greatly hurt one user's experience and also the privacy of another user. Since this would allow a user to connect to and view data of a person someone else added. 
 
-In researching similar solutions we saw 2 options: Complex algorithms that are trained for the purpose of disambiguation specifically, and a simple rule based system that is accountable and easy to undedrstand. The best mix for us is a simple rule based system which lets us be confident in the disambiguation and no have to require user input to make it happen. Therefore we implemented this system fo rlinked in imports only and match based on the unique profile url. This simple rule enables the connection we discussed without complicating profiles or user flows. 
+In researching similar solutions we saw 2 options: Complex algorithms that are trained for the purpose of disambiguation specifically, and a simple rule based system that is accountable and easy to undedrstand. The best mix for us is a simple rule based system which lets us be confident in the disambiguation and no have to require user input to make it happen. Therefore we implemented this system fo rlinked in imports only and match based on the unique profile url. This simple rule enables the connection we discussed without complicating profiles or user flows. However this rule is not implemented between different accounts due to the privacy consideraitons. Though possible we think that the privacy considerations would be outside of the scorpe of the ethical analysis we did for the project. 
 
 ### Ethics of importing
 Our original plan was to use a system similar to those commercially available online, which scrape profile information on a per-profile basis (e.g., profile_id → information). However, despite these sources existing, many are vague about how they accomplish this. Upon reviewing the LinkedIn API, we discovered that a change was made around six years ago to limit the amount of information accessible through standard means. This is because LinkedIn decided to monetize access to this data, making it available only to their corporate partners—requiring negotiation of a hefty payment package. Despite these factors, it is clearly still possible to get information from LinkedIn, and since LinkedIn still permits it (for a price), the use of that data is not inherently unethical. However, after this research, it became clear that knowingly subverting the explicit changes LinkedIn has made would be unethical.
