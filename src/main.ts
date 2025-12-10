@@ -31,7 +31,11 @@ const bootstrap = async () => {
   try {
     if ("SemanticSearch" in concepts) {
       // @ts-ignore Instrumented concept instance
+      console.log(
+        "[SemanticSearch] Rebuilding semantic index from IndexedItems...",
+      );
       await (concepts as any).SemanticSearch.reindexAllOwners({});
+      console.log("[SemanticSearch] Semantic index rebuild complete.");
     }
   } catch (err) {
     console.error("[SemanticSearch] Failed to reindex on startup:", err);
