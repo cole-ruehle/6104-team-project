@@ -373,8 +373,8 @@ main {
 }
 
 .avatar-chip {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.5);
@@ -941,13 +941,15 @@ button:disabled {
     gap: 1rem;
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
-    background: #e5edf7; /* light, high-contrast strip for name/score */
+    background: #e5edf7;
+    /* light, high-contrast strip for name/score */
 }
 
 .connection-card__header h3 {
     margin: 0;
     font-size: 1.05rem;
-    color: var(--color-navy-900); /* very dark text on light bg */
+    color: var(--color-navy-900);
+    /* very dark text on light bg */
 }
 
 .score-pill {

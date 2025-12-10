@@ -60,17 +60,10 @@
                 </button>
             </div>
 
-            <div v-if="importResult" class="import-result">
+            <div v-if="importResult && importResult.error" class="import-result">
                 <h3>Import Result</h3>
                 <p><strong>Status:</strong> {{ importResult.status }}</p>
-                <p v-if="importResult.importJob">
-                    <strong>Import Job ID:</strong> {{ importResult.importJob }}
-                </p>
-                <p v-if="importResult.connectionsImported !== undefined">
-                    <strong>Connections Imported:</strong>
-                    {{ importResult.connectionsImported }}
-                </p>
-                <p v-if="importResult.error" class="error-text">
+                <p class="error-text">
                     <strong>Error:</strong> {{ importResult.error }}
                 </p>
             </div>
@@ -235,15 +228,12 @@ async function handleUpload() {
 
         importResult.value = {
             status: "success",
-            importJob: result.importJob,
-            connectionsImported: result.connectionsImported,
-            connections: result.connections,
         };
 
-        showBanner(
-            "success",
-            `Successfully imported ${result.connectionsImported} connections!`
-        );
+        showBanner("success", "Success");
+
+        // Trigger tooltip to show network graph button
+        window.dispatchEvent(new CustomEvent("csvImportCompleted"));
     } catch (error) {
         const errorMessage = formatError(error);
         importResult.value = {

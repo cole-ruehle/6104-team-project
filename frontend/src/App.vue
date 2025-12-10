@@ -40,6 +40,22 @@
                 v-if="showSettings"
                 @close="showSettings = false"
             />
+
+      <!-- Floating Network Button -->
+      <FloatingNetworkButton
+        :isMinimized="false"
+        :showSettings="showSettings"
+        :showTooltip="showNetworkTooltip"
+        @toggle="toggleNetworkModal"
+        @tooltipDismissed="dismissNetworkTooltip"
+      />
+
+      <!-- Network Graph Modal -->
+      <NetworkGraphModal
+        :isOpen="showNetworkModal"
+        @close="closeNetworkModal"
+        @nodeSelected="handleNetworkNodeSelected"
+      />
         </template>
     </div>
 </template>
@@ -49,6 +65,8 @@ import { RouterLink, RouterView, useRouter } from "vue-router";
 import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import LandingPage from "@/pages/LandingPage.vue";
 import UserSettingsPanel from "@/components/UserSettingsPanel.vue";
+import FloatingNetworkButton from "@/components/FloatingNetworkButton.vue";
+import NetworkGraphModal from "@/components/NetworkGraphModal.vue";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAvatarStore } from "@/stores/useAvatarStore";
 import { PublicProfileAPI } from "@/services/conceptClient";
@@ -57,6 +75,33 @@ const auth = useAuthStore();
 const avatar = useAvatarStore();
 const router = useRouter();
 const showSettings = ref(false);
+const showNetworkModal = ref(false);
+const showNetworkTooltip = ref(false);
+
+// Check if tooltip should be shown (first visit or after CSV import)
+function checkShouldShowTooltip() {
+  if (!auth.isAuthenticated) return;
+
+  // Check localStorage for tooltip dismissal
+  const tooltipDismissed = localStorage.getItem("networkTooltipDismissed");
+  const csvImportCompleted = sessionStorage.getItem("csvImportCompleted");
+
+  // Show tooltip if:
+  // 1. It hasn't been dismissed before, OR
+  // 2. CSV import was just completed
+  if (csvImportCompleted === "true" || !tooltipDismissed) {
+    showNetworkTooltip.value = true;
+    // Clear the CSV import flag after showing
+    if (csvImportCompleted === "true") {
+      sessionStorage.removeItem("csvImportCompleted");
+    }
+  }
+}
+
+function dismissNetworkTooltip() {
+  showNetworkTooltip.value = false;
+  localStorage.setItem("networkTooltipDismissed", "true");
+}
 
 // Load profile picture when user logs in
 async function loadUserProfilePicture() {
@@ -89,12 +134,18 @@ async function loadUserProfilePicture() {
 onMounted(() => {
     if (auth.isAuthenticated) {
         loadUserProfilePicture();
+    checkShouldShowTooltip();
     }
     // Listen for profile picture updates
     window.addEventListener(
         "profilePictureUpdated",
         handleProfilePictureUpdated
     );
+  // Listen for CSV import completion
+  window.addEventListener("csvImportCompleted", () => {
+    sessionStorage.setItem("csvImportCompleted", "true");
+    checkShouldShowTooltip();
+  });
 });
 
 // Clean up event listener
@@ -116,6 +167,7 @@ watch(
     (userId) => {
         if (userId) {
             loadUserProfilePicture();
+    checkShouldShowTooltip();
             // Redirect to home if not already there
             if (
                 router.currentRoute.value.path === "/" ||
@@ -130,5 +182,18 @@ watch(
 function handleLogout() {
     auth.logout();
     router.push("/");
+}
+
+function toggleNetworkModal() {
+  showNetworkModal.value = !showNetworkModal.value;
+}
+
+function closeNetworkModal() {
+  showNetworkModal.value = false;
+}
+
+function handleNetworkNodeSelected(nodeId: string) {
+  // Navigate to home page with nodeId query param to open profile modal
+  router.push({ path: "/home", query: { nodeId } });
 }
 </script>

@@ -265,11 +265,25 @@ async function handleConnectionAdded() {
 }
 
 function getInitials(text: string): string {
-    if (!text) return "?";
+    if (!text) return "??";
     const trimmed = text.trim();
-    if (trimmed.length === 0) return "?";
-    // Return only the first letter
-    return trimmed[0].toUpperCase();
+    if (trimmed.length === 0) return "??";
+
+    // Split by spaces to get name parts
+    const parts = trimmed.split(/\s+/).filter(part => part.length > 0);
+
+    if (parts.length === 0) return "??";
+
+    // If only one part, use first letter twice
+    if (parts.length === 1) {
+        const letter = parts[0][0].toUpperCase();
+        return letter + letter;
+    }
+
+    // Get first letter of first name and first letter of last name
+    const firstLetter = parts[0][0].toUpperCase();
+    const lastLetter = parts[parts.length - 1][0].toUpperCase();
+    return firstLetter + lastLetter;
 }
 
 async function fetchNodeProfiles(nodeIds: string[]) {

@@ -159,7 +159,7 @@
                                 type="number"
                                 v-model.number="cardsPerRow"
                                 min="1"
-                                max="10"
+                                max="7"
                                 class="control-input"
                             />
                         </div>
@@ -257,6 +257,7 @@
             <!-- Network View -->
             <div v-else class="network-view">
                 <NetworkDisplayVis
+                    @edgeCreated="handleNetworkEdgeCreated"
                     v-if="adjacency"
                     :adjacency="adjacency"
                     :nodeProfiles="nodeProfiles"
@@ -736,6 +737,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
     MultiSourceNetworkAPI,
     type AdjacencyMap,
@@ -754,6 +756,8 @@ import NetworkDisplayVis from "@/components/NetworkDisplayVis.vue";
 
 const auth = useAuthStore();
 const avatarStore = useAvatarStore();
+const route = useRoute();
+const router = useRouter();
 
 // State
 const searchQuery = ref("");
@@ -1753,11 +1757,25 @@ async function saveProfile() {
 }
 
 function getInitials(text: string): string {
-    if (!text) return "?";
+    if (!text) return "??";
     const trimmed = text.trim();
-    if (trimmed.length === 0) return "?";
-    // Return only the first letter
-    return trimmed[0].toUpperCase();
+    if (trimmed.length === 0) return "??";
+
+    // Split by spaces to get name parts
+    const parts = trimmed.split(/\s+/).filter(part => part.length > 0);
+
+    if (parts.length === 0) return "??";
+
+    // If only one part, use first letter twice
+    if (parts.length === 1) {
+        const letter = parts[0][0].toUpperCase();
+        return letter + letter;
+    }
+
+    // Get first letter of first name and first letter of last name
+    const firstLetter = parts[0][0].toUpperCase();
+    const lastLetter = parts[parts.length - 1][0].toUpperCase();
+    return firstLetter + lastLetter;
 }
 
 // Helper function to extract node data consistently for both search modes
@@ -1923,6 +1941,11 @@ async function loadLinkedInConnections() {
     } catch (error) {
         console.error("Error loading LinkedIn connections:", error);
     }
+}
+
+function handleNetworkEdgeCreated() {
+    // Reload network data to reflect the new edge
+    loadNetworkData();
 }
 
 async function loadNetworkData() {
@@ -2116,6 +2139,22 @@ onMounted(() => {
         "profilePictureUpdated",
         handleProfilePictureUpdate as EventListener
     );
+
+    // Check for nodeId in query params to open profile modal
+    if (route.query.nodeId && typeof route.query.nodeId === "string") {
+        openProfileModal(route.query.nodeId);
+        // Clean up query param
+        router.replace({ query: {} });
+    }
+});
+
+// Watch for route changes to handle nodeId query param
+watch(() => route.query.nodeId, (nodeId) => {
+    if (nodeId && typeof nodeId === "string") {
+        openProfileModal(nodeId);
+        // Clean up query param
+        router.replace({ query: {} });
+    }
 });
 
 onBeforeUnmount(() => {
