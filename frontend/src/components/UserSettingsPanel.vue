@@ -77,19 +77,7 @@
 
       <!-- Profile Details Section removed as requested -->
 
-      <!-- Danger Zone -->
-      <div class="danger-zone">
-        <h3 class="section-title danger-title">Danger Zone</h3>
-        <button
-          type="button"
-          class="danger-btn"
-          @click="handleDeleteProfile"
-          :disabled="deleting"
-        >
-          <i class="fa-solid fa-trash"></i>
-          <span>{{ deleting ? "Deleting…" : "Delete Profile" }}</span>
-        </button>
-      </div>
+      <!-- Danger Zone removed as requested -->
     </div>
   </div>
 </template>
