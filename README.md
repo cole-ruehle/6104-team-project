@@ -19,6 +19,13 @@
 - [Update 2](project-updates/update-2.md)
 - [Update 3](project-updates/update-3.md)
 - [Update 4](project-updates/update-4.md)
+- [Update 5](project-updates/update-5.md)
+
+### User Testing
+[User Testing](UserTesting.md)
+
+### Final Project Report
+[Project Report](FinalReport.md)
 
 <br>
 
@@ -48,6 +55,3 @@ You can download the sample LinkedIn CSV file below to test importing. You can a
 
 ### Features Still in Development and Known Issues
 - [Features Still in Development and Known Issues — Beta](Beta-In-Development-Known-Issues.md)
-
-### User Testing
-[User Testing](UserTesting.md)
