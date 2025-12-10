@@ -6,7 +6,6 @@
     >
         <div
             class="network-modal"
-            :class="{ minimized: isMinimized }"
         >
             <div class="network-modal-header">
                 <h2 class="network-modal-title">Network Graph</h2>
@@ -37,6 +36,7 @@
                     :rootNodeId="auth.userId"
                     :currentUserId="auth.userId"
                     @nodeSelected="handleNodeSelected"
+                    @edgeCreated="handleEdgeCreated"
                 />
                 <div v-else class="network-empty">
                     <div class="empty-icon">🔗</div>
@@ -343,6 +343,11 @@ function handleNodeSelected(nodeId: string) {
     emit("nodeSelected", nodeId);
     // Close modal when node is selected to show profile
     close();
+}
+
+function handleEdgeCreated() {
+    // Reload network data to reflect the new edge
+    loadNetworkData();
 }
 </script>
 

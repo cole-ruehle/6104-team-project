@@ -36,15 +36,59 @@
 
         <!-- Network Container -->
         <div class="network-visualization-container">
-            <div ref="networkContainer" class="network-graph"></div>
-            <!-- Zoom indicator -->
-            <div
-                v-if="networkInstance && hasNodes"
-                class="zoom-indicator"
-            >
-                {{ Math.round(currentZoom * 100) }}%
+            <!-- Search Bar (inside graph) -->
+            <div v-if="hasNodes" class="graph-search-bar">
+                <div class="search-input-wrapper">
+                    <input
+                        type="text"
+                        v-model="searchQuery"
+                        @input="handleSearchInput"
+                        @keydown.enter="handleSearchSubmit"
+                        placeholder="Search nodes..."
+                        class="search-input"
+                    />
+                    <p class="fa-solid fa-search search-icon"></p>
+                </div>
+                <button
+                    @click="handleSearchSubmit"
+                    class="search-submit-btn"
+                    title="Search"
+                >
+                    <p class="fa-solid fa-search">🔍</p>
+                </button>
+                <button
+                    v-if="searchQuery"
+                    @click="clearSearch"
+                    class="clear-search-btn"
+                    title="Clear search"
+                >
+                    <i class="fa-solid fa-times"></i>
+                </button>
             </div>
-            <!-- Center button -->
+
+            <!-- Connection Mode Toggle (inside graph) -->
+            <div v-if="hasNodes" class="connection-mode-toggle-inside">
+                <label class="toggle-label">
+                    <span>Connection Mode</span>
+                    <div
+                        class="toggle-switch"
+                        :class="{ active: connectionMode }"
+                        @click="connectionMode = !connectionMode; onConnectionModeChange()"
+                    >
+                        <div class="toggle-slider"></div>
+                    </div>
+                </label>
+                <p v-if="connectionMode" class="toggle-hint">
+                    Click two nodes to connect them
+                </p>
+                <div v-if="connectionMode && selectedNodes.length > 0" class="selected-nodes-info">
+                    <p>Selected: {{ selectedNodes.length }}/2</p>
+                    <button @click="clearSelection" class="clear-selection-btn">Clear</button>
+                </div>
+            </div>
+
+            <div ref="networkContainer" class="network-graph"></div>
+            <!-- Center button (below search bar) -->
             <button
                 v-if="networkInstance && hasNodes"
                 @click="centerOnRoot"
@@ -52,6 +96,13 @@
                 title="Center on root node"
             >
                 <i class="fa-solid fa-crosshairs"></i>Center Root</button>
+            <!-- Zoom indicator (bottom right) -->
+            <div
+                v-if="networkInstance && hasNodes"
+                class="zoom-indicator"
+            >
+                {{ Math.round(currentZoom * 100) }}%
+            </div>
         </div>
 
         <!-- Empty State -->
@@ -68,6 +119,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue"
 import { Network, DataSet } from "vis-network/standalone";
 import "vis-network/styles/vis-network.css";
 import type { AdjacencyMap } from "@/services/conceptClient";
+import { MultiSourceNetworkAPI } from "@/services/conceptClient";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAvatarStore } from "@/stores/useAvatarStore";
 
@@ -88,7 +140,264 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
     nodeSelected: [nodeId: string];
+    edgeCreated: [];
 }>();
+
+const auth = useAuthStore();
+const avatarStore = useAvatarStore();
+const connectionMode = ref(false);
+const creatingEdge = ref(false);
+const selectedNodes = ref<string[]>([]);
+const edgeDataSet = ref<DataSet<any> | null>(null);
+const nodeDataSet = ref<DataSet<any> | null>(null);
+const originalNodeColors = ref<Map<string, string>>(new Map());
+const searchQuery = ref("");
+
+// Handle connection mode toggle
+function onConnectionModeChange() {
+    if (!networkInstance.value) return;
+
+    // Clear selection when toggling off
+    if (!connectionMode.value) {
+        clearSelection();
+        // Reset all node borders to original state with degree-based colors
+        if (nodeDataSet.value) {
+            const nodes = nodeDataSet.value;
+            nodes.forEach((node: any) => {
+                const isRoot = node.id === props.rootNodeId || node.id === props.currentUserId;
+                const originalBorderColor = originalNodeColors.value.get(node.id) || node.color.border;
+                nodes.update({
+                    id: node.id,
+                    borderWidth: isRoot ? 6 : 4,
+                    color: {
+                        ...node.color,
+                        border: originalBorderColor,
+                    },
+                });
+            });
+        }
+    }
+
+    // Enable/disable node dragging
+    networkInstance.value.setOptions({
+        interaction: {
+            dragNodes: !connectionMode.value,
+        },
+        manipulation: {
+            enabled: false,
+        },
+    });
+}
+
+// Handle node selection for connection mode
+function handleNodeClick(nodeId: string) {
+    if (!connectionMode.value) return;
+
+    // If clicking the same node, deselect it
+    if (selectedNodes.value.includes(nodeId)) {
+        selectedNodes.value = selectedNodes.value.filter(id => id !== nodeId);
+        updateNodeSelection();
+        return;
+    }
+
+    // Add node to selection (max 2)
+    if (selectedNodes.value.length < 2) {
+        selectedNodes.value.push(nodeId);
+        updateNodeSelection();
+
+        // If we have 2 nodes selected, create the edge
+        if (selectedNodes.value.length === 2) {
+            createEdgeFromSelection();
+        }
+    } else {
+        // Replace the first selected node with the new one
+        selectedNodes.value = [selectedNodes.value[1], nodeId];
+        updateNodeSelection();
+        createEdgeFromSelection();
+    }
+}
+
+// Update node visual selection
+function updateNodeSelection() {
+    if (!networkInstance.value || !nodeDataSet.value) return;
+
+    const nodes = nodeDataSet.value;
+    nodes.forEach((node: any) => {
+        const isSelected = selectedNodes.value.includes(node.id);
+        const isRoot = node.id === props.rootNodeId || node.id === props.currentUserId;
+
+        // Get original border color from stored map, fallback to current color
+        const originalBorderColor = originalNodeColors.value.get(node.id) || node.color.border;
+
+        nodes.update({
+            id: node.id,
+            borderWidth: isSelected ? 8 : (isRoot ? 6 : 4),
+            color: {
+                ...node.color,
+                border: isSelected ? "#9333ea" : originalBorderColor,
+            },
+        });
+    });
+}
+
+// Clear node selection
+function clearSelection() {
+    selectedNodes.value = [];
+    updateNodeSelection();
+}
+
+// Handle search input
+function handleSearchInput() {
+    applySearchFilter();
+}
+
+// Handle search submit (Enter key or button click)
+function handleSearchSubmit() {
+    applySearchFilter();
+}
+
+// Clear search
+function clearSearch() {
+    searchQuery.value = "";
+    applySearchFilter();
+}
+
+// Apply search filter to nodes
+function applySearchFilter() {
+    if (!nodeDataSet.value || !networkInstance.value) return;
+
+    const nodes = nodeDataSet.value;
+    const query = searchQuery.value.toLowerCase().trim();
+
+    if (!query) {
+        // Show all nodes
+        nodes.forEach((node: any) => {
+            nodes.update({
+                id: node.id,
+                hidden: false,
+            });
+        });
+        return;
+    }
+
+    // Filter nodes based on search query and find matching nodes
+    const matchingNodeIds: string[] = [];
+    nodes.forEach((node: any) => {
+        const nodeLabel = (node.label || "").toLowerCase();
+        const matches = nodeLabel.includes(query);
+
+        if (matches) {
+            matchingNodeIds.push(node.id);
+        }
+
+        nodes.update({
+            id: node.id,
+            hidden: !matches,
+        });
+    });
+
+    // Auto-zoom and center on the first matching node
+    if (matchingNodeIds.length > 0) {
+        setTimeout(() => {
+            if (!networkInstance.value) return;
+
+            try {
+                const targetNodeId = matchingNodeIds[0];
+                const currentScale = networkInstance.value.getScale() || 1;
+
+                // Focus on the matching node with animation
+                networkInstance.value.focus(targetNodeId, {
+                    scale: Math.min(currentScale * 1.5, 2), // Zoom in a bit more
+                    animation: {
+                        duration: 500,
+                        easingFunction: "easeInOutQuad",
+                    },
+                });
+
+                // Update zoom indicator
+                setTimeout(() => {
+                    if (networkInstance.value) {
+                        const newScale = networkInstance.value.getScale();
+                        if (newScale !== undefined) {
+                            currentZoom.value = newScale;
+                        }
+                    }
+                }, 100);
+            } catch (error) {
+                console.warn("Error focusing on searched node:", error);
+                // Fallback to fit view if focus fails
+                if (networkInstance.value) {
+                    try {
+                        networkInstance.value.fit({
+                            animation: {
+                                duration: 300,
+                                easingFunction: "easeInOutQuad",
+                            },
+                        });
+                    } catch (fitError) {
+                        console.warn("Error fitting network after search:", fitError);
+                    }
+                }
+            }
+        }, 100);
+    } else {
+        // No matches, just fit to show all visible nodes
+        setTimeout(() => {
+            if (networkInstance.value) {
+                try {
+                    networkInstance.value.fit({
+                        animation: {
+                            duration: 300,
+                            easingFunction: "easeInOutQuad",
+                        },
+                    });
+                } catch (error) {
+                    console.warn("Error fitting network after search:", error);
+                }
+            }
+        }, 100);
+    }
+}
+
+// Create edge from selected nodes
+async function createEdgeFromSelection() {
+    if (selectedNodes.value.length !== 2 || !auth.userId || creatingEdge.value) {
+        return;
+    }
+
+    const [fromNode, toNode] = selectedNodes.value;
+
+    if (fromNode === toNode) {
+        return;
+    }
+
+    creatingEdge.value = true;
+
+    try {
+        // Create edge in backend
+        await MultiSourceNetworkAPI.addEdge({
+            owner: auth.userId,
+            from: fromNode,
+            to: toNode,
+            source: "manual",
+        });
+
+        // Emit event to refresh adjacency data
+        window.dispatchEvent(new CustomEvent("networkEdgeCreated"));
+        emit("edgeCreated");
+
+        // Clear selection after successful creation
+        clearSelection();
+
+        // Show success feedback
+        console.log(`Edge created from ${fromNode} to ${toNode}`);
+    } catch (error) {
+        console.error("Error creating edge:", error);
+        // Keep selection so user can try again
+    } finally {
+        creatingEdge.value = false;
+    }
+}
 
 // Expose method to center on root node
 function centerOnRoot() {
@@ -115,9 +424,6 @@ function centerOnRoot() {
 defineExpose({
     centerOnRoot,
 });
-
-const auth = useAuthStore();
-const avatarStore = useAvatarStore();
 
 // Refs
 const networkContainer = ref<HTMLElement | null>(null);
@@ -272,6 +578,9 @@ async function renderNetwork() {
     const nodes = new DataSet<any>([]);
     const edges = new DataSet<any>([]);
 
+    // Clear and reset original node colors map
+    originalNodeColors.value.clear();
+
     // Create nodes
     const nodeIds = Object.keys(props.adjacency);
     const allNodeIds = new Set<string>(nodeIds);
@@ -333,6 +642,9 @@ async function renderNetwork() {
             nodeId === props.currentUserId
                 ? auth.username || profileData.username || nodeId
                 : profileData.username || nodeId;
+
+        // Store original border color for later restoration
+        originalNodeColors.value.set(nodeId, nodeColor);
 
         const node: any = {
             id: nodeId,
@@ -514,6 +826,9 @@ async function renderNetwork() {
             dragView: true,
             dragNodes: true,
         },
+        manipulation: {
+            enabled: false,
+        },
         layout: {
             improvedLayout: nodes.length > 1,
         },
@@ -552,11 +867,25 @@ async function renderNetwork() {
         );
         console.log("Network visualization created successfully");
 
+        // Store dataset references for later use
+        edgeDataSet.value = edges;
+        nodeDataSet.value = nodes;
+
+        // Apply search filter if active
+        applySearchFilter();
+
         // Handle node click
         networkInstance.value.on("click", (params: any) => {
             if (params.nodes && params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
-                emit("nodeSelected", nodeId);
+
+                if (connectionMode.value) {
+                    // In connection mode, handle node selection
+                    handleNodeClick(nodeId);
+                } else {
+                    // Normal mode: emit node selection
+                    emit("nodeSelected", nodeId);
+                }
             }
         });
 
@@ -645,6 +974,11 @@ watch(
     { deep: true }
 );
 
+// Watch for search query changes to apply filter
+watch(searchQuery, () => {
+    applySearchFilter();
+});
+
 // Cleanup on unmount
 onBeforeUnmount(() => {
     if (networkInstance.value) {
@@ -652,12 +986,25 @@ onBeforeUnmount(() => {
     }
 });
 
-// Initialize on mount
+// Listen for edge creation events to refresh network
 onMounted(() => {
     if (props.adjacency && Object.keys(props.adjacency).length > 0) {
         renderNetwork();
     }
+
+    // Listen for edge creation events to refresh adjacency
+    window.addEventListener("networkEdgeCreated", handleNetworkEdgeCreated);
 });
+
+onBeforeUnmount(() => {
+    window.removeEventListener("networkEdgeCreated", handleNetworkEdgeCreated);
+});
+
+function handleNetworkEdgeCreated() {
+    // Trigger a refresh by emitting an event that parent can listen to
+    // The parent component should reload adjacency data
+    emit("edgeCreated");
+}
 </script>
 
 <style scoped>
@@ -727,7 +1074,7 @@ onMounted(() => {
 
 .zoom-indicator {
     position: absolute;
-    top: 1rem;
+    bottom: 1rem;
     right: 1rem;
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(8px);
@@ -742,7 +1089,7 @@ onMounted(() => {
 
 .center-graph-btn {
     position: absolute;
-    top: 1rem;
+    top: calc(3.5rem + 0.5rem);
     left: 1rem;
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(8px);
@@ -795,5 +1142,193 @@ onMounted(() => {
         height: 60vh;
         min-height: 400px;
     }
+}
+
+.connection-mode-toggle-inside {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    min-width: 200px;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background: #cbd5e1;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.toggle-switch.active {
+    background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-slider {
+    transform: translateX(24px);
+}
+
+.toggle-hint {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    font-style: italic;
+}
+
+.selected-nodes-info {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(15, 23, 42, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.selected-nodes-info p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+.clear-selection-btn {
+    padding: 0.25rem 0.5rem;
+    background: #f1f5f9;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clear-selection-btn:hover {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.graph-search-bar {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-width: 250px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid rgba(15, 23, 42, 0.2);
+    border-radius: 0.375rem;
+    background: white;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: var(--color-navy-400);
+    box-shadow: 0 0 0 3px rgba(102, 153, 204, 0.2);
+}
+
+.search-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+    font-size: 0.875rem;
+}
+
+.search-submit-btn {
+    padding: 0.5rem;
+    background: var(--color-navy-600);
+    border: 1px solid var(--color-navy-600);
+    border-radius: 0.375rem;
+    color: rgb(80, 127, 255);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+}
+
+.search-submit-btn:hover {
+    background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+    border-color: #9333ea;
+    transform: translateY(-1px);
+}
+
+.clear-search-btn {
+    padding: 0.5rem;
+    background: #f1f5f9;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 0.375rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+}
+
+.clear-search-btn:hover {
+    background: #e2e8f0;
+    color: #475569;
 }
 </style>

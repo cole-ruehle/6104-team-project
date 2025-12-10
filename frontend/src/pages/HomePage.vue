@@ -252,6 +252,7 @@
             <!-- Network View -->
             <div v-else class="network-view">
                 <NetworkDisplayVis
+                    @edgeCreated="handleNetworkEdgeCreated"
                     v-if="adjacency"
                     :adjacency="adjacency"
                     :nodeProfiles="nodeProfiles"
@@ -1929,6 +1930,11 @@ async function loadLinkedInConnections() {
     } catch (error) {
         console.error("Error loading LinkedIn connections:", error);
     }
+}
+
+function handleNetworkEdgeCreated() {
+    // Reload network data to reflect the new edge
+    loadNetworkData();
 }
 
 async function loadNetworkData() {
